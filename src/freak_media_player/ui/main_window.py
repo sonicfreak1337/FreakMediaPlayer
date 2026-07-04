@@ -3,10 +3,27 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QMainWindow, QSplitter, QStatusBar, QWidget
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QMainWindow,
+    QSplitter,
+    QStatusBar,
+    QVBoxLayout,
+    QWidget,
+)
 
 from freak_media_player.services.playback_service import PlaybackService
+from freak_media_player.ui.constants import (
+    DOCK_MINIMUM_WIDTH,
+    WINDOW_MINIMUM_HEIGHT,
+    WINDOW_MINIMUM_WIDTH,
+    WINDOW_START_HEIGHT,
+    WINDOW_START_WIDTH,
+)
+from freak_media_player.ui.navigation import NavigationViewModel
+from freak_media_player.widgets.dock_panel import DockPanel
 from freak_media_player.widgets.player_bar import PlayerBar
+from freak_media_player.widgets.shell import ShellContent
 from freak_media_player.widgets.sidebar import Sidebar
 
 
@@ -14,22 +31,53 @@ class MainWindow(QMainWindow):
     def __init__(self, playback_service: PlaybackService) -> None:
         super().__init__()
         self._playback_service = playback_service
+        self._navigation = NavigationViewModel()
+        self._content = ShellContent()
         self.setWindowTitle("Freak Media Player")
-        self.resize(1280, 800)
+        self.setMinimumSize(WINDOW_MINIMUM_WIDTH, WINDOW_MINIMUM_HEIGHT)
+        self.resize(WINDOW_START_WIDTH, WINDOW_START_HEIGHT)
         self._build_layout()
 
     def _build_layout(self) -> None:
+        root = QWidget()
+        root_layout = QVBoxLayout(root)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(Sidebar())
-        splitter.addWidget(self._build_library_placeholder())
+        sidebar = Sidebar(navigation=self._navigation)
+        sidebar.section_selected.connect(self._content.set_section)
+        splitter.addWidget(sidebar)
+        splitter.addWidget(self._content)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
 
-        self.setCentralWidget(splitter)
-        self.setStatusBar(QStatusBar())
-        self.setMenuWidget(PlayerBar(playback_service=self._playback_service))
+        root_layout.addWidget(splitter, 1)
+        root_layout.addWidget(PlayerBar(playback_service=self._playback_service))
 
-    def _build_library_placeholder(self) -> QWidget:
-        label = QLabel("Library")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        return label
+        self.setCentralWidget(root)
+        self.setStatusBar(QStatusBar())
+        self._build_docks()
+
+    def _build_docks(self) -> None:
+        self.addDockWidget(
+            Qt.DockWidgetArea.RightDockWidgetArea,
+            self._build_dock("Queue", DockPanel("Queue", "No tracks queued.")),
+        )
+        self.addDockWidget(
+            Qt.DockWidgetArea.RightDockWidgetArea,
+            self._build_dock("Lyrics", DockPanel("Lyrics", "Lyrics provider is not active.")),
+        )
+        self.addDockWidget(
+            Qt.DockWidgetArea.RightDockWidgetArea,
+            self._build_dock("Album Info", DockPanel("Album Info", "No album selected.")),
+        )
+
+    def _build_dock(self, title: str, widget: DockPanel) -> QDockWidget:
+        dock = QDockWidget(title, self)
+        dock.setWidget(widget)
+        dock.setMinimumWidth(DOCK_MINIMUM_WIDTH)
+        dock.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
+        )
+        return dock
