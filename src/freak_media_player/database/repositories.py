@@ -83,6 +83,14 @@ class SQLiteTrackRepository:
             return None
         return self._from_row(row)
 
+    def delete(self, track_id: str) -> bool:
+        cursor = self._connection.execute(
+            "DELETE FROM tracks WHERE id = ?",
+            (track_id,),
+        )
+        self._connection.commit()
+        return cursor.rowcount > 0
+
     def list_all(self) -> list[Track]:
         rows = self._connection.execute(
             """

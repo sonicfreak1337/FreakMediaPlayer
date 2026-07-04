@@ -89,3 +89,21 @@ def test_track_repository_lists_tracks() -> None:
     tracks = repository.list_all()
 
     assert [track.title for track in tracks] == ["Alpha", "Beta"]
+
+
+def test_track_repository_deletes_track() -> None:
+    repository = SQLiteTrackRepository(make_connection())
+    repository.save(
+        Track(
+            id="track-1",
+            provider_identity=ProviderIdentity(provider_id="local", item_id="file-1"),
+            title="Song",
+            artist=Artist(name="Artist"),
+        )
+    )
+
+    deleted = repository.delete("track-1")
+
+    assert deleted is True
+    assert repository.get_by_id("track-1") is None
+    assert repository.delete("track-1") is False

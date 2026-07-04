@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -23,6 +23,9 @@ from freak_media_player.models.media import Track
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 
+TITLE_COLUMN = 0
+ARTIST_COLUMN = 1
+SOURCE_COLUMN = 2
 TRACK_ID_ROLE = Qt.ItemDataRole.UserRole
 
 
@@ -39,16 +42,24 @@ class LocalTracksPanel(QWidget):
         self._playback_service = playback_service
         self._tracks: dict[str, Track] = {}
         self._table = QTableWidget()
+        self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
         self.setAcceptDrops(True)
         self._build_layout()
+        self._delete_shortcut.activated.connect(self._remove_selected_track)
         self.refresh()
 
     def refresh(self) -> None:
         tracks = self._local_library_service.list_tracks()
         self._tracks = {track.id: track for track in tracks}
+        sort_column = self._table.horizontalHeader().sortIndicatorSection()
+        sort_order = self._table.horizontalHeader().sortIndicatorOrder()
+        self._table.setSortingEnabled(False)
         self._table.setRowCount(len(tracks))
         for row, track in enumerate(tracks):
             self._set_row(row, track)
+        self._table.setSortingEnabled(True)
+        if sort_column >= 0:
+            self._table.sortItems(sort_column, sort_order)
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if self._event_has_local_paths(event):
@@ -84,6 +95,13 @@ class LocalTracksPanel(QWidget):
                 self._select_folder,
             )
         )
+        header.addWidget(
+            self._build_button(
+                QStyle.StandardPixmap.SP_TrashIcon,
+                "Remove selected",
+                self._remove_selected_track,
+            )
+        )
 
         self._table.setColumnCount(3)
         self._table.setHorizontalHeaderLabels(["Title", "Artist", "Source"])
@@ -92,6 +110,9 @@ class LocalTracksPanel(QWidget):
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setStretchLastSection(True)
+        self._table.horizontalHeader().setSortIndicatorShown(True)
+        self._table.setSortingEnabled(True)
+        self._table.sortItems(TITLE_COLUMN, Qt.SortOrder.AscendingOrder)
         self._table.itemDoubleClicked.connect(self._play_selected_item)
 
         layout.addLayout(header)
@@ -135,9 +156,9 @@ class LocalTracksPanel(QWidget):
         title.setData(TRACK_ID_ROLE, track.id)
         artist = QTableWidgetItem(track.artist.name)
         source = QTableWidgetItem(track.provider_identity.item_id)
-        self._table.setItem(row, 0, title)
-        self._table.setItem(row, 1, artist)
-        self._table.setItem(row, 2, source)
+        self._table.setItem(row, TITLE_COLUMN, title)
+        self._table.setItem(row, ARTIST_COLUMN, artist)
+        self._table.setItem(row, SOURCE_COLUMN, source)
 
     def _play_selected_item(self, item: QTableWidgetItem) -> None:
         title_item = self._table.item(item.row(), 0)
@@ -149,6 +170,22 @@ class LocalTracksPanel(QWidget):
         track = self._tracks.get(track_id)
         if track is not None:
             self._playback_service.enqueue_and_play(track)
+
+    def _remove_selected_track(self) -> None:
+        title_item = self._selected_title_item()
+        if title_item is None:
+            return
+        track_id = title_item.data(TRACK_ID_ROLE)
+        if not isinstance(track_id, str):
+            return
+        if self._local_library_service.remove_track(track_id):
+            self.refresh()
+
+    def _selected_title_item(self) -> QTableWidgetItem | None:
+        row = self._table.currentRow()
+        if row < 0:
+            return None
+        return self._table.item(row, TITLE_COLUMN)
 
     def _extensions(self) -> tuple[str, ...]:
         return self._local_library_service.supported_extensions()

@@ -90,3 +90,16 @@ def test_local_library_service_imports_supported_paths_only(tmp_path: Path) -> N
 
     assert len(tracks) == 1
     assert tracks[0].title == "One"
+
+
+def test_local_library_service_removes_track(tmp_path: Path) -> None:
+    audio_file = tmp_path / "One.mp3"
+    write_audio_file(audio_file)
+    repository = SQLiteTrackRepository(make_connection())
+    service = LocalLibraryService(LocalFileProvider(), repository)
+    track = service.import_file(audio_file)
+
+    removed = service.remove_track(track.id)
+
+    assert removed is True
+    assert service.list_tracks() == []

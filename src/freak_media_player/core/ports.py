@@ -47,6 +47,9 @@ class TrackRepository(Protocol):
     def get_by_id(self, track_id: str) -> Track | None:
         ...
 
+    def delete(self, track_id: str) -> bool:
+        ...
+
     def list_all(self) -> list[Track]:
         ...
 

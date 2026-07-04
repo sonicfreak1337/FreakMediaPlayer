@@ -44,5 +44,8 @@ class LocalLibraryService:
     def list_tracks(self) -> list[Track]:
         return self._track_repository.list_all()
 
+    def remove_track(self, track_id: str) -> bool:
+        return self._track_repository.delete(track_id)
+
     def supported_extensions(self) -> tuple[str, ...]:
         return tuple(sorted(SUPPORTED_AUDIO_EXTENSIONS))

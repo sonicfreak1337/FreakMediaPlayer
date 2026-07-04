@@ -71,19 +71,19 @@ def apply_dark_theme(app: QApplication) -> None:
         }}
         QSlider::groove:horizontal {{
             background: {PANEL_BORDER};
-            border-radius: 3px;
-            height: 6px;
+            border-radius: 4px;
+            height: 8px;
         }}
         QSlider::sub-page:horizontal {{
             background: {ACCENT};
-            border-radius: 3px;
+            border-radius: 4px;
         }}
         QSlider::handle:horizontal {{
             background: {TEXT_PRIMARY};
             border: 1px solid {PANEL_BORDER};
-            border-radius: 6px;
-            margin: -4px 0;
-            width: 12px;
+            border-radius: 8px;
+            margin: -6px 0;
+            width: 16px;
         }}
         #panelTitle {{
             font-size: 26px;
