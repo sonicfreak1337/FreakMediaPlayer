@@ -21,3 +21,13 @@ Run this on Windows to create the desktop executable:
 ```
 
 The generated executable is written to `dist\FreakMediaPlayer\FreakMediaPlayer.exe`.
+
+## Local Data
+
+Runtime data is stored under the current Windows user profile:
+
+```text
+%LOCALAPPDATA%\FreakMediaPlayer\
+```
+
+The SQLite database is created there automatically on startup.

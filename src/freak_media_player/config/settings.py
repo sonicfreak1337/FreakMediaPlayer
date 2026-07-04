@@ -36,7 +36,7 @@ class SettingsMigrator:
             version=int(data.get("version", 0)),
             database_path=Path(str(data.get("database_path", "freak_media_player.sqlite3"))),
             theme_name=str(data.get("theme_name", "dark")),
-            enable_notifications=bool(data.get("enable_notifications", True)),
+            enable_notifications=self._to_bool(data.get("enable_notifications", True)),
         )
         return self.migrate(settings)
 
@@ -44,3 +44,10 @@ class SettingsMigrator:
         if settings.version == 0:
             return replace(settings, version=1)
         raise SettingsMigrationError(f"No migration from version {settings.version}.")
+
+    def _to_bool(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        return bool(value)
