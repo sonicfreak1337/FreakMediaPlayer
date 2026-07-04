@@ -11,3 +11,13 @@ The project is intentionally structured around small, replaceable modules:
 - Plugins: extension points for visualizers, lyrics, integrations and tools
 
 See docs/ARCHITECTURE.md for the initial architecture plan.
+
+## Build
+
+Run this on Windows to create the desktop executable:
+
+```powershell
+.\build.bat
+```
+
+The generated executable is written to `dist\FreakMediaPlayer\FreakMediaPlayer.exe`.

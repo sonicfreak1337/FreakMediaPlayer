@@ -7,9 +7,11 @@ __pycache__/
 .coverage
 htmlcov/
 .venv/
+.venv-build/
 venv/
 build/
 dist/
 *.egg-info/
+*.spec
 *.sqlite3
 .codex-git-tmp/
