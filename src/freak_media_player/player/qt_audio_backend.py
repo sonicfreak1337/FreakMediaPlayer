@@ -8,6 +8,9 @@ from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from freak_media_player.models.media import AudioSource
 from freak_media_player.models.playback import PlaybackStatus
 
+MIN_VOLUME = 0.0
+MAX_VOLUME = 1.0
+
 
 class QtAudioBackend:
     def __init__(self) -> None:
@@ -37,6 +40,12 @@ class QtAudioBackend:
     def duration_ms(self) -> int:
         return int(self._player.duration())
 
+    def set_volume(self, volume: float) -> None:
+        self._audio_output.setVolume(self._clamp_volume(volume))
+
+    def volume(self) -> float:
+        return float(self._audio_output.volume())
+
     def status(self) -> PlaybackStatus:
         state = self._player.playbackState()
         if state == QMediaPlayer.PlaybackState.PlayingState:
@@ -44,3 +53,6 @@ class QtAudioBackend:
         if state == QMediaPlayer.PlaybackState.PausedState:
             return PlaybackStatus.PAUSED
         return PlaybackStatus.STOPPED
+
+    def _clamp_volume(self, volume: float) -> float:
+        return min(MAX_VOLUME, max(MIN_VOLUME, volume))

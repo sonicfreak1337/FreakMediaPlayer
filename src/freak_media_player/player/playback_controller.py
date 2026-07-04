@@ -9,6 +9,8 @@ from freak_media_player.models.media import Track
 from freak_media_player.models.playback import PlaybackState, PlaybackStatus
 from freak_media_player.player.queue import PlaybackQueue
 
+MIN_POSITION_MS = 0
+
 
 class PlaybackController:
     def __init__(
@@ -59,6 +61,11 @@ class PlaybackController:
         )
         return self.state
 
+    def toggle_play_pause(self) -> PlaybackState:
+        if self.state.status == PlaybackStatus.PLAYING:
+            return self.pause()
+        return self.play()
+
     def stop(self) -> PlaybackState:
         self._audio_backend.stop()
         self._loaded_track_id = None
@@ -70,11 +77,25 @@ class PlaybackController:
         self._state = self._snapshot()
         return self.state
 
+    def seek_relative(self, offset_ms: int) -> PlaybackState:
+        target_ms = self.position_ms() + offset_ms
+        duration_ms = self.duration_ms()
+        if duration_ms > MIN_POSITION_MS:
+            target_ms = min(target_ms, duration_ms)
+        return self.seek(max(MIN_POSITION_MS, target_ms))
+
     def position_ms(self) -> int:
         return self._audio_backend.position_ms()
 
     def duration_ms(self) -> int:
         return self._audio_backend.duration_ms()
+
+    def set_volume(self, volume: float) -> PlaybackState:
+        self._audio_backend.set_volume(volume)
+        return self.state
+
+    def volume(self) -> float:
+        return self._audio_backend.volume()
 
     def _snapshot(
         self,

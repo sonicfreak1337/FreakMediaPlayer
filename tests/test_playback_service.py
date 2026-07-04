@@ -47,3 +47,49 @@ def test_seek_updates_playback_position() -> None:
     service.seek(42_000)
 
     assert service.position_ms() == 42_000
+
+
+def test_toggle_play_pause_keeps_current_position() -> None:
+    controller = PlaybackController(
+        queue=PlaybackQueue([make_track("track")]),
+        audio_backend=NullAudioBackend(),
+        source_resolver=FakeSourceResolver(),
+    )
+    service = PlaybackService(controller=controller)
+
+    service.play()
+    service.seek(42_000)
+    paused_state = service.toggle_play_pause()
+    playing_state = service.toggle_play_pause()
+
+    assert paused_state.status == PlaybackStatus.PAUSED
+    assert playing_state.status == PlaybackStatus.PLAYING
+    assert service.position_ms() == 42_000
+
+
+def test_seek_relative_clamps_to_zero() -> None:
+    controller = PlaybackController(
+        queue=PlaybackQueue([make_track("track")]),
+        audio_backend=NullAudioBackend(),
+        source_resolver=FakeSourceResolver(),
+    )
+    service = PlaybackService(controller=controller)
+
+    service.play()
+    service.seek(1_000)
+    service.seek_relative(-10_000)
+
+    assert service.position_ms() == 0
+
+
+def test_volume_control_updates_backend() -> None:
+    controller = PlaybackController(
+        queue=PlaybackQueue([make_track("track")]),
+        audio_backend=NullAudioBackend(),
+        source_resolver=FakeSourceResolver(),
+    )
+    service = PlaybackService(controller=controller)
+
+    service.set_volume(0.35)
+
+    assert service.volume() == 0.35
