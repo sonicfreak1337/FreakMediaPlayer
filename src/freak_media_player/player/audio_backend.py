@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from freak_media_player.models.media import Track
+from freak_media_player.core.ports import AudioBackend
+from freak_media_player.models.media import AudioSource
 from freak_media_player.models.playback import PlaybackStatus
 
 
@@ -11,18 +12,18 @@ class NullAudioBackend:
 
     def __init__(self) -> None:
         self._status = PlaybackStatus.STOPPED
-        self._track: Track | None = None
+        self._source: AudioSource | None = None
 
-    def load(self, track: Track) -> None:
-        self._track = track
+    def load(self, source: AudioSource) -> None:
+        self._source = source
         self._status = PlaybackStatus.PAUSED
 
     def play(self) -> None:
-        if self._track is not None:
+        if self._source is not None:
             self._status = PlaybackStatus.PLAYING
 
     def pause(self) -> None:
-        if self._track is not None:
+        if self._source is not None:
             self._status = PlaybackStatus.PAUSED
 
     def stop(self) -> None:
@@ -30,3 +31,11 @@ class NullAudioBackend:
 
     def status(self) -> PlaybackStatus:
         return self._status
+
+
+def create_desktop_audio_backend() -> AudioBackend:
+    try:
+        from freak_media_player.player.qt_audio_backend import QtAudioBackend
+    except ImportError:
+        return NullAudioBackend()
+    return QtAudioBackend()

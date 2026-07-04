@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from freak_media_player.models.media import Track
+from freak_media_player.models.media import AudioSource, Track
 from freak_media_player.models.playback import PlaybackStatus
 
 
 class AudioBackend(Protocol):
-    def load(self, track: Track) -> None:
+    def load(self, source: AudioSource) -> None:
         ...
 
     def play(self) -> None:
@@ -38,4 +38,9 @@ class SettingsRepository(Protocol):
         ...
 
     def set(self, key: str, value: str) -> None:
+        ...
+
+
+class AudioSourceResolver(Protocol):
+    def resolve_audio_source(self, track: Track) -> AudioSource:
         ...

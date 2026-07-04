@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from freak_media_player.models.media import Track
+from freak_media_player.models.media import AudioSource, Track
 
 
 @dataclass(frozen=True)
@@ -30,5 +30,5 @@ class MediaProvider(Protocol):
     def search_tracks(self, query: SearchQuery) -> list[Track]:
         ...
 
-    def resolve_stream_url(self, track: Track) -> str:
+    def resolve_audio_source(self, track: Track) -> AudioSource:
         ...

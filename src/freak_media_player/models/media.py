@@ -13,6 +13,12 @@ class ProviderIdentity:
 
 
 @dataclass(frozen=True)
+class AudioSource:
+    uri: str
+    mime_type: str | None = None
+
+
+@dataclass(frozen=True)
 class Artist:
     name: str
     provider_identity: ProviderIdentity | None = None

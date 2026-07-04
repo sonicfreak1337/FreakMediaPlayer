@@ -1,4 +1,4 @@
-from freak_media_player.models.media import Artist, ProviderIdentity, Track
+from freak_media_player.models.media import AudioSource, Artist, ProviderIdentity, Track
 from freak_media_player.models.playback import PlaybackStatus
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.player.playback_controller import PlaybackController
@@ -15,10 +15,16 @@ def make_track(track_id: str) -> Track:
     )
 
 
+class FakeSourceResolver:
+    def resolve_audio_source(self, track: Track) -> AudioSource:
+        return AudioSource(uri=f"file:///{track.id}.mp3")
+
+
 def test_enqueue_and_play_replaces_current_track() -> None:
     controller = PlaybackController(
         queue=PlaybackQueue([make_track("old")]),
         audio_backend=NullAudioBackend(),
+        source_resolver=FakeSourceResolver(),
     )
     service = PlaybackService(controller=controller)
 

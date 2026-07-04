@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
-from freak_media_player.core.ports import AudioBackend
+from freak_media_player.core.ports import AudioBackend, AudioSourceResolver
 from freak_media_player.models.media import Track
 from freak_media_player.models.playback import PlaybackState, PlaybackStatus
 from freak_media_player.player.queue import PlaybackQueue
 
 
 class PlaybackController:
-    def __init__(self, queue: PlaybackQueue, audio_backend: AudioBackend) -> None:
+    def __init__(
+        self,
+        queue: PlaybackQueue,
+        audio_backend: AudioBackend,
+        source_resolver: AudioSourceResolver,
+    ) -> None:
         self._queue = queue
         self._audio_backend = audio_backend
+        self._source_resolver = source_resolver
         self._state = PlaybackState()
 
     @property
@@ -31,7 +37,8 @@ class PlaybackController:
         if track is None:
             return self._state
 
-        self._audio_backend.load(track)
+        source = self._source_resolver.resolve_audio_source(track)
+        self._audio_backend.load(source)
         self._audio_backend.play()
         self._state = PlaybackState(status=PlaybackStatus.PLAYING, current_track=track)
         return self._state
