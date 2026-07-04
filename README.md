@@ -1,26 +1,34 @@
 # Freak Media Player
 
-Freak Media Player is a modular native Windows media player built with Python,
-PySide6 and SQLite. The current focus is local playback, a clean architecture
-and a desktop UI that can grow into provider and plugin based features later.
+A modular Winamp-inspired desktop music player focused on local playback today, with a provider-based architecture for YouTube Music and other sources later.
 
 Current version: `0.2.1`
 
 ## Current Features
 
-- Local audio library import by file, folder and drag and drop
+- Import local audio by file, folder, or drag and drop
 - Playback for common formats supported by the Windows Qt multimedia backend
-- Play, pause, stop, seek, volume and mute controls
+- Play, pause, stop, seek, volume, and mute controls
 - Clickable and draggable playback and volume sliders
 - Multi-select library tables with Shift-click and Ctrl-click
-- Sortable library and playlist table columns
-- Remove one or more selected local tracks from the library
-- Equalizer screen with Flat, Metal, Metalcore and Custom curves
+- Sortable library and playlist columns
+- Remove selected local tracks from the library
+- Equalizer screen with Flat, Metal, Metalcore, and Custom curves
 - Compact Winamp-inspired dark UI with green library/display accents
-- Only currently usable app sections are visible in the sidebar
-- SQLite storage for imported local tracks and settings
+- Sidebar only shows sections that are currently implemented
+- SQLite storage for imported tracks and settings
 - Versioned settings and database migrations
-- Build script for a Windows executable
+- Windows executable build script
+
+## Architecture
+
+The project is built around small, replaceable modules:
+
+- **UI:** PySide6 desktop shell
+- **Core:** UI-neutral playback, queue, playlist, and event concepts
+- **Providers:** YouTube Music, local files, radio, and other media sources behind one shared interface
+- **Database:** SQLite persistence with migrations
+- **Plugins:** Extension points for visualizers, lyrics, integrations, and tools
 
 ## Architecture
 
