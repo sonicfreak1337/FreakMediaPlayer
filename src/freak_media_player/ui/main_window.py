@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.ui.constants import (
     DOCK_MINIMUM_WIDTH,
@@ -28,11 +29,19 @@ from freak_media_player.widgets.sidebar import Sidebar
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, playback_service: PlaybackService) -> None:
+    def __init__(
+        self,
+        playback_service: PlaybackService,
+        local_library_service: LocalLibraryService,
+    ) -> None:
         super().__init__()
         self._playback_service = playback_service
+        self._local_library_service = local_library_service
         self._navigation = NavigationViewModel()
-        self._content = ShellContent()
+        self._content = ShellContent(
+            local_library_service=self._local_library_service,
+            playback_service=self._playback_service,
+        )
         self.setWindowTitle("Freak Media Player")
         self.setMinimumSize(WINDOW_MINIMUM_WIDTH, WINDOW_MINIMUM_HEIGHT)
         self.resize(WINDOW_START_WIDTH, WINDOW_START_HEIGHT)

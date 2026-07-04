@@ -64,3 +64,28 @@ def test_track_repository_round_trips_track() -> None:
     assert loaded.album is not None
     assert loaded.album.title == "Album"
     assert loaded.duration == timedelta(seconds=123)
+
+
+def test_track_repository_lists_tracks() -> None:
+    repository = SQLiteTrackRepository(make_connection())
+    artist = Artist(name="Artist")
+    repository.save(
+        Track(
+            id="track-2",
+            provider_identity=ProviderIdentity(provider_id="local", item_id="file-2"),
+            title="Beta",
+            artist=artist,
+        )
+    )
+    repository.save(
+        Track(
+            id="track-1",
+            provider_identity=ProviderIdentity(provider_id="local", item_id="file-1"),
+            title="Alpha",
+            artist=artist,
+        )
+    )
+
+    tracks = repository.list_all()
+
+    assert [track.title for track in tracks] == ["Alpha", "Beta"]

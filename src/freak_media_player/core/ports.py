@@ -32,6 +32,9 @@ class TrackRepository(Protocol):
     def get_by_id(self, track_id: str) -> Track | None:
         ...
 
+    def list_all(self) -> list[Track]:
+        ...
+
 
 class SettingsRepository(Protocol):
     def get(self, key: str) -> str | None:

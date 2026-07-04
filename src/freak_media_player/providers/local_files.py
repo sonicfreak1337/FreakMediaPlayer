@@ -61,6 +61,8 @@ class LocalFileProvider:
 
     def track_from_path(self, path: Path) -> Track:
         resolved = path.resolve()
+        if not self.is_supported_file(resolved):
+            raise ValueError(f"Unsupported audio file: {resolved}")
         return Track(
             id=self._track_id(resolved),
             provider_identity=ProviderIdentity(
@@ -70,6 +72,9 @@ class LocalFileProvider:
             title=resolved.stem,
             artist=Artist(name=UNKNOWN_ARTIST),
         )
+
+    def is_supported_file(self, path: Path) -> bool:
+        return path.is_file() and path.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS
 
     def _iter_audio_files(self, roots: Iterable[Path] | None = None) -> Iterable[Path]:
         for root in roots or self._library_roots:

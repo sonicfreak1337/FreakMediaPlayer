@@ -83,6 +83,16 @@ class SQLiteTrackRepository:
             return None
         return self._from_row(row)
 
+    def list_all(self) -> list[Track]:
+        rows = self._connection.execute(
+            """
+            SELECT id, provider_id, provider_track_id, title, artist, album, duration_seconds
+            FROM tracks
+            ORDER BY title COLLATE NOCASE, artist COLLATE NOCASE
+            """
+        ).fetchall()
+        return [self._from_row(row) for row in rows]
+
     def _from_row(self, row: sqlite3.Row) -> Track:
         artist = Artist(name=str(row["artist"]))
         album_title = row["album"]

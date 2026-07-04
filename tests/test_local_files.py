@@ -50,8 +50,10 @@ def test_provider_registry_resolves_audio_source(tmp_path: Path) -> None:
 
 
 def test_provider_registry_rejects_unknown_provider(tmp_path: Path) -> None:
+    file_path = tmp_path / "Song.mp3"
+    write_audio_file(file_path)
     provider = LocalFileProvider()
-    track = provider.track_from_path(tmp_path / "Song.mp3")
+    track = provider.track_from_path(file_path)
     registry = ProviderRegistry()
 
     try:
@@ -74,3 +76,17 @@ def test_local_library_service_imports_folder(tmp_path: Path) -> None:
 
     assert [track.title for track in tracks] == ["One", "Two"]
     assert repository.get_by_id(tracks[0].id) is not None
+
+
+def test_local_library_service_imports_supported_paths_only(tmp_path: Path) -> None:
+    audio_file = tmp_path / "One.mp3"
+    text_file = tmp_path / "notes.txt"
+    write_audio_file(audio_file)
+    text_file.write_text("ignored", encoding="utf-8")
+    repository = SQLiteTrackRepository(make_connection())
+    service = LocalLibraryService(LocalFileProvider(), repository)
+
+    tracks = service.import_paths([audio_file, text_file])
+
+    assert len(tracks) == 1
+    assert tracks[0].title == "One"

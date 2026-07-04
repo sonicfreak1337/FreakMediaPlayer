@@ -17,7 +17,10 @@ def run_application() -> int:
     apply_dark_theme(qt_app)
 
     context = build_app_context()
-    window = MainWindow(playback_service=context.playback_service)
+    window = MainWindow(
+        playback_service=context.playback_service,
+        local_library_service=context.local_library_service,
+    )
     window.show()
 
     return qt_app.exec()

@@ -4,13 +4,22 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 
+from freak_media_player.services.local_library_service import LocalLibraryService
+from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.ui.navigation import NavigationSection
 from freak_media_player.widgets.content_panel import ContentPanel
+from freak_media_player.widgets.local_tracks_panel import LocalTracksPanel
 
 
 class ShellContent(QWidget):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        local_library_service: LocalLibraryService,
+        playback_service: PlaybackService,
+    ) -> None:
         super().__init__()
+        self._local_library_service = local_library_service
+        self._playback_service = playback_service
         self._stack = QStackedWidget()
         self._section_indexes: dict[NavigationSection, int] = {}
         self._build_layout()
@@ -18,6 +27,9 @@ class ShellContent(QWidget):
     def set_section(self, section: NavigationSection) -> None:
         index = self._section_indexes[section]
         self._stack.setCurrentIndex(index)
+        widget = self._stack.widget(index)
+        if isinstance(widget, LocalTracksPanel):
+            widget.refresh()
 
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
@@ -26,7 +38,11 @@ class ShellContent(QWidget):
 
         self._add_section(
             NavigationSection.LIBRARY,
-            ContentPanel("Library", "Albums, artists and saved tracks will live here."),
+            LocalTracksPanel(
+                "Library",
+                local_library_service=self._local_library_service,
+                playback_service=self._playback_service,
+            ),
         )
         self._add_section(
             NavigationSection.SEARCH,
@@ -34,7 +50,11 @@ class ShellContent(QWidget):
         )
         self._add_section(
             NavigationSection.PLAYLISTS,
-            ContentPanel("Playlists", "Local and provider playlists will share this surface."),
+            LocalTracksPanel(
+                "Playlist",
+                local_library_service=self._local_library_service,
+                playback_service=self._playback_service,
+            ),
         )
         self._add_section(
             NavigationSection.QUEUE,
