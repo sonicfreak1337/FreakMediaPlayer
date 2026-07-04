@@ -1,0 +1,41 @@
+"""Core-facing protocols implemented by outer layers."""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+from freak_media_player.models.media import Track
+from freak_media_player.models.playback import PlaybackStatus
+
+
+class AudioBackend(Protocol):
+    def load(self, track: Track) -> None:
+        ...
+
+    def play(self) -> None:
+        ...
+
+    def pause(self) -> None:
+        ...
+
+    def stop(self) -> None:
+        ...
+
+    def status(self) -> PlaybackStatus:
+        ...
+
+
+class TrackRepository(Protocol):
+    def save(self, track: Track) -> None:
+        ...
+
+    def get_by_id(self, track_id: str) -> Track | None:
+        ...
+
+
+class SettingsRepository(Protocol):
+    def get(self, key: str) -> str | None:
+        ...
+
+    def set(self, key: str, value: str) -> None:
+        ...
