@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from freak_media_player.models.equalizer import EqualizerPreset
 from freak_media_player.models.media import AudioSource, Track
 from freak_media_player.models.playback import PlaybackStatus
 
@@ -34,6 +35,12 @@ class AudioBackend(Protocol):
         ...
 
     def volume(self) -> float:
+        ...
+
+    def set_equalizer_preset(self, preset: EqualizerPreset) -> None:
+        ...
+
+    def equalizer_preset(self) -> EqualizerPreset:
         ...
 
     def status(self) -> PlaybackStatus:

@@ -20,6 +20,7 @@ def run_application() -> int:
     window = MainWindow(
         playback_service=context.playback_service,
         local_library_service=context.local_library_service,
+        equalizer_service=context.equalizer_service,
     )
     window.show()
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from freak_media_player.core.ports import AudioBackend
+from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
 from freak_media_player.models.playback import PlaybackStatus
 
@@ -20,6 +21,7 @@ class NullAudioBackend:
         self._position_ms = 0
         self._duration_ms = 0
         self._volume = DEFAULT_VOLUME
+        self._equalizer_preset = EQUALIZER_PRESETS[0]
 
     def load(self, source: AudioSource) -> None:
         self._source = source
@@ -51,6 +53,12 @@ class NullAudioBackend:
 
     def volume(self) -> float:
         return self._volume
+
+    def set_equalizer_preset(self, preset: EqualizerPreset) -> None:
+        self._equalizer_preset = preset
+
+    def equalizer_preset(self) -> EqualizerPreset:
+        return self._equalizer_preset
 
     def status(self) -> PlaybackStatus:
         return self._status

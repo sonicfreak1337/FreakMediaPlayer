@@ -44,3 +44,16 @@ The first milestone is a runnable shell with:
 - basic PySide6 main window
 
 Feature implementation starts only after these boundaries are in place.
+
+## Audio Engine Direction
+
+The current desktop playback backend uses Qt Multimedia for fast, native local
+file playback. Qt `QMediaPlayer` does not expose a real equalizer/DSP pipeline,
+so the equalizer introduced in `0.2.0` is deliberately modeled as a clean
+service and backend contract first.
+
+The next audio-engine milestone should replace or extend the Qt player backend
+with a decoder plus audio sink pipeline. That is where ReplayGain, real
+equalizer processing, crossfade, gapless playback and visualizer sample taps
+belong. The UI should continue to talk only to services, never to the backend
+implementation directly.

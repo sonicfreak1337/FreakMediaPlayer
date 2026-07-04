@@ -106,7 +106,7 @@ class LocalTracksPanel(QWidget):
         self._table.setColumnCount(3)
         self._table.setHorizontalHeaderLabels(["Title", "Artist", "Source"])
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self._table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self._table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setStretchLastSection(True)
@@ -172,20 +172,24 @@ class LocalTracksPanel(QWidget):
             self._playback_service.enqueue_and_play(track)
 
     def _remove_selected_track(self) -> None:
-        title_item = self._selected_title_item()
-        if title_item is None:
+        track_ids = self._selected_track_ids()
+        if not track_ids:
             return
-        track_id = title_item.data(TRACK_ID_ROLE)
-        if not isinstance(track_id, str):
-            return
-        if self._local_library_service.remove_track(track_id):
+        removed = False
+        for track_id in track_ids:
+            removed = self._local_library_service.remove_track(track_id) or removed
+        if removed:
             self.refresh()
 
-    def _selected_title_item(self) -> QTableWidgetItem | None:
-        row = self._table.currentRow()
-        if row < 0:
-            return None
-        return self._table.item(row, TITLE_COLUMN)
+    def _selected_track_ids(self) -> list[str]:
+        track_ids: list[str] = []
+        for item in self._table.selectedItems():
+            if item.column() != TITLE_COLUMN:
+                continue
+            track_id = item.data(TRACK_ID_ROLE)
+            if isinstance(track_id, str):
+                track_ids.append(track_id)
+        return track_ids
 
     def _extensions(self) -> tuple[str, ...]:
         return self._local_library_service.supported_extensions()

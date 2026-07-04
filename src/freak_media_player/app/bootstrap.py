@@ -13,6 +13,7 @@ from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
 from freak_media_player.providers.local_files import LocalFileProvider
 from freak_media_player.providers.registry import ProviderRegistry
+from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.search_service import SearchService
@@ -23,6 +24,7 @@ from freak_media_player.services.settings_service import SettingsService
 class AppContext:
     app_paths: AppPaths
     database: DatabaseSession
+    equalizer_service: EqualizerService
     local_library_service: LocalLibraryService
     playback_service: PlaybackService
     provider_registry: ProviderRegistry
@@ -51,10 +53,12 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         source_resolver=provider_registry,
     )
     playback_service = PlaybackService(controller=controller)
+    equalizer_service = EqualizerService(audio_backend=selected_audio_backend)
     search_service = SearchService(providers=provider_registry.providers())
     return AppContext(
         app_paths=app_paths,
         database=database,
+        equalizer_service=equalizer_service,
         local_library_service=local_library_service,
         playback_service=playback_service,
         provider_registry=provider_registry,

@@ -5,6 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 
+from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
 from freak_media_player.models.playback import PlaybackStatus
 
@@ -18,6 +19,7 @@ class QtAudioBackend:
         self._audio_output.setVolume(1.0)
         self._player = QMediaPlayer()
         self._player.setAudioOutput(self._audio_output)
+        self._equalizer_preset = EQUALIZER_PRESETS[0]
 
     def load(self, source: AudioSource) -> None:
         self._player.setSource(QUrl.fromUserInput(source.uri))
@@ -45,6 +47,12 @@ class QtAudioBackend:
 
     def volume(self) -> float:
         return float(self._audio_output.volume())
+
+    def set_equalizer_preset(self, preset: EqualizerPreset) -> None:
+        self._equalizer_preset = preset
+
+    def equalizer_preset(self) -> EqualizerPreset:
+        return self._equalizer_preset
 
     def status(self) -> PlaybackStatus:
         state = self._player.playbackState()

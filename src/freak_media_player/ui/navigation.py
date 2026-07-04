@@ -11,6 +11,7 @@ class NavigationSection(str, Enum):
     SEARCH = "search"
     PLAYLISTS = "playlists"
     QUEUE = "queue"
+    EQUALIZER = "equalizer"
     HISTORY = "history"
     PLUGINS = "plugins"
 
@@ -28,6 +29,7 @@ class NavigationViewModel:
             NavigationItem(NavigationSection.SEARCH, "Search"),
             NavigationItem(NavigationSection.PLAYLISTS, "Playlists"),
             NavigationItem(NavigationSection.QUEUE, "Queue"),
+            NavigationItem(NavigationSection.EQUALIZER, "Equalizer"),
             NavigationItem(NavigationSection.HISTORY, "History"),
             NavigationItem(NavigationSection.PLUGINS, "Plugins"),
         )

@@ -1,0 +1,31 @@
+from freak_media_player.models.equalizer import EQUALIZER_PRESETS
+from freak_media_player.player.audio_backend import NullAudioBackend
+from freak_media_player.services.equalizer_service import EqualizerService
+
+
+def test_equalizer_presets_have_matching_band_counts() -> None:
+    band_count = len(EQUALIZER_PRESETS[0].bands)
+
+    assert all(len(preset.bands) == band_count for preset in EQUALIZER_PRESETS)
+
+
+def test_equalizer_service_selects_preset() -> None:
+    backend = NullAudioBackend()
+    service = EqualizerService(audio_backend=backend)
+
+    selected = service.select_preset("metalcore")
+
+    assert selected.preset_id == "metalcore"
+    assert service.current_preset().preset_id == "metalcore"
+    assert backend.equalizer_preset().preset_id == "metalcore"
+
+
+def test_equalizer_service_stores_custom_gains() -> None:
+    backend = NullAudioBackend()
+    service = EqualizerService(audio_backend=backend)
+    gains = (1.0, 0.5, 0.0, -1.0, -2.0, 0.0, 1.5, 2.0, 1.0, 0.5)
+
+    selected = service.set_custom_gains(gains)
+
+    assert selected.preset_id == "custom"
+    assert tuple(band.gain_db for band in selected.bands) == gains

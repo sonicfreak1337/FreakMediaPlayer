@@ -10,6 +10,6 @@ def test_navigation_defaults_to_library() -> None:
 def test_navigation_selects_section() -> None:
     navigation = NavigationViewModel()
 
-    navigation.select(NavigationSection.PLUGINS)
+    navigation.select(NavigationSection.EQUALIZER)
 
-    assert navigation.selected_section == NavigationSection.PLUGINS
+    assert navigation.selected_section == NavigationSection.EQUALIZER
