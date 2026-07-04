@@ -33,3 +33,17 @@ def test_enqueue_and_play_replaces_current_track() -> None:
     assert state.status == PlaybackStatus.PLAYING
     assert state.current_track is not None
     assert state.current_track.id == "new"
+
+
+def test_seek_updates_playback_position() -> None:
+    controller = PlaybackController(
+        queue=PlaybackQueue([make_track("track")]),
+        audio_backend=NullAudioBackend(),
+        source_resolver=FakeSourceResolver(),
+    )
+    service = PlaybackService(controller=controller)
+
+    service.play()
+    service.seek(42_000)
+
+    assert service.position_ms() == 42_000

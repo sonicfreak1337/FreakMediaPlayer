@@ -13,6 +13,8 @@ class NullAudioBackend:
     def __init__(self) -> None:
         self._status = PlaybackStatus.STOPPED
         self._source: AudioSource | None = None
+        self._position_ms = 0
+        self._duration_ms = 0
 
     def load(self, source: AudioSource) -> None:
         self._source = source
@@ -27,7 +29,17 @@ class NullAudioBackend:
             self._status = PlaybackStatus.PAUSED
 
     def stop(self) -> None:
+        self._position_ms = 0
         self._status = PlaybackStatus.STOPPED
+
+    def seek(self, position_ms: int) -> None:
+        self._position_ms = max(0, position_ms)
+
+    def position_ms(self) -> int:
+        return self._position_ms
+
+    def duration_ms(self) -> int:
+        return self._duration_ms
 
     def status(self) -> PlaybackStatus:
         return self._status

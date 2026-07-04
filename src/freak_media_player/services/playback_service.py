@@ -26,3 +26,12 @@ class PlaybackService:
 
     def stop(self) -> PlaybackState:
         return self._controller.stop()
+
+    def seek(self, position_ms: int) -> PlaybackState:
+        return self._controller.seek(position_ms)
+
+    def position_ms(self) -> int:
+        return self._controller.position_ms()
+
+    def duration_ms(self) -> int:
+        return self._controller.duration_ms()

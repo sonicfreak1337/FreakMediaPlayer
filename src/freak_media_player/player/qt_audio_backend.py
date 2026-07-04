@@ -12,11 +12,12 @@ from freak_media_player.models.playback import PlaybackStatus
 class QtAudioBackend:
     def __init__(self) -> None:
         self._audio_output = QAudioOutput()
+        self._audio_output.setVolume(1.0)
         self._player = QMediaPlayer()
         self._player.setAudioOutput(self._audio_output)
 
     def load(self, source: AudioSource) -> None:
-        self._player.setSource(QUrl(source.uri))
+        self._player.setSource(QUrl.fromUserInput(source.uri))
 
     def play(self) -> None:
         self._player.play()
@@ -26,6 +27,15 @@ class QtAudioBackend:
 
     def stop(self) -> None:
         self._player.stop()
+
+    def seek(self, position_ms: int) -> None:
+        self._player.setPosition(max(0, position_ms))
+
+    def position_ms(self) -> int:
+        return int(self._player.position())
+
+    def duration_ms(self) -> int:
+        return int(self._player.duration())
 
     def status(self) -> PlaybackStatus:
         state = self._player.playbackState()

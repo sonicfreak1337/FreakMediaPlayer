@@ -69,11 +69,27 @@ def apply_dark_theme(app: QApplication) -> None:
         QToolButton:hover {{
             border-color: {ACCENT};
         }}
+        QSlider::groove:horizontal {{
+            background: {PANEL_BORDER};
+            border-radius: 3px;
+            height: 6px;
+        }}
+        QSlider::sub-page:horizontal {{
+            background: {ACCENT};
+            border-radius: 3px;
+        }}
+        QSlider::handle:horizontal {{
+            background: {TEXT_PRIMARY};
+            border: 1px solid {PANEL_BORDER};
+            border-radius: 6px;
+            margin: -4px 0;
+            width: 12px;
+        }}
         #panelTitle {{
             font-size: 26px;
             font-weight: 600;
         }}
-        #panelSubtitle, #dockEmptyText, #playerTrackMeta {{
+        #panelSubtitle, #dockEmptyText, #playerTrackMeta, #playerTime {{
             color: {TEXT_SECONDARY};
         }}
         #dockTitle, #playerTrackTitle {{
