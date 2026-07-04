@@ -4,7 +4,7 @@ Freak Media Player is a modular native Windows media player built with Python,
 PySide6 and SQLite. The current focus is local playback, a clean architecture
 and a desktop UI that can grow into provider and plugin based features later.
 
-Current version: `0.2.0`
+Current version: `0.2.1`
 
 ## Current Features
 
@@ -16,6 +16,8 @@ Current version: `0.2.0`
 - Sortable library and playlist table columns
 - Remove one or more selected local tracks from the library
 - Equalizer screen with Flat, Metal, Metalcore and Custom curves
+- Compact Winamp-inspired dark UI with green library/display accents
+- Only currently usable app sections are visible in the sidebar
 - SQLite storage for imported local tracks and settings
 - Versioned settings and database migrations
 - Build script for a Windows executable
@@ -34,10 +36,10 @@ See `docs/ARCHITECTURE.md` for the architecture plan.
 
 ## Equalizer
 
-Version `0.2.0` introduces the equalizer model, service and UI. The current Qt
-backend stores and exposes the selected curve. Real DSP processing is planned for
-the next audio-engine milestone because Qt `QMediaPlayer` does not provide a
-native equalizer stage.
+Version `0.2.1` keeps the equalizer visible and clickable through the app UI. The
+current Qt backend stores and exposes the selected curve. Real DSP processing is
+planned for the next audio-engine milestone because Qt `QMediaPlayer` does not
+provide a native equalizer stage.
 
 ## Build
 

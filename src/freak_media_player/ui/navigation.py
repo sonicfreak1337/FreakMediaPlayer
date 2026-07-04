@@ -25,13 +25,9 @@ class NavigationItem:
 class NavigationViewModel:
     def __init__(self) -> None:
         self._items = (
-            NavigationItem(NavigationSection.LIBRARY, "Library"),
-            NavigationItem(NavigationSection.SEARCH, "Search"),
-            NavigationItem(NavigationSection.PLAYLISTS, "Playlists"),
-            NavigationItem(NavigationSection.QUEUE, "Queue"),
+            NavigationItem(NavigationSection.LIBRARY, "Local Library"),
+            NavigationItem(NavigationSection.PLAYLISTS, "Playlist"),
             NavigationItem(NavigationSection.EQUALIZER, "Equalizer"),
-            NavigationItem(NavigationSection.HISTORY, "History"),
-            NavigationItem(NavigationSection.PLUGINS, "Plugins"),
         )
         self._selected_section = NavigationSection.LIBRARY
 

@@ -8,7 +8,6 @@ from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.ui.navigation import NavigationSection
-from freak_media_player.widgets.content_panel import ContentPanel
 from freak_media_player.widgets.equalizer_panel import EqualizerPanel
 from freak_media_player.widgets.local_tracks_panel import LocalTracksPanel
 
@@ -43,14 +42,10 @@ class ShellContent(QWidget):
         self._add_section(
             NavigationSection.LIBRARY,
             LocalTracksPanel(
-                "Library",
+                "Local Library",
                 local_library_service=self._local_library_service,
                 playback_service=self._playback_service,
             ),
-        )
-        self._add_section(
-            NavigationSection.SEARCH,
-            ContentPanel("Search", "Provider-neutral instant search will be wired here."),
         )
         self._add_section(
             NavigationSection.PLAYLISTS,
@@ -61,23 +56,8 @@ class ShellContent(QWidget):
             ),
         )
         self._add_section(
-            NavigationSection.QUEUE,
-            ContentPanel("Queue", "The central queue view will mirror playback state."),
-        )
-        self._add_section(
             NavigationSection.EQUALIZER,
             EqualizerPanel(equalizer_service=self._equalizer_service),
-        )
-        self._add_section(
-            NavigationSection.HISTORY,
-            ContentPanel("History", "Recently played tracks and sessions will appear here."),
-        )
-        self._add_section(
-            NavigationSection.PLUGINS,
-            ContentPanel(
-                "Plugins",
-                "Installed extensions and their settings will be managed here.",
-            ),
         )
 
     def _add_section(self, section: NavigationSection, widget: QWidget) -> None:

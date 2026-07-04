@@ -47,8 +47,8 @@ class PlayerBar(QWidget):
 
     def _build_layout(self) -> None:
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(18, 10, 18, 10)
-        layout.setSpacing(14)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(10)
 
         track_info = QVBoxLayout()
         self._title_label.setObjectName("playerTrackTitle")

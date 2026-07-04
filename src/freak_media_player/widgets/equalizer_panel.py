@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -18,10 +17,14 @@ from freak_media_player.services.equalizer_service import (
     CUSTOM_PRESET_ID,
     EqualizerService,
 )
+from freak_media_player.widgets.clickable_slider import ClickableSlider
 
 GAIN_SCALE = 10
 SLIDER_MINIMUM = round(MIN_GAIN_DB * GAIN_SCALE)
 SLIDER_MAXIMUM = round(MAX_GAIN_DB * GAIN_SCALE)
+EQUALIZER_BAND_COUNT = 10
+EQUALIZER_SLIDER_HEIGHT = 230
+EQUALIZER_SLIDER_WIDTH = 34
 
 
 class EqualizerPanel(QWidget):
@@ -29,7 +32,7 @@ class EqualizerPanel(QWidget):
         super().__init__()
         self._equalizer_service = equalizer_service
         self._preset_combo = QComboBox()
-        self._band_sliders: list[QSlider] = []
+        self._band_sliders: list[ClickableSlider] = []
         self._band_value_labels: list[QLabel] = []
         self._updating_sliders = False
         self._build_layout()
@@ -37,8 +40,8 @@ class EqualizerPanel(QWidget):
 
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 24, 32, 24)
-        layout.setSpacing(18)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(12)
 
         header = QHBoxLayout()
         title = QLabel("Equalizer")
@@ -48,14 +51,14 @@ class EqualizerPanel(QWidget):
         header.addWidget(self._preset_combo)
 
         bands = QGridLayout()
-        bands.setHorizontalSpacing(12)
+        bands.setHorizontalSpacing(8)
         bands.setVerticalSpacing(8)
-        for column in range(10):
-            slider = QSlider(Qt.Orientation.Vertical)
+        for column in range(EQUALIZER_BAND_COUNT):
+            slider = ClickableSlider(Qt.Orientation.Vertical)
             slider.setRange(SLIDER_MINIMUM, SLIDER_MAXIMUM)
             slider.setTickInterval(GAIN_SCALE * 3)
-            slider.setTickPosition(QSlider.TickPosition.TicksBothSides)
-            slider.setFixedHeight(220)
+            slider.setFixedHeight(EQUALIZER_SLIDER_HEIGHT)
+            slider.setFixedWidth(EQUALIZER_SLIDER_WIDTH)
             value_label = QLabel("0.0 dB")
             value_label.setObjectName("playerTime")
             value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

@@ -55,6 +55,11 @@ class ClickableSlider(QSlider):
                 self.maximum(),
                 position,
                 span,
-                self.invertedAppearance(),
+                self._is_upside_down(),
             )
         )
+
+    def _is_upside_down(self) -> bool:
+        if self.orientation() == Qt.Orientation.Vertical:
+            return not self.invertedAppearance()
+        return self.invertedAppearance()

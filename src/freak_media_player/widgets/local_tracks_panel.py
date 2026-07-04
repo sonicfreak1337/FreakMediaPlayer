@@ -73,8 +73,8 @@ class LocalTracksPanel(QWidget):
 
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 24, 32, 24)
-        layout.setSpacing(14)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(8)
 
         header = QHBoxLayout()
         title = QLabel(self._title)
@@ -105,6 +105,7 @@ class LocalTracksPanel(QWidget):
 
         self._table.setColumnCount(3)
         self._table.setHorizontalHeaderLabels(["Title", "Artist", "Source"])
+        self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)

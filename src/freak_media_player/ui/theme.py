@@ -5,24 +5,29 @@ from __future__ import annotations
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
 
-BACKGROUND = "#18191c"
-PANEL_BACKGROUND = "#22242a"
-PANEL_BORDER = "#343741"
-TEXT_PRIMARY = "#ebecf0"
-TEXT_SECONDARY = "#aeb4c0"
-ACCENT = "#508cdc"
+BACKGROUND = "#0a0b0f"
+PANEL_BACKGROUND = "#161826"
+PANEL_SUNKEN = "#030407"
+PANEL_BORDER = "#50536b"
+HEADER_BACKGROUND = "#232456"
+HEADER_HIGHLIGHT = "#3135a4"
+TEXT_PRIMARY = "#d7d8e8"
+TEXT_SECONDARY = "#8f94b2"
+DISPLAY_GREEN = "#19ff54"
+ACCENT = "#4d54d8"
+AMBER = "#e6c34c"
 
 
 def apply_dark_theme(app: QApplication) -> None:
     palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor(24, 25, 28))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(235, 236, 240))
-    palette.setColor(QPalette.ColorRole.Base, QColor(18, 19, 22))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(34, 36, 42))
-    palette.setColor(QPalette.ColorRole.Text, QColor(235, 236, 240))
-    palette.setColor(QPalette.ColorRole.Button, QColor(40, 42, 48))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(235, 236, 240))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor(80, 140, 220))
+    palette.setColor(QPalette.ColorRole.Window, QColor(10, 11, 15))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(215, 216, 232))
+    palette.setColor(QPalette.ColorRole.Base, QColor(3, 4, 7))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(20, 22, 32))
+    palette.setColor(QPalette.ColorRole.Text, QColor(25, 255, 84))
+    palette.setColor(QPalette.ColorRole.Button, QColor(22, 24, 38))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor(215, 216, 232))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(49, 53, 164))
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
     app.setPalette(palette)
     app.setStyleSheet(
@@ -32,22 +37,34 @@ def apply_dark_theme(app: QApplication) -> None:
         }}
         QListWidget {{
             background: {PANEL_BACKGROUND};
-            border: 0;
-            color: {TEXT_PRIMARY};
-            padding: 10px 6px;
+            border-right: 1px solid {PANEL_BORDER};
+            color: {DISPLAY_GREEN};
+            font-size: 12px;
+            padding: 6px 4px;
         }}
         QListWidget::item {{
-            min-height: 34px;
-            padding: 6px 12px;
-            border-radius: 6px;
+            min-height: 24px;
+            padding: 4px 8px;
+            border: 1px solid transparent;
         }}
         QListWidget::item:selected {{
-            background: {ACCENT};
+            background: {HEADER_HIGHLIGHT};
+            border-color: {PANEL_BORDER};
             color: white;
         }}
         QStackedWidget, QWidget {{
             background: {BACKGROUND};
             color: {TEXT_PRIMARY};
+        }}
+        QStatusBar {{
+            background: {PANEL_BACKGROUND};
+            border-top: 1px solid {PANEL_BORDER};
+            color: {DISPLAY_GREEN};
+            font-size: 11px;
+        }}
+        QSplitter::handle {{
+            background: {PANEL_BORDER};
+            width: 2px;
         }}
         QDockWidget {{
             titlebar-close-icon: none;
@@ -62,38 +79,99 @@ def apply_dark_theme(app: QApplication) -> None:
         QToolButton {{
             background: {PANEL_BACKGROUND};
             border: 1px solid {PANEL_BORDER};
-            border-radius: 6px;
-            min-width: 34px;
-            min-height: 34px;
+            color: {TEXT_PRIMARY};
+            min-width: 26px;
+            min-height: 24px;
+            padding: 2px;
         }}
         QToolButton:hover {{
-            border-color: {ACCENT};
+            border-color: {DISPLAY_GREEN};
+            color: {DISPLAY_GREEN};
+        }}
+        QComboBox {{
+            background: {PANEL_SUNKEN};
+            border: 1px solid {PANEL_BORDER};
+            color: {DISPLAY_GREEN};
+            padding: 3px 8px;
+            min-height: 22px;
+        }}
+        QComboBox QAbstractItemView {{
+            background: {PANEL_SUNKEN};
+            border: 1px solid {PANEL_BORDER};
+            color: {DISPLAY_GREEN};
+            selection-background-color: {HEADER_HIGHLIGHT};
+        }}
+        QTableWidget {{
+            background: {PANEL_SUNKEN};
+            alternate-background-color: #07090f;
+            border: 1px solid {PANEL_BORDER};
+            color: {DISPLAY_GREEN};
+            gridline-color: #24283e;
+            selection-background-color: {HEADER_HIGHLIGHT};
+            selection-color: white;
+            font-size: 12px;
+        }}
+        QHeaderView::section {{
+            background: {HEADER_BACKGROUND};
+            border: 0;
+            border-right: 1px solid {PANEL_BORDER};
+            color: {TEXT_PRIMARY};
+            padding: 4px 6px;
+            font-size: 12px;
+            font-weight: 600;
         }}
         QSlider::groove:horizontal {{
             background: {PANEL_BORDER};
-            border-radius: 4px;
+            border: 1px solid #202234;
+            border-radius: 2px;
             height: 8px;
         }}
         QSlider::sub-page:horizontal {{
-            background: {ACCENT};
-            border-radius: 4px;
+            background: {AMBER};
+            border-radius: 2px;
         }}
         QSlider::handle:horizontal {{
-            background: {TEXT_PRIMARY};
-            border: 1px solid {PANEL_BORDER};
-            border-radius: 8px;
+            background: {DISPLAY_GREEN};
+            border: 1px solid #07140a;
             margin: -6px 0;
-            width: 16px;
+            width: 14px;
+        }}
+        QSlider::groove:vertical {{
+            background: {PANEL_SUNKEN};
+            border: 1px solid {PANEL_BORDER};
+            border-radius: 2px;
+            width: 10px;
+        }}
+        QSlider::sub-page:vertical {{
+            background: {AMBER};
+            border-radius: 2px;
+        }}
+        QSlider::add-page:vertical {{
+            background: #222537;
+            border-radius: 2px;
+        }}
+        QSlider::handle:vertical {{
+            background: {DISPLAY_GREEN};
+            border: 1px solid #07140a;
+            height: 12px;
+            margin: 0 -8px;
         }}
         #panelTitle {{
-            font-size: 26px;
+            background: {HEADER_BACKGROUND};
+            border: 1px solid {PANEL_BORDER};
+            color: white;
+            font-size: 16px;
             font-weight: 600;
+            padding: 4px 8px;
         }}
         #panelSubtitle, #dockEmptyText, #playerTrackMeta, #playerTime {{
             color: {TEXT_SECONDARY};
         }}
         #dockTitle, #playerTrackTitle {{
             font-weight: 600;
+        }}
+        #playerTrackTitle {{
+            color: {DISPLAY_GREEN};
         }}
         """
     )

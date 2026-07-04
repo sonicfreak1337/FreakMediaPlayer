@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDockWidget,
     QMainWindow,
     QSplitter,
     QStatusBar,
@@ -17,14 +16,12 @@ from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.ui.constants import (
-    DOCK_MINIMUM_WIDTH,
     WINDOW_MINIMUM_HEIGHT,
     WINDOW_MINIMUM_WIDTH,
     WINDOW_START_HEIGHT,
     WINDOW_START_WIDTH,
 )
 from freak_media_player.ui.navigation import NavigationViewModel
-from freak_media_player.widgets.dock_panel import DockPanel
 from freak_media_player.widgets.player_bar import PlayerBar
 from freak_media_player.widgets.shell import ShellContent
 from freak_media_player.widgets.sidebar import Sidebar
@@ -73,27 +70,3 @@ class MainWindow(QMainWindow):
         status_bar = QStatusBar()
         status_bar.showMessage(f"Freak Media Player {__version__}")
         self.setStatusBar(status_bar)
-        self._build_docks()
-
-    def _build_docks(self) -> None:
-        self.addDockWidget(
-            Qt.DockWidgetArea.RightDockWidgetArea,
-            self._build_dock("Queue", DockPanel("Queue", "No tracks queued.")),
-        )
-        self.addDockWidget(
-            Qt.DockWidgetArea.RightDockWidgetArea,
-            self._build_dock("Lyrics", DockPanel("Lyrics", "Lyrics provider is not active.")),
-        )
-        self.addDockWidget(
-            Qt.DockWidgetArea.RightDockWidgetArea,
-            self._build_dock("Album Info", DockPanel("Album Info", "No album selected.")),
-        )
-
-    def _build_dock(self, title: str, widget: DockPanel) -> QDockWidget:
-        dock = QDockWidget(title, self)
-        dock.setWidget(widget)
-        dock.setMinimumWidth(DOCK_MINIMUM_WIDTH)
-        dock.setAllowedAreas(
-            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
-        )
-        return dock

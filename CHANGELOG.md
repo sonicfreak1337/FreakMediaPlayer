@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 - 2026-07-05
+
+- Fixed equalizer interaction by switching the bands to larger clickable sliders.
+- Started the Winamp-inspired UI direction with dark panels, blue headers and
+  green library/display accents.
+- Hid unused future sections from the sidebar while development is paused.
+- Removed placeholder docks for queue, lyrics and album information until those
+  features are actually wired.
+- Made library and player panels more compact.
+
 ## 0.2.0 - 2026-07-05
 
 - Added visible application versioning in the window title and status bar.
