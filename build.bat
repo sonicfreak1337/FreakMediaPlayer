@@ -6,11 +6,28 @@ cd /d "%~dp0"
 set "APP_NAME=FreakMediaPlayer"
 set "VENV_DIR=.venv-build"
 
-where py >nul 2>nul
+py -3.11 -c "import sys" >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     set "PY_BOOTSTRAP=py -3.11"
 ) else (
-    set "PY_BOOTSTRAP=python"
+    py -c "import sys" >nul 2>nul
+    if %ERRORLEVEL% EQU 0 (
+        set "PY_BOOTSTRAP=py"
+    ) else (
+        python -c "import sys" >nul 2>nul
+        if %ERRORLEVEL% EQU 0 (
+            set "PY_BOOTSTRAP=python"
+        ) else (
+            if exist "%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" (
+                set "PY_BOOTSTRAP=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+            ) else (
+                echo Python 3.11 or newer was not found.
+                echo Install Python from https://www.python.org/downloads/ and try again.
+                echo If you use the Python Launcher, run: py install 3.11
+                exit /b 1
+            )
+        )
+    )
 )
 
 if not exist "%VENV_DIR%\Scripts\python.exe" (
