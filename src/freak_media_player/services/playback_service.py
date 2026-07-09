@@ -18,6 +18,18 @@ class PlaybackService:
     def enqueue_and_play(self, track: Track) -> PlaybackState:
         return self._controller.play_now(track)
 
+    def play_playlist(self, tracks: list[Track], start_index: int) -> PlaybackState:
+        return self._controller.play_playlist(tracks, start_index)
+
+    def sync_playlist(self, tracks: list[Track]) -> PlaybackState:
+        return self._controller.sync_playlist(tracks)
+
+    def next_track(self) -> PlaybackState:
+        return self._controller.next_track()
+
+    def previous_track(self) -> PlaybackState:
+        return self._controller.previous_track()
+
     def play(self) -> PlaybackState:
         return self._controller.play()
 

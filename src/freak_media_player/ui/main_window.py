@@ -15,6 +15,7 @@ from freak_media_player import __version__
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
+from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.ui.constants import (
     WINDOW_MINIMUM_HEIGHT,
     WINDOW_MINIMUM_WIDTH,
@@ -32,16 +33,19 @@ class MainWindow(QMainWindow):
         self,
         playback_service: PlaybackService,
         local_library_service: LocalLibraryService,
+        playlist_service: PlaylistService,
         equalizer_service: EqualizerService,
     ) -> None:
         super().__init__()
         self._playback_service = playback_service
         self._local_library_service = local_library_service
+        self._playlist_service = playlist_service
         self._equalizer_service = equalizer_service
         self._navigation = NavigationViewModel()
         self._content = ShellContent(
             local_library_service=self._local_library_service,
             playback_service=self._playback_service,
+            playlist_service=self._playlist_service,
             equalizer_service=self._equalizer_service,
         )
         self.setWindowTitle(f"Freak Media Player {__version__}")

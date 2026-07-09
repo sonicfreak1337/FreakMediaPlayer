@@ -9,6 +9,7 @@ from pathlib import Path
 from freak_media_player.database.connection import SQLiteConnectionFactory
 from freak_media_player.database.migrations import MigrationRunner
 from freak_media_player.database.repositories import (
+    SQLitePlaylistRepository,
     SQLiteSettingsRepository,
     SQLiteTrackRepository,
 )
@@ -17,6 +18,7 @@ from freak_media_player.database.repositories import (
 @dataclass(frozen=True)
 class DatabaseSession:
     connection: sqlite3.Connection
+    playlists: SQLitePlaylistRepository
     settings: SQLiteSettingsRepository
     tracks: SQLiteTrackRepository
 
@@ -36,6 +38,7 @@ class DatabaseSessionFactory:
         self._migration_runner.run(connection)
         return DatabaseSession(
             connection=connection,
+            playlists=SQLitePlaylistRepository(connection),
             settings=SQLiteSettingsRepository(connection),
             tracks=SQLiteTrackRepository(connection),
         )

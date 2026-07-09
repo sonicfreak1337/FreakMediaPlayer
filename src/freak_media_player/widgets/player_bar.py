@@ -21,7 +21,6 @@ from freak_media_player.widgets.clickable_slider import ClickableSlider
 from freak_media_player.widgets.seek_slider import SeekSlider
 
 POSITION_REFRESH_MS = 500
-SEEK_JUMP_MS = 10_000
 VOLUME_SCALE = 100
 DEFAULT_RESTORE_VOLUME = 0.5
 
@@ -75,9 +74,9 @@ class PlayerBar(QWidget):
         layout.addLayout(track_info, 1)
         controls.addWidget(
             self._build_button(
-                QStyle.StandardPixmap.SP_MediaSeekBackward,
-                "Back 10 seconds",
-                self._seek_backward,
+                QStyle.StandardPixmap.SP_MediaSkipBackward,
+                "Previous track",
+                self._previous_track,
             )
         )
         self._configure_button(
@@ -96,9 +95,9 @@ class PlayerBar(QWidget):
         )
         controls.addWidget(
             self._build_button(
-                QStyle.StandardPixmap.SP_MediaSeekForward,
-                "Forward 10 seconds",
-                self._seek_forward,
+                QStyle.StandardPixmap.SP_MediaSkipForward,
+                "Next track",
+                self._next_track,
             )
         )
         center.addLayout(controls)
@@ -181,12 +180,12 @@ class PlayerBar(QWidget):
         self._playback_service.seek(position_ms)
         self.refresh()
 
-    def _seek_backward(self) -> None:
-        self._playback_service.seek_relative(-SEEK_JUMP_MS)
+    def _previous_track(self) -> None:
+        self._playback_service.previous_track()
         self.refresh()
 
-    def _seek_forward(self) -> None:
-        self._playback_service.seek_relative(SEEK_JUMP_MS)
+    def _next_track(self) -> None:
+        self._playback_service.next_track()
         self.refresh()
 
     def _toggle_play_pause(self) -> None:

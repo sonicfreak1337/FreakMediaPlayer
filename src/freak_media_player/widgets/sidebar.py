@@ -22,7 +22,7 @@ class Sidebar(QListWidget):
     def _populate(self) -> None:
         for item in self._navigation.items:
             list_item = QListWidgetItem(item.label)
-            list_item.setData(Qt.ItemDataRole.UserRole, item.section)
+            list_item.setData(Qt.ItemDataRole.UserRole, item.section.value)
             self.addItem(list_item)
         self.setCurrentRow(0)
 
@@ -33,7 +33,10 @@ class Sidebar(QListWidget):
     ) -> None:
         if current is None:
             return
-        section = current.data(Qt.ItemDataRole.UserRole)
-        if isinstance(section, NavigationSection):
-            self._navigation.select(section)
-            self.section_selected.emit(section)
+        section_value = current.data(Qt.ItemDataRole.UserRole)
+        try:
+            section = NavigationSection(section_value)
+        except (TypeError, ValueError):
+            return
+        self._navigation.select(section)
+        self.section_selected.emit(section)

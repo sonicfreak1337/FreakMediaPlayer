@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 - 2026-07-10
+
+- Fixed sidebar navigation so Playlist and Equalizer open reliably.
+- Split the local library and active playlist into separate modules.
+- Added a persistent, ordered playlist backed by SQLite.
+- Added drag and drop from the library into any playlist position.
+- Added playlist reordering through drag and drop and move controls.
+- Added playlist removal without deleting tracks from the library.
+- Changed previous and next controls to navigate playlist tracks.
+- Added automatic playback of the next title when a track finishes.
+- Added regression coverage for playlist persistence, ordering, navigation and
+  automatic track advancement.
+
 ## 0.2.1 - 2026-07-05
 
 - Fixed equalizer interaction by switching the bands to larger clickable sliders.

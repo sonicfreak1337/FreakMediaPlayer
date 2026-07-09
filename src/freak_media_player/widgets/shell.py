@@ -7,9 +7,11 @@ from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
+from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.ui.navigation import NavigationSection
 from freak_media_player.widgets.equalizer_panel import EqualizerPanel
 from freak_media_player.widgets.local_tracks_panel import LocalTracksPanel
+from freak_media_player.widgets.playlist_panel import PlaylistPanel
 
 
 class ShellContent(QWidget):
@@ -17,11 +19,13 @@ class ShellContent(QWidget):
         self,
         local_library_service: LocalLibraryService,
         playback_service: PlaybackService,
+        playlist_service: PlaylistService,
         equalizer_service: EqualizerService,
     ) -> None:
         super().__init__()
         self._local_library_service = local_library_service
         self._playback_service = playback_service
+        self._playlist_service = playlist_service
         self._equalizer_service = equalizer_service
         self._stack = QStackedWidget()
         self._section_indexes: dict[NavigationSection, int] = {}
@@ -31,7 +35,7 @@ class ShellContent(QWidget):
         index = self._section_indexes[section]
         self._stack.setCurrentIndex(index)
         widget = self._stack.widget(index)
-        if isinstance(widget, LocalTracksPanel):
+        if isinstance(widget, (LocalTracksPanel, PlaylistPanel)):
             widget.refresh()
 
     def _build_layout(self) -> None:
@@ -39,22 +43,17 @@ class ShellContent(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._stack)
 
-        self._add_section(
-            NavigationSection.LIBRARY,
-            LocalTracksPanel(
-                "Local Library",
-                local_library_service=self._local_library_service,
-                playback_service=self._playback_service,
-            ),
+        library_panel = LocalTracksPanel(
+            "Local Library",
+            local_library_service=self._local_library_service,
         )
-        self._add_section(
-            NavigationSection.PLAYLISTS,
-            LocalTracksPanel(
-                "Playlist",
-                local_library_service=self._local_library_service,
-                playback_service=self._playback_service,
-            ),
+        playlist_panel = PlaylistPanel(
+            playlist_service=self._playlist_service,
+            playback_service=self._playback_service,
         )
+        library_panel.tracks_add_requested.connect(playlist_panel.add_track_ids)
+        self._add_section(NavigationSection.LIBRARY, library_panel)
+        self._add_section(NavigationSection.PLAYLISTS, playlist_panel)
         self._add_section(
             NavigationSection.EQUALIZER,
             EqualizerPanel(equalizer_service=self._equalizer_service),

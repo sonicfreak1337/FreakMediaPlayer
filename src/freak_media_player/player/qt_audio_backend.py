@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 
@@ -20,6 +22,8 @@ class QtAudioBackend:
         self._player = QMediaPlayer()
         self._player.setAudioOutput(self._audio_output)
         self._equalizer_preset = EQUALIZER_PRESETS[0]
+        self._finished_callback: Callable[[], None] | None = None
+        self._player.mediaStatusChanged.connect(self._handle_media_status_changed)
 
     def load(self, source: AudioSource) -> None:
         self._player.setSource(QUrl.fromUserInput(source.uri))
@@ -61,6 +65,16 @@ class QtAudioBackend:
         if state == QMediaPlayer.PlaybackState.PausedState:
             return PlaybackStatus.PAUSED
         return PlaybackStatus.STOPPED
+
+    def set_finished_callback(self, callback: Callable[[], None]) -> None:
+        self._finished_callback = callback
+
+    def _handle_media_status_changed(self, status: QMediaPlayer.MediaStatus) -> None:
+        if (
+            status == QMediaPlayer.MediaStatus.EndOfMedia
+            and self._finished_callback is not None
+        ):
+            self._finished_callback()
 
     def _clamp_volume(self, volume: float) -> float:
         return min(MAX_VOLUME, max(MIN_VOLUME, volume))

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -21,27 +21,25 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.models.media import Track
 from freak_media_player.services.local_library_service import LocalLibraryService
-from freak_media_player.services.playback_service import PlaybackService
+from freak_media_player.widgets.track_table import TRACK_ID_ROLE, TrackTableWidget
 
 TITLE_COLUMN = 0
 ARTIST_COLUMN = 1
 SOURCE_COLUMN = 2
-TRACK_ID_ROLE = Qt.ItemDataRole.UserRole
 
 
 class LocalTracksPanel(QWidget):
+    tracks_add_requested = Signal(object)
+
     def __init__(
         self,
         title: str,
         local_library_service: LocalLibraryService,
-        playback_service: PlaybackService,
     ) -> None:
         super().__init__()
         self._title = title
         self._local_library_service = local_library_service
-        self._playback_service = playback_service
-        self._tracks: dict[str, Track] = {}
-        self._table = QTableWidget()
+        self._table = TrackTableWidget()
         self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
         self.setAcceptDrops(True)
         self._build_layout()
@@ -50,7 +48,6 @@ class LocalTracksPanel(QWidget):
 
     def refresh(self) -> None:
         tracks = self._local_library_service.list_tracks()
-        self._tracks = {track.id: track for track in tracks}
         sort_column = self._table.horizontalHeader().sortIndicatorSection()
         sort_order = self._table.horizontalHeader().sortIndicatorOrder()
         self._table.setSortingEnabled(False)
@@ -81,6 +78,13 @@ class LocalTracksPanel(QWidget):
         title.setObjectName("panelTitle")
         header.addWidget(title)
         header.addStretch(1)
+        header.addWidget(
+            self._build_button(
+                QStyle.StandardPixmap.SP_ArrowRight,
+                "Add selected to playlist",
+                self._add_selected_to_playlist,
+            )
+        )
         header.addWidget(
             self._build_button(
                 QStyle.StandardPixmap.SP_FileIcon,
@@ -114,7 +118,7 @@ class LocalTracksPanel(QWidget):
         self._table.horizontalHeader().setSortIndicatorShown(True)
         self._table.setSortingEnabled(True)
         self._table.sortItems(TITLE_COLUMN, Qt.SortOrder.AscendingOrder)
-        self._table.itemDoubleClicked.connect(self._play_selected_item)
+        self._table.itemDoubleClicked.connect(self._add_item_to_playlist)
 
         layout.addLayout(header)
         layout.addWidget(self._table, 1)
@@ -161,16 +165,18 @@ class LocalTracksPanel(QWidget):
         self._table.setItem(row, ARTIST_COLUMN, artist)
         self._table.setItem(row, SOURCE_COLUMN, source)
 
-    def _play_selected_item(self, item: QTableWidgetItem) -> None:
+    def _add_item_to_playlist(self, item: QTableWidgetItem) -> None:
         title_item = self._table.item(item.row(), 0)
         if title_item is None:
             return
         track_id = title_item.data(TRACK_ID_ROLE)
-        if not isinstance(track_id, str):
-            return
-        track = self._tracks.get(track_id)
-        if track is not None:
-            self._playback_service.enqueue_and_play(track)
+        if isinstance(track_id, str):
+            self.tracks_add_requested.emit([track_id])
+
+    def _add_selected_to_playlist(self) -> None:
+        track_ids = self._selected_track_ids()
+        if track_ids:
+            self.tracks_add_requested.emit(track_ids)
 
     def _remove_selected_track(self) -> None:
         track_ids = self._selected_track_ids()
@@ -183,14 +189,14 @@ class LocalTracksPanel(QWidget):
             self.refresh()
 
     def _selected_track_ids(self) -> list[str]:
-        track_ids: list[str] = []
+        track_ids_by_row: dict[int, str] = {}
         for item in self._table.selectedItems():
             if item.column() != TITLE_COLUMN:
                 continue
             track_id = item.data(TRACK_ID_ROLE)
             if isinstance(track_id, str):
-                track_ids.append(track_id)
-        return track_ids
+                track_ids_by_row[item.row()] = track_id
+        return [track_ids_by_row[row] for row in sorted(track_ids_by_row)]
 
     def _extensions(self) -> tuple[str, ...]:
         return self._local_library_service.supported_extensions()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from freak_media_player.models.equalizer import EqualizerPreset
@@ -46,6 +47,9 @@ class AudioBackend(Protocol):
     def status(self) -> PlaybackStatus:
         ...
 
+    def set_finished_callback(self, callback: Callable[[], None]) -> None:
+        ...
+
 
 class TrackRepository(Protocol):
     def save(self, track: Track) -> None:
@@ -58,6 +62,17 @@ class TrackRepository(Protocol):
         ...
 
     def list_all(self) -> list[Track]:
+        ...
+
+
+class PlaylistRepository(Protocol):
+    def ensure(self, playlist_id: str, name: str) -> None:
+        ...
+
+    def list_tracks(self, playlist_id: str) -> list[Track]:
+        ...
+
+    def replace_tracks(self, playlist_id: str, tracks: Sequence[Track]) -> None:
         ...
 
 

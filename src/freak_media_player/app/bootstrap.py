@@ -16,6 +16,7 @@ from freak_media_player.providers.registry import ProviderRegistry
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
+from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.services.search_service import SearchService
 from freak_media_player.services.settings_service import SettingsService
 
@@ -27,6 +28,7 @@ class AppContext:
     equalizer_service: EqualizerService
     local_library_service: LocalLibraryService
     playback_service: PlaybackService
+    playlist_service: PlaylistService
     provider_registry: ProviderRegistry
     search_service: SearchService
     settings_service: SettingsService
@@ -44,8 +46,12 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         provider=local_provider,
         track_repository=database.tracks,
     )
+    playlist_service = PlaylistService(
+        playlist_repository=database.playlists,
+        track_repository=database.tracks,
+    )
 
-    queue = PlaybackQueue()
+    queue = PlaybackQueue(playlist_service.list_tracks())
     selected_audio_backend = audio_backend or create_desktop_audio_backend()
     controller = PlaybackController(
         queue=queue,
@@ -61,6 +67,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         equalizer_service=equalizer_service,
         local_library_service=local_library_service,
         playback_service=playback_service,
+        playlist_service=playlist_service,
         provider_registry=provider_registry,
         search_service=search_service,
         settings_service=settings_service,

@@ -27,3 +27,24 @@ def test_clear_resets_current_track() -> None:
 
     assert queue.current() is None
     assert queue.pending_count() == 0
+
+
+def test_queue_moves_backward_and_forward_in_playlist_order() -> None:
+    queue = PlaybackQueue([make_track("1"), make_track("2"), make_track("3")])
+
+    assert queue.select(1).id == "2"
+    assert queue.next().id == "3"
+    assert queue.previous().id == "2"
+
+
+def test_replace_preserves_current_track_by_id() -> None:
+    queue = PlaybackQueue([make_track("1"), make_track("2")])
+    queue.select(1)
+
+    queue.replace(
+        [make_track("2"), make_track("1"), make_track("3")],
+        current_track_id="2",
+    )
+
+    assert queue.current().id == "2"
+    assert queue.next().id == "1"

@@ -24,6 +24,7 @@ class PlaybackController:
         self._source_resolver = source_resolver
         self._state = PlaybackState()
         self._loaded_track_id: str | None = None
+        self._audio_backend.set_finished_callback(self._handle_finished)
 
     @property
     def state(self) -> PlaybackState:
@@ -34,8 +35,27 @@ class PlaybackController:
 
     def play_now(self, track: Track) -> PlaybackState:
         self._queue.replace([track])
+        self._queue.select(0)
         self._state = PlaybackState()
-        return self.play()
+        return self._start_track(track)
+
+    def play_playlist(self, tracks: list[Track], start_index: int) -> PlaybackState:
+        self._queue.replace(tracks)
+        track = self._queue.select(start_index)
+        if track is None:
+            return self.state
+        self._state = PlaybackState()
+        return self._start_track(track)
+
+    def sync_playlist(self, tracks: list[Track]) -> PlaybackState:
+        current_track = self._state.current_track
+        current_track_id = current_track.id if current_track is not None else None
+        self._queue.replace(tracks, current_track_id=current_track_id)
+        if current_track is not None and not any(
+            track.id == current_track.id for track in tracks
+        ):
+            return self.stop()
+        return self.state
 
     def play(self) -> PlaybackState:
         track = self._state.current_track or self._queue.current()
@@ -49,6 +69,21 @@ class PlaybackController:
         self._audio_backend.play()
         self._state = self._snapshot(status=PlaybackStatus.PLAYING, track=track)
         return self.state
+
+    def next_track(self) -> PlaybackState:
+        track = self._queue.next()
+        if track is None:
+            self._audio_backend.stop()
+            self._loaded_track_id = None
+            self._state = PlaybackState()
+            return self.state
+        return self._start_track(track)
+
+    def previous_track(self) -> PlaybackState:
+        track = self._queue.previous()
+        if track is None:
+            return self.state
+        return self._start_track(track)
 
     def pause(self) -> PlaybackState:
         self._audio_backend.pause()
@@ -96,6 +131,17 @@ class PlaybackController:
 
     def volume(self) -> float:
         return self._audio_backend.volume()
+
+    def _start_track(self, track: Track) -> PlaybackState:
+        source = self._source_resolver.resolve_audio_source(track)
+        self._audio_backend.load(source)
+        self._loaded_track_id = track.id
+        self._audio_backend.play()
+        self._state = self._snapshot(status=PlaybackStatus.PLAYING, track=track)
+        return self.state
+
+    def _handle_finished(self) -> None:
+        self.next_track()
 
     def _snapshot(
         self,

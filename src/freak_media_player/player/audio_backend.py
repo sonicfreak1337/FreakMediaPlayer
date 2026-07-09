@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from freak_media_player.core.ports import AudioBackend
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
@@ -22,6 +24,7 @@ class NullAudioBackend:
         self._duration_ms = 0
         self._volume = DEFAULT_VOLUME
         self._equalizer_preset = EQUALIZER_PRESETS[0]
+        self._finished_callback: Callable[[], None] | None = None
 
     def load(self, source: AudioSource) -> None:
         self._source = source
@@ -62,6 +65,14 @@ class NullAudioBackend:
 
     def status(self) -> PlaybackStatus:
         return self._status
+
+    def set_finished_callback(self, callback: Callable[[], None]) -> None:
+        self._finished_callback = callback
+
+    def finish(self) -> None:
+        self._status = PlaybackStatus.STOPPED
+        if self._finished_callback is not None:
+            self._finished_callback()
 
 
 def create_desktop_audio_backend() -> AudioBackend:

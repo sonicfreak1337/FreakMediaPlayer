@@ -30,6 +30,17 @@ Dependencies point inward:
 - `widgets`: reusable Qt widgets
 - `utils`: small cross-cutting helpers
 
+## Library And Playlist
+
+The local library is the durable catalog of known tracks. It does not define
+playback order. The active playlist is stored separately through a playlist
+repository and owns the ordered sequence used by the playback controller.
+
+Qt widgets exchange track identities through drag and drop, while playlist
+mutation remains in `PlaylistService`. The player receives an ordered snapshot
+through `PlaybackService`; neither the library widget nor the playlist widget
+talks to the audio backend directly.
+
 ## First Milestone
 
 The first milestone is a runnable shell with:
