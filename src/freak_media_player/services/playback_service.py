@@ -30,6 +30,9 @@ class PlaybackService:
     def previous_track(self) -> PlaybackState:
         return self._controller.previous_track()
 
+    def current_playlist_index(self) -> int | None:
+        return self._controller.current_playlist_index()
+
     def play(self) -> PlaybackState:
         return self._controller.play()
 

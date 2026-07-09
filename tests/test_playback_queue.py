@@ -48,3 +48,11 @@ def test_replace_preserves_current_track_by_id() -> None:
 
     assert queue.current().id == "2"
     assert queue.next().id == "1"
+
+
+def test_queue_exposes_selected_playlist_index() -> None:
+    queue = PlaybackQueue([make_track("1"), make_track("2")])
+
+    queue.select(1)
+
+    assert queue.current_index() == 1

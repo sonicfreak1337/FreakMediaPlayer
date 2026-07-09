@@ -111,6 +111,7 @@ def test_playlist_navigation_uses_selected_order() -> None:
 
     assert next_state.current_track.id == "3"
     assert previous_state.current_track.id == "2"
+    assert service.current_playlist_index() == 1
 
 
 def test_finished_track_automatically_starts_next_playlist_track() -> None:

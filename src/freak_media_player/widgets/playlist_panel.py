@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QBrush, QColor, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -20,12 +20,14 @@ from PySide6.QtWidgets import (
 from freak_media_player.models.media import Track
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
+from freak_media_player.ui.theme import PLAYING_ROW_BACKGROUND, PLAYING_ROW_TEXT
 from freak_media_player.widgets.track_table import TRACK_ID_ROLE, PlaylistTrackTable
 
 ORDER_COLUMN = 0
 TITLE_COLUMN = 1
 ARTIST_COLUMN = 2
 SOURCE_COLUMN = 3
+PLAYING_HIGHLIGHT_REFRESH_MS = 250
 
 
 class PlaylistPanel(QWidget):
@@ -40,10 +42,13 @@ class PlaylistPanel(QWidget):
         self._playback_service = playback_service
         self._show_title = show_title
         self._tracks: list[Track] = []
+        self._playing_row: int | None = None
         self._table = PlaylistTrackTable()
         self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
+        self._highlight_timer = QTimer(self)
         self._build_layout()
         self._connect_interactions()
+        self._configure_highlight_timer()
         self.refresh()
 
     def refresh(self) -> None:
@@ -109,6 +114,11 @@ class PlaylistPanel(QWidget):
         self._table.track_ids_dropped.connect(self.add_track_ids)
         self._table.rows_move_requested.connect(self._move_rows)
 
+    def _configure_highlight_timer(self) -> None:
+        self._highlight_timer.setInterval(PLAYING_HIGHLIGHT_REFRESH_MS)
+        self._highlight_timer.timeout.connect(self._sync_playing_highlight)
+        self._highlight_timer.start()
+
     def _build_button(
         self,
         icon: QStyle.StandardPixmap,
@@ -124,10 +134,12 @@ class PlaylistPanel(QWidget):
 
     def _show_tracks(self, tracks: list[Track]) -> None:
         self._tracks = tracks
+        self._playing_row = None
         self._table.setRowCount(len(tracks))
         for row, track in enumerate(tracks):
             self._set_row(row, track)
         self._playback_service.sync_playlist(tracks)
+        self._sync_playing_highlight()
 
     def _set_row(self, row: int, track: Track) -> None:
         order = QTableWidgetItem(str(row + 1))
@@ -144,6 +156,7 @@ class PlaylistPanel(QWidget):
     def _play_item(self, item: QTableWidgetItem) -> None:
         if 0 <= item.row() < len(self._tracks):
             self._playback_service.play_playlist(self._tracks, item.row())
+            self._sync_playing_highlight()
 
     def _remove_selected(self) -> None:
         rows = self._selected_rows()
@@ -165,3 +178,30 @@ class PlaylistPanel(QWidget):
 
     def _selected_rows(self) -> list[int]:
         return sorted({item.row() for item in self._table.selectedItems()})
+
+    def _sync_playing_highlight(self) -> None:
+        playing_row = self._playback_service.current_playlist_index()
+        if playing_row is not None and not 0 <= playing_row < self._table.rowCount():
+            playing_row = None
+        if playing_row == self._playing_row:
+            return
+        if self._playing_row is not None:
+            self._set_playing_highlight(self._playing_row, highlighted=False)
+        if playing_row is not None:
+            self._set_playing_highlight(playing_row, highlighted=True)
+        self._playing_row = playing_row
+
+    def _set_playing_highlight(self, row: int, highlighted: bool) -> None:
+        background = QBrush(QColor(PLAYING_ROW_BACKGROUND)) if highlighted else QBrush()
+        foreground = QBrush(QColor(PLAYING_ROW_TEXT)) if highlighted else QBrush()
+        for column in range(self._table.columnCount()):
+            item = self._table.item(row, column)
+            if item is not None:
+                item.setBackground(background)
+                item.setForeground(foreground)
+        order_item = self._table.item(row, ORDER_COLUMN)
+        if order_item is not None:
+            icon = QIcon()
+            if highlighted:
+                icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
+            order_item.setIcon(icon)

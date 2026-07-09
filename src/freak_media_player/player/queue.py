@@ -37,6 +37,9 @@ class PlaybackQueue:
             return self.select(0)
         return self._tracks[self._current_index]
 
+    def current_index(self) -> int | None:
+        return self._current_index
+
     def next(self) -> Track | None:
         next_index = 0 if self._current_index is None else self._current_index + 1
         return self.select(next_index)

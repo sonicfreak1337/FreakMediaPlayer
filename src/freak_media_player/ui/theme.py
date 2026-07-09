@@ -16,6 +16,8 @@ TEXT_SECONDARY = "#8f94b2"
 DISPLAY_GREEN = "#19ff54"
 ACCENT = "#4d54d8"
 AMBER = "#e6c34c"
+PLAYING_ROW_BACKGROUND = "#173d27"
+PLAYING_ROW_TEXT = "#f1d85a"
 
 
 def apply_dark_theme(app: QApplication) -> None:

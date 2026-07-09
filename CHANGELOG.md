@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 - 2026-07-10
+
+- Highlighted the currently playing playlist row with a dedicated color and
+  play icon.
+- Kept the marker synchronized with direct playback, automatic advancement and
+  previous/next controls.
+
 ## 0.3.1 - 2026-07-10
 
 - Replaced page-style module navigation with one shared workspace.

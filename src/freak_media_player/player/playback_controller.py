@@ -30,6 +30,11 @@ class PlaybackController:
     def state(self) -> PlaybackState:
         return self._snapshot()
 
+    def current_playlist_index(self) -> int | None:
+        if self._state.current_track is None:
+            return None
+        return self._queue.current_index()
+
     def enqueue(self, track: Track) -> None:
         self._queue.add(track)
 

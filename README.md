@@ -3,7 +3,7 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.3.1`
+Current version: `0.3.2`
 
 ## Current Features
 
@@ -15,6 +15,7 @@ Current version: `0.3.1`
 - Playback for common formats supported by the Windows Qt multimedia backend
 - Play, pause, stop, previous, next, seek, volume, and mute controls
 - Automatic playback of the next playlist title
+- Highlighted currently playing playlist row
 - Clickable and draggable playback and volume sliders
 - Multi-select library tables with Shift-click and Ctrl-click
 - Sortable library columns and explicit playlist ordering
@@ -41,7 +42,7 @@ See `docs/ARCHITECTURE.md` for the architecture plan.
 
 ## Equalizer
 
-Version `0.3.1` keeps the equalizer visible and clickable through the app UI. The
+Version `0.3.2` keeps the equalizer visible and clickable through the app UI. The
 current Qt backend stores and exposes the selected curve. Real DSP processing is
 planned for the next audio-engine milestone because Qt `QMediaPlayer` does not
 provide a native equalizer stage.
