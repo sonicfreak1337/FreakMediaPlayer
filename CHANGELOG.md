@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0 - 2026-07-10
+
+- Replaced direct `QMediaPlayer` playback with a streaming audio pipeline.
+- Added PyAV/FFmpeg decoding with bounded-memory PCM buffering and seeking.
+- Added native PCM output through Qt `QAudioSink`.
+- Added a real block-based parametric equalizer using cascaded biquad filters.
+- Added per-band frequency, gain, Q and enabled parameters plus global preamp.
+- Replaced the graphic equalizer sliders with an interactive DAW-style response
+  graph and selectable band controls.
+- Kept the former Qt backend as a dependency fallback.
+- Added end-to-end tests for decoding, DSP continuity, PCM conversion and output
+  pumping.
+
 ## 0.3.2 - 2026-07-10
 
 - Highlighted the currently playing playlist row with a dedicated color and

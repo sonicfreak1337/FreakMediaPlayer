@@ -1,4 +1,4 @@
-from freak_media_player.models.media import AudioSource, Artist, ProviderIdentity, Track
+from freak_media_player.models.media import Artist, AudioSource, ProviderIdentity, Track
 from freak_media_player.models.playback import PlaybackStatus
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.player.playback_controller import PlaybackController

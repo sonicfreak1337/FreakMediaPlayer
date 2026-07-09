@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from enum import Enum
+from enum import StrEnum
 
 from freak_media_player.models.media import Track
 
 
-class PlaybackStatus(str, Enum):
+class PlaybackStatus(StrEnum):
     STOPPED = "stopped"
     PLAYING = "playing"
     PAUSED = "paused"
@@ -17,7 +17,7 @@ class PlaybackStatus(str, Enum):
     ERROR = "error"
 
 
-class RepeatMode(str, Enum):
+class RepeatMode(StrEnum):
     OFF = "off"
     ONE = "one"
     ALL = "all"

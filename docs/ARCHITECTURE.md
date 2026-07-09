@@ -63,13 +63,21 @@ Feature implementation starts only after these boundaries are in place.
 
 ## Audio Engine Direction
 
-The current desktop playback backend uses Qt Multimedia for fast, native local
-file playback. Qt `QMediaPlayer` does not expose a real equalizer/DSP pipeline,
-so the equalizer introduced in `0.2.0` is deliberately modeled as a clean
-service and backend contract first.
+The desktop backend introduced in `0.4.0` is a streaming pipeline:
 
-The next audio-engine milestone should replace or extend the Qt player backend
-with a decoder plus audio sink pipeline. That is where ReplayGain, real
-equalizer processing, crossfade, gapless playback and visualizer sample taps
-belong. The UI should continue to talk only to services, never to the backend
-implementation directly.
+1. PyAV/FFmpeg decodes local media into normalized stereo float blocks.
+2. Stateful DSP processors transform those blocks without loading entire files.
+3. A bounded queue separates decoding and DSP work from the Qt event loop.
+4. Qt `QAudioSink` writes interleaved 48 kHz, 16-bit PCM to the native device.
+
+The parametric equalizer uses cascaded second-order sections and preserves filter
+state across blocks. Its coefficients follow the W3C/RBJ Audio EQ Cookbook. The
+response graph obtains its values through `EqualizerService` and therefore uses
+the same coefficient calculation as the processor.
+
+`DawAudioBackend` remains behind the existing `AudioBackend` protocol. Playback,
+playlist, provider and UI layers do not know which decoder or output device is
+used. The former `QtAudioBackend` remains available as an import fallback.
+
+Crossfade, gapless scheduling, ReplayGain and visualizer sample taps belong in
+the same pipeline but remain separate future processors or scheduling policies.

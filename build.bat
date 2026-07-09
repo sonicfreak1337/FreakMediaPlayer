@@ -52,6 +52,7 @@ echo Building %APP_NAME%.exe...
     --windowed ^
     --name "%APP_NAME%" ^
     --paths "%CD%\src" ^
+    --collect-all av ^
     --collect-all PySide6 ^
     "src\freak_media_player\main.py"
 if errorlevel 1 exit /b 1

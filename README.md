@@ -3,7 +3,7 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.3.2`
+Current version: `0.4.0`
 
 ## Current Features
 
@@ -12,7 +12,9 @@ Current version: `0.3.2`
 - Shared resizable workspace with collapsible Library, Playlist, and Equalizer
 - Drag and drop from the library into a chosen playlist position
 - Manual playlist ordering through drag and drop or move controls
-- Playback for common formats supported by the Windows Qt multimedia backend
+- Playback for common local formats supported by the bundled FFmpeg libraries
+- Streaming local decoding through PyAV/FFmpeg with bounded memory usage
+- Native PCM output through Qt AudioSink
 - Play, pause, stop, previous, next, seek, volume, and mute controls
 - Automatic playback of the next playlist title
 - Highlighted currently playing playlist row
@@ -21,7 +23,8 @@ Current version: `0.3.2`
 - Sortable library columns and explicit playlist ordering
 - Remove one or more selected local tracks from the library
 - Remove playlist entries without deleting library tracks
-- Equalizer screen with Flat, Metal, Metalcore, and Custom curves
+- Audible parametric equalizer with Flat, Metal, Metalcore, and Custom presets
+- DAW-style response graph with frequency, gain, Q, enable, and preamp controls
 - Compact Winamp-inspired dark UI with green library/display accents
 - SQLite storage for imported tracks and settings
 - Versioned settings and database migrations
@@ -42,10 +45,13 @@ See `docs/ARCHITECTURE.md` for the architecture plan.
 
 ## Equalizer
 
-Version `0.3.2` keeps the equalizer visible and clickable through the app UI. The
-current Qt backend stores and exposes the selected curve. Real DSP processing is
-planned for the next audio-engine milestone because Qt `QMediaPlayer` does not
-provide a native equalizer stage.
+Version `0.4.0` processes decoded PCM audio through a real parametric equalizer
+before it reaches the Windows output device. Each band is a stateful peaking
+filter with frequency, gain and Q controls. The displayed response curve uses
+the same coefficients as the audio processor.
+
+PyAV handles local decoding, SciPy applies cascaded second-order filters, and Qt
+`QAudioSink` writes the final stereo PCM stream to the native audio device.
 
 ## Build
 

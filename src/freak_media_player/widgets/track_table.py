@@ -111,7 +111,7 @@ def _encode_values(values: list[str]) -> QByteArray:
 
 
 def _decode_values(data: QByteArray) -> list[str]:
-    return [value for value in bytes(data).decode("utf-8").splitlines() if value]
+    return [value for value in bytes(data.data()).decode("utf-8").splitlines() if value]
 
 
 def _decode_integers(data: QByteArray) -> list[int]:

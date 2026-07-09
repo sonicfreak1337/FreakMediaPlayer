@@ -1,10 +1,13 @@
 [project]
 name = "freak-media-player"
-version = "0.3.2"
+version = "0.4.0"
 description = "A modular native Windows media player with provider and plugin architecture."
 requires-python = ">=3.11"
 dependencies = [
+    "av>=14.0",
+    "numpy>=2.0,<2.4",
     "PySide6>=6.7",
+    "scipy>=1.14,<1.17",
 ]
 
 [project.optional-dependencies]

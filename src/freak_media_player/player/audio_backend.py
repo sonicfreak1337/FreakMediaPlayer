@@ -77,7 +77,11 @@ class NullAudioBackend:
 
 def create_desktop_audio_backend() -> AudioBackend:
     try:
-        from freak_media_player.player.qt_audio_backend import QtAudioBackend
+        from freak_media_player.player.daw_audio_backend import DawAudioBackend
     except ImportError:
-        return NullAudioBackend()
-    return QtAudioBackend()
+        try:
+            from freak_media_player.player.qt_audio_backend import QtAudioBackend
+        except ImportError:
+            return NullAudioBackend()
+        return QtAudioBackend()
+    return DawAudioBackend()

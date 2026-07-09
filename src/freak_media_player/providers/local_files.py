@@ -6,7 +6,7 @@ import hashlib
 from collections.abc import Iterable
 from pathlib import Path
 
-from freak_media_player.models.media import AudioSource, Artist, ProviderIdentity, Track
+from freak_media_player.models.media import Artist, AudioSource, ProviderIdentity, Track
 from freak_media_player.providers.base import ProviderCapabilities, SearchQuery
 
 LOCAL_FILE_PROVIDER_ID = "local-files"
