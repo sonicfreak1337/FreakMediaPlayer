@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1 - 2026-07-10
+
+- Replaced page-style module navigation with one shared workspace.
+- Showed the local library and active playlist side by side for direct drag and
+  drop.
+- Placed the equalizer in the same resizable window below the track workspace.
+- Added independently collapsible headers for Library, Playlist and Equalizer.
+- Kept the player controls permanently visible below all modules.
+
 ## 0.3.0 - 2026-07-10
 
 - Fixed sidebar navigation so Playlist and Equalizer open reliably.

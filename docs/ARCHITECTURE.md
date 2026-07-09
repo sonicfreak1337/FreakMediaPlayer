@@ -41,6 +41,11 @@ mutation remains in `PlaylistService`. The player receives an ordered snapshot
 through `PlaybackService`; neither the library widget nor the playlist widget
 talks to the audio backend directly.
 
+Library and playlist are presented simultaneously in a horizontal splitter so
+drag and drop never depends on navigation state. The equalizer shares the same
+workspace in a vertical splitter. `CollapsiblePanel` owns only presentation
+state and does not introduce dependencies between the contained modules.
+
 ## First Milestone
 
 The first milestone is a runnable shell with:

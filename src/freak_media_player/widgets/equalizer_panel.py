@@ -28,9 +28,14 @@ EQUALIZER_SLIDER_WIDTH = 34
 
 
 class EqualizerPanel(QWidget):
-    def __init__(self, equalizer_service: EqualizerService) -> None:
+    def __init__(
+        self,
+        equalizer_service: EqualizerService,
+        show_title: bool = True,
+    ) -> None:
         super().__init__()
         self._equalizer_service = equalizer_service
+        self._show_title = show_title
         self._preset_combo = QComboBox()
         self._band_sliders: list[ClickableSlider] = []
         self._band_value_labels: list[QLabel] = []
@@ -44,9 +49,10 @@ class EqualizerPanel(QWidget):
         layout.setSpacing(12)
 
         header = QHBoxLayout()
-        title = QLabel("Equalizer")
-        title.setObjectName("panelTitle")
-        header.addWidget(title)
+        if self._show_title:
+            title = QLabel("Equalizer")
+            title.setObjectName("panelTitle")
+            header.addWidget(title)
         header.addStretch(1)
         header.addWidget(self._preset_combo)
 

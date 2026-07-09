@@ -33,10 +33,12 @@ class PlaylistPanel(QWidget):
         self,
         playlist_service: PlaylistService,
         playback_service: PlaybackService,
+        show_title: bool = True,
     ) -> None:
         super().__init__()
         self._playlist_service = playlist_service
         self._playback_service = playback_service
+        self._show_title = show_title
         self._tracks: list[Track] = []
         self._table = PlaylistTrackTable()
         self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
@@ -61,9 +63,10 @@ class PlaylistPanel(QWidget):
         layout.setSpacing(8)
 
         header = QHBoxLayout()
-        title = QLabel("Playlist")
-        title.setObjectName("panelTitle")
-        header.addWidget(title)
+        if self._show_title:
+            title = QLabel("Playlist")
+            title.setObjectName("panelTitle")
+            header.addWidget(title)
         header.addStretch(1)
         header.addWidget(
             self._build_button(

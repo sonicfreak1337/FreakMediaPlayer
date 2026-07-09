@@ -35,9 +35,11 @@ class LocalTracksPanel(QWidget):
         self,
         title: str,
         local_library_service: LocalLibraryService,
+        show_title: bool = True,
     ) -> None:
         super().__init__()
         self._title = title
+        self._show_title = show_title
         self._local_library_service = local_library_service
         self._table = TrackTableWidget()
         self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
@@ -74,9 +76,10 @@ class LocalTracksPanel(QWidget):
         layout.setSpacing(8)
 
         header = QHBoxLayout()
-        title = QLabel(self._title)
-        title.setObjectName("panelTitle")
-        header.addWidget(title)
+        if self._show_title:
+            title = QLabel(self._title)
+            title.setObjectName("panelTitle")
+            header.addWidget(title)
         header.addStretch(1)
         header.addWidget(
             self._build_button(

@@ -3,12 +3,13 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.3.0`
+Current version: `0.3.1`
 
 ## Current Features
 
 - Import local audio by file, folder, or drag and drop
 - Separate local library and persistent active playlist
+- Shared resizable workspace with collapsible Library, Playlist, and Equalizer
 - Drag and drop from the library into a chosen playlist position
 - Manual playlist ordering through drag and drop or move controls
 - Playback for common formats supported by the Windows Qt multimedia backend
@@ -21,7 +22,6 @@ Current version: `0.3.0`
 - Remove playlist entries without deleting library tracks
 - Equalizer screen with Flat, Metal, Metalcore, and Custom curves
 - Compact Winamp-inspired dark UI with green library/display accents
-- Sidebar only shows sections that are currently implemented
 - SQLite storage for imported tracks and settings
 - Versioned settings and database migrations
 - Windows executable build script
@@ -41,7 +41,7 @@ See `docs/ARCHITECTURE.md` for the architecture plan.
 
 ## Equalizer
 
-Version `0.3.0` keeps the equalizer visible and clickable through the app UI. The
+Version `0.3.1` keeps the equalizer visible and clickable through the app UI. The
 current Qt backend stores and exposes the selected curve. Real DSP processing is
 planned for the next audio-engine milestone because Qt `QMediaPlayer` does not
 provide a native equalizer stage.

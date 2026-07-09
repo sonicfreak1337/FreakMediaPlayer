@@ -88,6 +88,21 @@ def apply_dark_theme(app: QApplication) -> None:
             border-color: {DISPLAY_GREEN};
             color: {DISPLAY_GREEN};
         }}
+        #collapsibleHeader {{
+            background: {HEADER_BACKGROUND};
+            border: 1px solid {PANEL_BORDER};
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            min-height: 26px;
+            padding: 2px 8px;
+            text-align: left;
+        }}
+        #collapsibleHeader:hover,
+        #collapsibleHeader:checked {{
+            background: {HEADER_HIGHLIGHT};
+            border-color: {DISPLAY_GREEN};
+        }}
         QComboBox {{
             background: {PANEL_SUNKEN};
             border: 1px solid {PANEL_BORDER};
