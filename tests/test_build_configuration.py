@@ -21,3 +21,4 @@ def test_builds_bundle_brand_assets_and_windows_icon() -> None:
     assert (project_root / "src/freak_media_player/assets/icons/repeat_all_off.png").exists()
     assert (project_root / "src/freak_media_player/assets/icons/repeat_all_on.png").exists()
     assert (project_root / "src/freak_media_player/assets/icons/repeat_one_on.png").exists()
+    assert (project_root / "src/freak_media_player/assets/icons/shuffle_off.png").exists()

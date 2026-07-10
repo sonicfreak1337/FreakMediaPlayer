@@ -395,6 +395,11 @@ class PlayerBar(QWidget):
         self._shuffle_button.setToolTip(
             "Disable playlist shuffle" if shuffle_enabled else "Enable playlist shuffle"
         )
+        self._set_icon(
+            self._shuffle_button,
+            "shuffle_icon.png" if shuffle_enabled else "shuffle_off.png",
+            24,
+        )
         repeat_labels = {
             RepeatMode.OFF: "Repeat Off",
             RepeatMode.ALL: "Repeat All",

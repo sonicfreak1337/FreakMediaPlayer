@@ -22,6 +22,7 @@ def test_shuffle_button_exposes_enabled_state() -> None:
 
     assert player_bar._shuffle_button.isChecked() is False
     assert player_bar._shuffle_button.text() == "Shuffle: OFF"
+    off_icon = player_bar._shuffle_button.icon().cacheKey()
 
     player_bar._toggle_shuffle()
     app.processEvents()
@@ -29,6 +30,7 @@ def test_shuffle_button_exposes_enabled_state() -> None:
     assert player_bar._shuffle_button.isChecked() is True
     assert player_bar._shuffle_button.text() == "Shuffle: ON"
     assert player_bar._shuffle_button.objectName() == "shuffleButton"
+    assert player_bar._shuffle_button.icon().cacheKey() != off_icon
 
 
 def test_repeat_button_uses_distinct_assets_for_each_mode() -> None:

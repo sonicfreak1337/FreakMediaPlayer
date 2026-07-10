@@ -4,6 +4,8 @@
 
 - Replaced the original logo, Pause and Repeat graphics with the newly supplied
   transparent assets, including distinct Repeat Off, All and One states.
+- Added the supplied dark inactive Shuffle artwork while retaining the gold icon
+  for the enabled state.
 - Removed the circular frame around the Player logo and regenerated the packaged
   Windows icon from the new transparent brand asset.
 - Added automatic album-cover lookup for conventional image names and album-title
