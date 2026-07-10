@@ -96,5 +96,7 @@ the same coefficient calculation as the processor.
 playlist, provider and UI layers do not know which decoder or output device is
 used. The former `QtAudioBackend` remains available as an import fallback.
 
-Crossfade, gapless scheduling, ReplayGain and visualizer sample taps belong in
-the same pipeline but remain separate future processors or scheduling policies.
+The visualizer sample tap observes the final PCM bytes accepted by the native
+output device and stores only a bounded rolling mono window. Plugins consume
+snapshots without holding up the output pump. Crossfade, gapless scheduling and
+ReplayGain remain future processors or scheduling policies in this pipeline.

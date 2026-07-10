@@ -3,7 +3,7 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.5.0`
+Current version: `0.6.0`
 
 ## Current Features
 
@@ -28,6 +28,7 @@ Current version: `0.5.0`
 - Remove playlist entries without deleting library tracks
 - Audible parametric equalizer with metal-subgenre presets and Custom mode
 - DAW-style response graph with frequency, gain, Q, enable, and preamp controls
+- Dockable audio-reactive visualizer with twelve animated presets
 - Compact Winamp-inspired dark UI with green library/display accents
 - SQLite storage for imported tracks and settings
 - Versioned settings and database migrations
@@ -48,13 +49,23 @@ See `docs/ARCHITECTURE.md` for the architecture plan.
 
 ## Equalizer
 
-Version `0.5.0` processes decoded PCM audio through a real parametric equalizer
+Since version `0.5.0`, decoded PCM audio passes through a real parametric equalizer
 before it reaches the Windows output device. Each band is a stateful peaking
 filter with frequency, gain and Q controls. The displayed response curve uses
 the same coefficients as the audio processor.
 
 PyAV handles local decoding, SciPy applies cascaded second-order filters, and Qt
 `QAudioSink` writes the final stereo PCM stream to the native audio device.
+
+## Visualizer
+
+Version `0.6.0` adds the built-in Freak Visualizer plugin. It receives the
+actual post-DSP PCM stream through a bounded, thread-safe sample tap and derives
+waveform, spectrum, bass, midrange and treble energy without delaying playback.
+The twelve included presets range from classic spectrum and oscilloscope views
+to layered mandalas, perspective grids, particle orbits and animated solar
+corona effects. The dock can be toggled through `Ansicht > Visualizer` or
+`Ctrl+Shift+V`.
 
 ## Build
 

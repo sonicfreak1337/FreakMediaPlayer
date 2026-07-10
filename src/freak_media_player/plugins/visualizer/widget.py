@@ -42,6 +42,12 @@ PRESETS = (
     ("oscilloscope", "Electric Oscilloscope"),
     ("aurora", "Aurora Waves"),
     ("constellation", "Cosmic Constellation"),
+    ("spectral_mandala", "Spectral Mandala"),
+    ("cyber_grid", "Cyber Grid"),
+    ("liquid_orbit", "Liquid Orbit"),
+    ("frequency_city", "Frequency City"),
+    ("dna_helix", "DNA Helix"),
+    ("solar_flare", "Solar Flare"),
 )
 
 
@@ -51,6 +57,8 @@ class VisualizerFrame:
     spectrum: NDArray[np.float32]
     energy: float
     bass: float
+    mids: float
+    treble: float
     elapsed: float
 
 
@@ -94,6 +102,12 @@ class VisualizerCanvas(QWidget):
             "oscilloscope": self._paint_oscilloscope,
             "aurora": self._paint_aurora,
             "constellation": self._paint_constellation,
+            "spectral_mandala": self._paint_spectral_mandala,
+            "cyber_grid": self._paint_cyber_grid,
+            "liquid_orbit": self._paint_liquid_orbit,
+            "frequency_city": self._paint_frequency_city,
+            "dna_helix": self._paint_dna_helix,
+            "solar_flare": self._paint_solar_flare,
         }
         renderers[self._preset](painter, frame)
         self._paint_vignette(painter)
@@ -115,11 +129,15 @@ class VisualizerCanvas(QWidget):
         self._smoothed = np.maximum(spectrum, self._smoothed * 0.88)
         energy = min(1.0, float(np.sqrt(np.mean(np.square(samples))) * 4.8))
         bass = min(1.0, float(np.mean(self._smoothed[1:10]) * 1.5))
+        mids = min(1.0, float(np.mean(self._smoothed[10:36]) * 1.35))
+        treble = min(1.0, float(np.mean(self._smoothed[36:]) * 1.3))
         return VisualizerFrame(
             samples=samples,
             spectrum=self._smoothed.copy(),
             energy=energy,
             bass=bass,
+            mids=mids,
+            treble=treble,
             elapsed=time.monotonic() - self._started,
         )
 
@@ -257,6 +275,236 @@ class VisualizerCanvas(QWidget):
                 dx, dy = point.x() - other.x(), point.y() - other.y()
                 if dx * dx + dy * dy < 9_000:
                     painter.drawLine(point, other)
+
+    def _paint_spectral_mandala(self, painter: QPainter, frame: VisualizerFrame) -> None:
+        center = QPointF(self.width() / 2, self.height() / 2)
+        scale = min(self.width(), self.height())
+        painter.save()
+        painter.translate(center)
+        for ring in range(9, -1, -1):
+            path = QPainterPath()
+            radius = scale * (0.07 + ring * 0.035)
+            rotation = frame.elapsed * (0.18 + ring * 0.025) * (-1 if ring % 2 else 1)
+            points = 96
+            for index in range(points + 1):
+                mirrored = index if index < points // 2 else points - index
+                band = (mirrored * 3 + ring * 5) % len(frame.spectrum)
+                level = float(frame.spectrum[band])
+                petals = math.sin(index * math.pi / 6 + ring * 0.7 + frame.elapsed)
+                distance = radius + level * scale * 0.075 + petals * scale * 0.012
+                angle = index * 2 * math.pi / points + rotation
+                point = QPointF(math.cos(angle) * distance, math.sin(angle) * distance)
+                if index == 0:
+                    path.moveTo(point)
+                else:
+                    path.lineTo(point)
+            hue = (0.68 + ring * 0.045 + frame.elapsed * 0.012) % 1.0
+            color = QColor.fromHsvF(hue, 0.76, 1.0)
+            color.setAlpha(54 + (9 - ring) * 15)
+            painter.setPen(QPen(color, 1.0 + frame.mids * 2.2))
+            painter.drawPath(path)
+        core = QRadialGradient(QPointF(0, 0), scale * 0.18)
+        core.setColorAt(0, QColor(255, 255, 255, 235))
+        core.setColorAt(0.18, QColor(86, 193, 255, 210))
+        core.setColorAt(0.55, QColor(173, 48, 255, 90))
+        core.setColorAt(1, QColor(30, 0, 80, 0))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(core)
+        core_size = scale * (0.1 + frame.bass * 0.06)
+        painter.drawEllipse(QPointF(0, 0), core_size, core_size)
+        painter.restore()
+
+    def _paint_cyber_grid(self, painter: QPainter, frame: VisualizerFrame) -> None:
+        width, height = self.width(), self.height()
+        horizon = height * 0.36
+        sky = QLinearGradient(0, 0, 0, horizon)
+        sky.setColorAt(0, QColor(3, 2, 22))
+        sky.setColorAt(1, QColor(46, 7, 73))
+        painter.fillRect(QRectF(0, 0, width, horizon), sky)
+        sun = QRadialGradient(QPointF(width / 2, horizon), height * 0.34)
+        sun.setColorAt(0, QColor(255, 65, 190, 155 + int(frame.bass * 80)))
+        sun.setColorAt(0.35, QColor(114, 33, 220, 70))
+        sun.setColorAt(1, QColor(0, 0, 0, 0))
+        painter.fillRect(self.rect(), sun)
+        painter.setPen(QPen(QColor(29, 238, 255, 120), 1))
+        vanishing = QPointF(width / 2, horizon)
+        for index in range(-12, 13):
+            bottom_x = width / 2 + index * width / 10
+            painter.drawLine(vanishing, QPointF(bottom_x, height))
+        scroll = (frame.elapsed * (0.55 + frame.energy)) % 1.0
+        for row in range(19):
+            depth = (row + scroll) / 19
+            curved = depth * depth
+            y = horizon + curved * (height - horizon)
+            alpha = 35 + int(depth * 150)
+            painter.setPen(QPen(QColor(40, 182, 255, alpha), 1))
+            painter.drawLine(QPointF(0, y), QPointF(width, y))
+        ridge = QPainterPath()
+        for index, level in enumerate(frame.spectrum):
+            x = index * width / (len(frame.spectrum) - 1)
+            y = horizon - float(level) * height * 0.25
+            if index == 0:
+                ridge.moveTo(x, y)
+            else:
+                ridge.lineTo(x, y)
+        painter.setPen(QPen(QColor(255, 60, 210, 210), 2.5))
+        painter.drawPath(ridge)
+
+    def _paint_liquid_orbit(self, painter: QPainter, frame: VisualizerFrame) -> None:
+        center = QPointF(self.width() / 2, self.height() / 2)
+        scale = min(self.width(), self.height())
+        background = QRadialGradient(center, scale * 0.8)
+        background.setColorAt(0, QColor(12, 36, 58))
+        background.setColorAt(0.5, QColor(4, 12, 34))
+        background.setColorAt(1, QColor(1, 2, 9))
+        painter.fillRect(self.rect(), background)
+        for index in range(28):
+            level = float(frame.spectrum[(index * 5) % len(frame.spectrum)])
+            orbit = scale * (0.12 + (index % 7) * 0.045)
+            speed = 0.16 + (index % 5) * 0.035
+            angle = index * 2.17 + frame.elapsed * speed * (-1 if index % 2 else 1)
+            squash = 0.38 + (index % 3) * 0.1
+            point = QPointF(
+                center.x() + math.cos(angle) * orbit,
+                center.y() + math.sin(angle) * orbit * squash,
+            )
+            radius = 5 + level * 20 + frame.bass * (8 if index % 4 == 0 else 2)
+            blob = QRadialGradient(point, radius * 2.8)
+            hue = (0.46 + index * 0.027 + frame.elapsed * 0.008) % 1.0
+            color = QColor.fromHsvF(hue, 0.72, 1.0)
+            blob.setColorAt(0, QColor(color.red(), color.green(), color.blue(), 220))
+            blob.setColorAt(0.28, QColor(color.red(), color.green(), color.blue(), 90))
+            blob.setColorAt(1, QColor(color.red(), color.green(), color.blue(), 0))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(blob)
+            painter.drawEllipse(point, radius * 2.8, radius * 2.8)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        for orbit_index in range(4):
+            orbit_radius = scale * (0.16 + orbit_index * 0.08)
+            color = QColor(66, 229, 255, 35 + orbit_index * 10)
+            painter.setPen(QPen(color, 1))
+            painter.drawEllipse(center, orbit_radius, orbit_radius * 0.42)
+
+    def _paint_frequency_city(self, painter: QPainter, frame: VisualizerFrame) -> None:
+        width, height = self.width(), self.height()
+        ground = height * 0.82
+        skyline_glow = QLinearGradient(0, height * 0.25, 0, ground)
+        skyline_glow.setColorAt(0, QColor(2, 4, 18))
+        skyline_glow.setColorAt(1, QColor(17, 20, 62))
+        painter.fillRect(self.rect(), skyline_glow)
+        count = 32
+        building_width = width / count
+        for index in range(count):
+            near_level = float(frame.spectrum[index * 2])
+            far_level = float(frame.spectrum[(index * 2 + 17) % len(frame.spectrum)])
+            far_height = 10 + far_level * height * 0.33
+            far_x = width / 2 + (index - count / 2) * building_width * 0.62
+            far_rect = QRectF(far_x, ground - far_height - 24, building_width * 0.5, far_height)
+            painter.fillRect(far_rect, QColor(37, 27, 91, 210))
+            building_height = 18 + near_level * height * 0.58
+            rect = QRectF(
+                index * building_width + 1,
+                ground - building_height,
+                max(2.0, building_width - 3),
+                building_height,
+            )
+            hue = (0.53 + index / count * 0.18 + frame.elapsed * 0.006) % 1.0
+            color = QColor.fromHsvF(hue, 0.68, 0.68)
+            painter.fillRect(rect, color)
+            window_color = QColor(77, 255, 223, 80 + int(near_level * 150))
+            painter.setPen(QPen(window_color, 1))
+            for floor_y in range(int(rect.top()) + 7, int(rect.bottom()), 9):
+                painter.drawLine(
+                    QPointF(rect.left() + 3, floor_y),
+                    QPointF(rect.right() - 3, floor_y),
+                )
+        painter.setPen(QPen(QColor(72, 129, 255, 90), 1))
+        for row in range(7):
+            y = ground + (row / 6) ** 2 * (height - ground)
+            painter.drawLine(QPointF(0, y), QPointF(width, y))
+
+    def _paint_dna_helix(self, painter: QPainter, frame: VisualizerFrame) -> None:
+        width, height = self.width(), self.height()
+        path_a = QPainterPath()
+        path_b = QPainterPath()
+        points_a: list[QPointF] = []
+        points_b: list[QPointF] = []
+        samples = 80
+        for index in range(samples):
+            x = index * width / (samples - 1)
+            level = float(frame.spectrum[(index * len(frame.spectrum)) // samples])
+            phase = index * 0.24 - frame.elapsed * (1.4 + frame.bass)
+            amplitude = height * (0.18 + level * 0.18)
+            center_y = height / 2 + math.sin(index * 0.055 + frame.elapsed * 0.25) * height * 0.08
+            point_a = QPointF(x, center_y + math.sin(phase) * amplitude)
+            point_b = QPointF(x, center_y + math.sin(phase + math.pi) * amplitude)
+            points_a.append(point_a)
+            points_b.append(point_b)
+            if index == 0:
+                path_a.moveTo(point_a)
+                path_b.moveTo(point_b)
+            else:
+                path_a.lineTo(point_a)
+                path_b.lineTo(point_b)
+        for index in range(0, samples, 4):
+            phase = index * 0.24 - frame.elapsed * (1.4 + frame.bass)
+            depth = (math.sin(phase) + 1) / 2
+            color = QColor(105, 116 + int(depth * 100), 255, 55 + int(depth * 150))
+            painter.setPen(QPen(color, 1.0 + depth * 2))
+            painter.drawLine(points_a[index], points_b[index])
+            painter.setBrush(QColor(238, 92, 255, 170))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(points_a[index], 2.0 + depth * 2, 2.0 + depth * 2)
+            painter.setBrush(QColor(70, 244, 255, 170))
+            painter.drawEllipse(points_b[index], 2.0 + depth * 2, 2.0 + depth * 2)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(QColor(245, 79, 255, 215), 3))
+        painter.drawPath(path_a)
+        painter.setPen(QPen(QColor(57, 235, 255, 215), 3))
+        painter.drawPath(path_b)
+
+    def _paint_solar_flare(self, painter: QPainter, frame: VisualizerFrame) -> None:
+        center = QPointF(self.width() / 2, self.height() / 2)
+        scale = min(self.width(), self.height())
+        core_radius = scale * (0.13 + frame.bass * 0.055)
+        corona = QRadialGradient(center, core_radius * 3.5)
+        corona.setColorAt(0, QColor(255, 255, 220, 255))
+        corona.setColorAt(0.16, QColor(255, 190, 45, 245))
+        corona.setColorAt(0.42, QColor(255, 53, 25, 125))
+        corona.setColorAt(1, QColor(80, 0, 20, 0))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(corona)
+        painter.drawEllipse(center, core_radius * 3.5, core_radius * 3.5)
+        painter.save()
+        painter.translate(center)
+        count = len(frame.spectrum)
+        for index, level in enumerate(frame.spectrum):
+            angle = index * 2 * math.pi / count + frame.elapsed * 0.07
+            level_value = float(level)
+            inner = core_radius * (0.85 + math.sin(index * 1.7 + frame.elapsed) * 0.05)
+            outer = inner + level_value * scale * 0.27 + (index % 5) * 1.5
+            start = QPointF(math.cos(angle) * inner, math.sin(angle) * inner)
+            end = QPointF(math.cos(angle) * outer, math.sin(angle) * outer)
+            color = QColor(
+                255,
+                71 + int(level_value * 150),
+                22,
+                65 + int(level_value * 190),
+            )
+            painter.setPen(QPen(color, 1.0 + level_value * 3.4))
+            painter.drawLine(start, end)
+        for flare in range(7):
+            radius = core_radius * (1.15 + flare * 0.18)
+            start_angle = frame.elapsed * (16 + flare) + flare * 53
+            span = 28 + frame.mids * 95
+            color = QColor(255, 126 + flare * 12, 36, 130 - flare * 10)
+            painter.setPen(QPen(color, 1.5 + frame.energy * 2.5))
+            painter.drawArc(
+                QRectF(-radius, -radius, radius * 2, radius * 2),
+                int(start_angle * 16),
+                int(span * 16),
+            )
+        painter.restore()
 
     def _paint_vignette(self, painter: QPainter) -> None:
         gradient = QRadialGradient(

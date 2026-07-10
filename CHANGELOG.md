@@ -1,12 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 - 2026-07-10
 
 - Added the built-in Freak Visualizer plugin with a real post-DSP audio sample
   tap and six audio-reactive presets: Neon Spectrum, Radial Bloom, Star Tunnel,
   Electric Oscilloscope, Aurora Waves and Cosmic Constellation.
 - Added a dockable Visualizer panel and an `Ansicht > Visualizer` toggle with
   the `Ctrl+Shift+V` shortcut.
+- Added six advanced presets: Spectral Mandala, Cyber Grid, Liquid Orbit,
+  Frequency City, DNA Helix and Solar Flare, bringing the preset total to twelve.
+- Extended visualizer analysis with independent bass, midrange and treble
+  energy values for richer multi-layer animation.
+- Added automatic rendering checks for every bundled visualizer preset.
 
 ## 0.5.0 - 2026-07-10
 
