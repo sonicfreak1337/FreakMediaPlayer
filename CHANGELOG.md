@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.3 - 2026-07-11
+
+- Added a live, persistent skin system with the original interface as the default
+  Freaky skin and a provisional Fastilicious racing-console mockup.
+- Added a title-bar skin dropdown plus custom-skin reload and folder controls.
+- Added safe external JSON/QSS skin discovery, semantic color overrides, custom
+  asset mappings, convention-based asset replacement and packaged fallbacks.
+
 ## 0.7.2 - 2026-07-10
 
 - Restored native Windows taskbar minimization behavior for the frameless player

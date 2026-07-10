@@ -13,7 +13,7 @@ CURRENT_SETTINGS_VERSION = 1
 class AppSettings:
     version: int = CURRENT_SETTINGS_VERSION
     database_path: Path = Path("freak_media_player.sqlite3")
-    theme_name: str = "dark"
+    theme_name: str = "freaky"
     enable_notifications: bool = True
 
 

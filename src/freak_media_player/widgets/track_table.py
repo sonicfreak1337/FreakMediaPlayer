@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
 )
 
-from freak_media_player.ui.theme import AMBER, PLAYING_ROW_TEXT
+from freak_media_player.ui.skins import skin_color
 
 TRACK_ID_ROLE = Qt.ItemDataRole.UserRole
 PLAYING_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -54,12 +54,12 @@ class TrackRowDelegate(QStyledItemDelegate):
             styled_option.state &= ~QStyle.StateFlag.State_Selected
             styled_option.palette.setColor(
                 QPalette.ColorRole.Text,
-                QColor(PLAYING_ROW_TEXT),
+                QColor(skin_color("playing_row_text")),
             )
         super().paint(painter, styled_option, index)
         if playing:
             painter.save()
-            painter.setPen(QPen(QColor(AMBER), 1.0))
+            painter.setPen(QPen(QColor(skin_color("highlight")), 1.0))
             painter.drawLine(option.rect.topLeft(), option.rect.topRight())
             painter.drawLine(option.rect.bottomLeft(), option.rect.bottomRight())
             painter.restore()

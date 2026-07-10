@@ -3,7 +3,7 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.7.2`
+Current version: `0.7.3`
 
 ## Current Features
 
@@ -31,7 +31,9 @@ Current version: `0.7.2`
 - Audible parametric equalizer with metal-subgenre presets and Custom mode
 - DAW-style response graph with frequency, gain, Q, enable, and preamp controls
 - Dockable audio-reactive visualizer with thirteen animated presets
-- Mockup-driven frameless navy UI with gold and neon-blue accents
+- Live-switchable skin system with the default Freaky design and provisional
+  Fastilicious racing-console mockup
+- User skins with inherited or standalone QSS, semantic colors and custom assets
 - Branded application/taskbar icon and logo-based fallback artwork
 - Automatic album-cover discovery from conventional images beside local tracks
 - Gold playing-row emphasis and restrained outlined table selection
@@ -59,6 +61,15 @@ Library, Playlist, Equalizer and Visualizer use a consistent dock module chrome.
 Use the `↗` control or drag a module title to detach it into its own desktop
 window; double-clicking its title docks it again. Optional modules can be closed
 and restored from the `Module` button in the Player. The Player remains available.
+
+## Skins
+
+Use the `SKIN` dropdown in the title bar to switch immediately between Freaky,
+Fastilicious and installed user skins. The selection persists across launches.
+Custom skin folders live below `%LOCALAPPDATA%\FreakMediaPlayer\skins` and can
+override the complete QSS, semantic colors and any packaged image or icon while
+retaining safe fallbacks. See [`docs/SKINS.md`](docs/SKINS.md) for the manifest,
+asset convention and a ready-to-copy example.
 
 ## Equalizer
 

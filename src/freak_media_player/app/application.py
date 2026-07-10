@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import sys
 
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from freak_media_player.app.bootstrap import build_app_context
+from freak_media_player.config.settings import AppSettings
 from freak_media_player.plugins.base import PluginContext
 from freak_media_player.plugins.manager import PluginManager
 from freak_media_player.plugins.visualizer import VisualizerPlugin
-from freak_media_player.ui.assets import asset_path
 from freak_media_player.ui.main_window import MainWindow
-from freak_media_player.ui.theme import apply_dark_theme
+from freak_media_player.ui.skins import SkinManager
 from freak_media_player.utils.logging import configure_logging
 
 
@@ -21,15 +20,20 @@ def run_application() -> int:
     configure_logging()
     qt_app = QApplication(sys.argv)
     qt_app.setApplicationName("Freak Media Player")
-    qt_app.setWindowIcon(QIcon(str(asset_path("app_logo.png"))))
-    apply_dark_theme(qt_app)
 
     context = build_app_context()
+    skin_manager = SkinManager(
+        qt_app,
+        context.app_paths.skins_dir,
+        context.settings_service,
+    )
+    skin_manager.initialize(AppSettings(database_path=context.app_paths.database_path))
     window = MainWindow(
         playback_service=context.playback_service,
         local_library_service=context.local_library_service,
         playlist_service=context.playlist_service,
         equalizer_service=context.equalizer_service,
+        skin_manager=skin_manager,
     )
     plugin_manager = PluginManager(
         PluginContext(

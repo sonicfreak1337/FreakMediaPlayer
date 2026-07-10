@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QWidget
 
 from freak_media_player.models.media import Track
 from freak_media_player.ui.assets import asset_path
+from freak_media_player.ui.skins import skin_color
 
 COVER_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png", ".webp"}
 COVER_STEM_PRIORITY = ("cover", "folder", "front", "album", "albumart")
@@ -54,6 +55,10 @@ class LogoArtwork(QWidget):
         self._pixmap = QPixmap(str(asset_path("app_logo.png")))
         self.setFixedSize(size, size)
 
+    def refresh_skin_asset(self) -> None:
+        self._pixmap = QPixmap(str(asset_path("app_logo.png")))
+        self.update()
+
     def paintEvent(self, _event: object) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
@@ -79,6 +84,7 @@ class ClippedArtwork(QWidget):
         super().__init__(parent)
         self._radius = radius
         self._pixmap = QPixmap(str(asset_path("app_logo.png")))
+        self._using_fallback = True
         self.setFixedSize(size, size)
 
     def sizeHint(self) -> QSize:
@@ -88,7 +94,14 @@ class ClippedArtwork(QWidget):
         candidate = QPixmap(source) if source else QPixmap()
         if not candidate.isNull():
             self._pixmap = candidate
+            self._using_fallback = False
         else:
+            self._pixmap = QPixmap(str(asset_path("app_logo.png")))
+            self._using_fallback = True
+        self.update()
+
+    def refresh_skin_asset(self) -> None:
+        if self._using_fallback:
             self._pixmap = QPixmap(str(asset_path("app_logo.png")))
         self.update()
 
@@ -99,7 +112,7 @@ class ClippedArtwork(QWidget):
         clip = QPainterPath()
         clip.addRoundedRect(rect, self._radius, self._radius)
         painter.setClipPath(clip)
-        painter.fillRect(self.rect(), QColor("#020714"))
+        painter.fillRect(self.rect(), QColor(skin_color("artwork_background")))
         if not self._pixmap.isNull():
             scaled = self._pixmap.scaled(
                 self.size(),
@@ -110,6 +123,6 @@ class ClippedArtwork(QWidget):
             source_y = max(0, (scaled.height() - self.height()) // 2)
             painter.drawPixmap(0, 0, scaled, source_x, source_y, self.width(), self.height())
         painter.setClipping(False)
-        painter.setPen(QPen(QColor("#1f4b91"), 2.0))
+        painter.setPen(QPen(QColor(skin_color("artwork_border")), 2.0))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(rect, self._radius, self._radius)

@@ -23,14 +23,7 @@ from freak_media_player.models.equalizer import (
     MIN_GAIN_DB,
     EqualizerPreset,
 )
-from freak_media_player.ui.theme import (
-    AMBER,
-    HEADER_HIGHLIGHT,
-    PANEL_BORDER,
-    PANEL_SUNKEN,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-)
+from freak_media_player.ui.skins import skin_color
 
 GRAPH_MARGIN_LEFT = 58.0
 GRAPH_MARGIN_RIGHT = 26.0
@@ -75,8 +68,8 @@ class EqualizerResponseGraph(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         background = QLinearGradient(0, 0, 0, self.height())
-        background.setColorAt(0, QColor("#030b1b"))
-        background.setColorAt(1, QColor(PANEL_SUNKEN))
+        background.setColorAt(0, QColor(skin_color("graph_background")))
+        background.setColorAt(1, QColor(skin_color("panel_sunken")))
         painter.fillRect(self.rect(), background)
         graph_rect = self._graph_rect()
         self._draw_grid(painter, graph_rect)
@@ -117,10 +110,14 @@ class EqualizerResponseGraph(QWidget):
         painter.setFont(self.font())
         for gain_db in GAIN_TICKS:
             y = self._gain_to_y(float(gain_db), graph_rect)
-            color = HEADER_HIGHLIGHT if gain_db == 0 else PANEL_BORDER
+            color = (
+                skin_color("header_highlight")
+                if gain_db == 0
+                else skin_color("panel_border")
+            )
             painter.setPen(QPen(QColor(color), 1.0))
             painter.drawLine(QPointF(graph_rect.left(), y), QPointF(graph_rect.right(), y))
-            painter.setPen(QColor(TEXT_SECONDARY))
+            painter.setPen(QColor(skin_color("text_secondary")))
             painter.drawText(
                 QRectF(0.0, y - 8.0, GRAPH_MARGIN_LEFT - 6.0, 16.0),
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
@@ -142,7 +139,7 @@ class EqualizerResponseGraph(QWidget):
                 path.moveTo(point)
             else:
                 path.lineTo(point)
-        painter.setPen(QPen(QColor(AMBER), 2.0))
+        painter.setPen(QPen(QColor(skin_color("highlight")), 2.0))
         painter.drawPath(path)
 
     def _draw_nodes(self, painter: QPainter, graph_rect: QRectF) -> None:
@@ -150,7 +147,11 @@ class EqualizerResponseGraph(QWidget):
             return
         for index, band in enumerate(self._preset.bands):
             point = self._band_point(index, graph_rect)
-            line_color = QColor("#287cff" if band.enabled else "#29364b")
+            line_color = QColor(
+                skin_color("graph_band")
+                if band.enabled
+                else skin_color("graph_band_disabled")
+            )
             glow = QColor(line_color.red(), line_color.green(), line_color.blue(), 45)
             painter.setPen(QPen(glow, 7))
             painter.drawLine(
@@ -165,26 +166,33 @@ class EqualizerResponseGraph(QWidget):
 
             handle = QRectF(point.x() - 16.0, point.y() - 9.0, 32.0, 18.0)
             handle_gradient = QLinearGradient(handle.topLeft(), handle.bottomLeft())
-            handle_gradient.setColorAt(0, QColor("#17243a"))
-            handle_gradient.setColorAt(1, QColor("#020714"))
+            handle_gradient.setColorAt(0, QColor(skin_color("header_background")))
+            handle_gradient.setColorAt(1, QColor(skin_color("background")))
             painter.setBrush(handle_gradient)
             painter.setPen(
-                QPen(QColor(AMBER if index == self._selected_band else "#41516d"), 1.0)
+                QPen(
+                    QColor(
+                        skin_color("highlight")
+                        if index == self._selected_band
+                        else skin_color("panel_border")
+                    ),
+                    1.0,
+                )
             )
             painter.drawRoundedRect(handle, 3.0, 3.0)
-            painter.setPen(QPen(QColor(AMBER), 2.0))
+            painter.setPen(QPen(QColor(skin_color("highlight")), 2.0))
             painter.drawLine(
                 QPointF(handle.left() + 6.0, point.y()),
                 QPointF(handle.right() - 6.0, point.y()),
             )
 
             label_rect = QRectF(point.x() - 22.0, graph_rect.bottom() + 4.0, 44.0, 17.0)
-            painter.setBrush(QColor("#071022"))
-            painter.setPen(QPen(QColor("#344767"), 1.0))
+            painter.setBrush(QColor(skin_color("header_background")))
+            painter.setPen(QPen(QColor(skin_color("panel_border")), 1.0))
             painter.drawRoundedRect(label_rect, 2.0, 2.0)
-            painter.setPen(QColor(TEXT_PRIMARY))
+            painter.setPen(QColor(skin_color("text_primary")))
             painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, str(index + 1))
-            painter.setPen(QColor(TEXT_SECONDARY))
+            painter.setPen(QColor(skin_color("text_secondary")))
             painter.drawText(
                 QRectF(point.x() - 32.0, graph_rect.bottom() + 22.0, 64.0, 18.0),
                 Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,

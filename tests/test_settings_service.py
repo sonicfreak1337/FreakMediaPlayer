@@ -24,7 +24,7 @@ def test_settings_service_persists_defaults() -> None:
     settings = service.load(defaults)
 
     assert settings.database_path == Path("app.sqlite3")
-    assert repository.values["settings.theme_name"] == "dark"
+    assert repository.values["settings.theme_name"] == "freaky"
 
 
 def test_settings_service_reads_saved_values() -> None:

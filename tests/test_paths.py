@@ -10,3 +10,4 @@ def test_path_resolver_uses_local_app_data(tmp_path: Path) -> None:
 
         assert paths.data_dir == tmp_path / "FreakMediaPlayer"
         assert paths.database_path == paths.data_dir / "freak_media_player.sqlite3"
+        assert paths.skins_dir == paths.data_dir / "skins"

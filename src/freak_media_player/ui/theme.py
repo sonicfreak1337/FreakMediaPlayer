@@ -1,6 +1,8 @@
-"""Navy, gold and neon-blue application theme based on the 0.7 mockup."""
+"""Built-in Freaky and Fastilicious skin stylesheets."""
 
 from __future__ import annotations
+
+from collections.abc import Mapping
 
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
@@ -19,21 +21,56 @@ AMBER = "#ffc126"
 PLAYING_ROW_BACKGROUND = "#503900"
 PLAYING_ROW_TEXT = "#ffd45c"
 
+FREAKY_COLORS = {
+    "background": BACKGROUND,
+    "panel_background": PANEL_BACKGROUND,
+    "panel_sunken": PANEL_SUNKEN,
+    "panel_border": PANEL_BORDER,
+    "header_background": HEADER_BACKGROUND,
+    "header_highlight": HEADER_HIGHLIGHT,
+    "text_primary": TEXT_PRIMARY,
+    "text_secondary": TEXT_SECONDARY,
+    "display": DISPLAY_GREEN,
+    "accent": ACCENT,
+    "highlight": AMBER,
+    "playing_row_background": PLAYING_ROW_BACKGROUND,
+    "playing_row_text": PLAYING_ROW_TEXT,
+    "artwork_background": "#020714",
+    "artwork_border": "#1f4b91",
+    "spectrum_active": "#f6b91d",
+    "spectrum_inactive": "#16233f",
+    "graph_background": "#030b1b",
+    "graph_band": "#287cff",
+    "graph_band_disabled": "#29364b",
+}
 
-def apply_dark_theme(app: QApplication) -> None:
-    palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor(BACKGROUND))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(TEXT_PRIMARY))
-    palette.setColor(QPalette.ColorRole.Base, QColor(PANEL_SUNKEN))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#020817"))
-    palette.setColor(QPalette.ColorRole.Text, QColor(TEXT_PRIMARY))
-    palette.setColor(QPalette.ColorRole.Button, QColor(PANEL_BACKGROUND))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(TEXT_PRIMARY))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#071225"))
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
-    app.setPalette(palette)
-    app.setStyleSheet(
-        f"""
+FASTILICIOUS_COLORS = {
+    "background": "#100b17",
+    "panel_background": "#19111f",
+    "panel_sunken": "#09070d",
+    "panel_border": "#56364f",
+    "header_background": "#25152d",
+    "header_highlight": "#7d244e",
+    "text_primary": "#fff4f8",
+    "text_secondary": "#c5a9b8",
+    "display": "#2ee0cf",
+    "accent": "#ff3864",
+    "highlight": "#ff5a7d",
+    "playing_row_background": "#561b36",
+    "playing_row_text": "#ffb2c4",
+    "artwork_background": "#0d0712",
+    "artwork_border": "#ff3864",
+    "spectrum_active": "#2ee0cf",
+    "spectrum_inactive": "#402038",
+    "graph_background": "#150c1b",
+    "graph_band": "#2ee0cf",
+    "graph_band_disabled": "#503044",
+}
+
+
+def freaky_stylesheet() -> str:
+    """Return the original 0.7 design, now named Freaky."""
+    return f"""
         * {{
             font-family: "Segoe UI";
             font-size: 11px;
@@ -68,6 +105,35 @@ def apply_dark_theme(app: QApplication) -> None:
         #appVersion {{
             color: #b6bdce;
             font-size: 16px;
+        }}
+        #skinSelectorLabel {{
+            color: {TEXT_SECONDARY};
+            font-size: 9px;
+            font-weight: 700;
+        }}
+        QComboBox#skinSelector {{
+            background: #020818;
+            border: 1px solid #2b3c57;
+            border-radius: 4px;
+            color: {TEXT_PRIMARY};
+            min-height: 24px;
+            padding: 2px 8px;
+        }}
+        QComboBox#skinSelector:hover {{
+            border-color: {AMBER};
+        }}
+        QToolButton#skinUtilityButton {{
+            background: transparent;
+            border: 1px solid #2b3b56;
+            border-radius: 4px;
+            color: #9cb8ec;
+            min-width: 0;
+            min-height: 0;
+            padding: 0;
+        }}
+        QToolButton#skinUtilityButton:hover {{
+            border-color: {AMBER};
+            color: {AMBER};
         }}
         QToolButton#windowButton {{
             background: transparent;
@@ -375,4 +441,76 @@ def apply_dark_theme(app: QApplication) -> None:
         #readyStatus {{ color: #75a6ff; }}
         #queueStatus {{ color: #8b95a9; padding-left: 360px; }}
         """
-    )
+
+
+def fastilicious_stylesheet() -> str:
+    """Return the provisional Fastilicious racing-console mockup."""
+    replacements = {
+        "#01081a": "#100b17",
+        "#050d20": "#19111f",
+        "#000410": "#09070d",
+        "#29384f": "#56364f",
+        "#071127": "#25152d",
+        "#123a88": "#7d244e",
+        "#e6e8f3": "#fff4f8",
+        "#8e9ab1": "#c5a9b8",
+        "#4d91ff": "#2ee0cf",
+        "#2b83ff": "#ff3864",
+        "#ffc126": "#ff5a7d",
+        "#503900": "#561b36",
+        "#ffd45c": "#ffb2c4",
+        "#061026": "#32152e",
+        "#020818": "#0d0712",
+        "#173e78": "#8d2857",
+        "#1d2e4c": "#63364f",
+        "#14213a": "#402038",
+        "#07142d": "#2a1227",
+        "#3d8dff": "#ff5578",
+        "#1155c0": "#b62055",
+        "#4b89ee": "#2ee0cf",
+        "#397bd5": "#ff7893",
+        "#5a8fe8": "#2ee0cf",
+        "#afc8fa": "#b7fff8",
+    }
+    stylesheet = freaky_stylesheet()
+    for source, target in replacements.items():
+        stylesheet = stylesheet.replace(source, target)
+    return stylesheet + """
+        QDockWidget, #transportSurface, QStatusBar#appStatusBar {
+            border-radius: 2px;
+        }
+        #appTitleBar {
+            border-bottom: 2px solid #ff3864;
+        }
+        #appBrandFreak, #moduleTitle, #panelTitle, #visualizerLive {
+            color: #2ee0cf;
+        }
+        QToolButton#playPauseButton {
+            border-color: #ff7893;
+        }
+        QSlider::sub-page:horizontal {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #ff3864, stop:1 #2ee0cf);
+        }
+    """
+
+
+def build_palette(colors: Mapping[str, str]) -> QPalette:
+    """Build a Qt palette from a skin's semantic color roles."""
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor(colors["background"]))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(colors["text_primary"]))
+    palette.setColor(QPalette.ColorRole.Base, QColor(colors["panel_sunken"]))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(colors["panel_background"]))
+    palette.setColor(QPalette.ColorRole.Text, QColor(colors["text_primary"]))
+    palette.setColor(QPalette.ColorRole.Button, QColor(colors["panel_background"]))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor(colors["text_primary"]))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(colors["header_highlight"]))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(colors["text_primary"]))
+    return palette
+
+
+def apply_dark_theme(app: QApplication) -> None:
+    """Compatibility wrapper for callers that still request the old dark theme."""
+    app.setPalette(build_palette(FREAKY_COLORS))
+    app.setStyleSheet(freaky_stylesheet())

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QCloseEvent, QMouseEvent, QPixmap
+from PySide6.QtGui import QCloseEvent, QMouseEvent
 from PySide6.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from freak_media_player.ui.assets import asset_path
+from freak_media_player.ui.assets import set_themed_pixmap
 
 MODULE_ICONS = {
     "Local Library": "library_note_icon.png",
@@ -49,14 +49,7 @@ class ModuleTitleBar(QWidget):
         icon.setObjectName("moduleIcon")
         icon_name = MODULE_ICONS.get(title)
         if icon_name is not None:
-            icon.setPixmap(
-                QPixmap(str(asset_path(f"icons/{icon_name}"))).scaled(
-                    18,
-                    18,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-            )
+            set_themed_pixmap(icon, f"icons/{icon_name}", 18, 18)
         else:
             icon.setText("▶" if title == "Player" else "◆")
         icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)

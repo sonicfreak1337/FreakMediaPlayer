@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QBrush, QColor, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -20,8 +20,8 @@ from PySide6.QtWidgets import (
 from freak_media_player.models.media import Track
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
-from freak_media_player.ui.assets import asset_path
-from freak_media_player.ui.theme import PLAYING_ROW_BACKGROUND, PLAYING_ROW_TEXT
+from freak_media_player.ui.assets import set_themed_icon
+from freak_media_player.ui.skins import skin_color
 from freak_media_player.widgets.track_table import (
     PLAYING_ROLE,
     TRACK_ID_ROLE,
@@ -67,6 +67,12 @@ class PlaylistPanel(QWidget):
 
     def refresh(self) -> None:
         self._show_tracks(self._playlist_service.list_tracks())
+
+    def refresh_skin_asset(self) -> None:
+        """Repaint stored item brushes after a live skin change."""
+        if self._playing_row is not None:
+            self._set_playing_highlight(self._playing_row, highlighted=True)
+        self._table.viewport().update()
 
     def add_track_ids(
         self,
@@ -164,8 +170,7 @@ class PlaylistPanel(QWidget):
         }
         button.setText(symbols.get(icon, "•"))
         if icon == QStyle.StandardPixmap.SP_TrashIcon:
-            button.setIcon(QIcon(str(asset_path("icons/minus_icon.png"))))
-            button.setIconSize(QSize(18, 18))
+            set_themed_icon(button, "icons/minus_icon.png", 18)
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.clicked.connect(handler)
@@ -253,8 +258,16 @@ class PlaylistPanel(QWidget):
         self._playing_row = playing_row
 
     def _set_playing_highlight(self, row: int, highlighted: bool) -> None:
-        background = QBrush(QColor(PLAYING_ROW_BACKGROUND)) if highlighted else QBrush()
-        foreground = QBrush(QColor(PLAYING_ROW_TEXT)) if highlighted else QBrush()
+        background = (
+            QBrush(QColor(skin_color("playing_row_background")))
+            if highlighted
+            else QBrush()
+        )
+        foreground = (
+            QBrush(QColor(skin_color("playing_row_text")))
+            if highlighted
+            else QBrush()
+        )
         for column in range(self._table.columnCount()):
             item = self._table.item(row, column)
             if item is not None:

@@ -6,8 +6,8 @@ import math
 import time
 from collections.abc import Callable
 
-from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QPainter
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -21,7 +21,8 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.models.playback import PlaybackStatus, RepeatMode
 from freak_media_player.services.playback_service import PlaybackService
-from freak_media_player.ui.assets import asset_path
+from freak_media_player.ui.assets import clear_themed_icon, set_themed_icon
+from freak_media_player.ui.skins import skin_color
 from freak_media_player.widgets.artwork import ClippedArtwork, LogoArtwork, find_track_cover
 from freak_media_player.widgets.clickable_slider import ClickableSlider
 from freak_media_player.widgets.seek_slider import SeekSlider
@@ -50,7 +51,11 @@ class MiniSpectrum(QWidget):
             envelope = max(0.12, 1.0 - index / count)
             wave = 0.35 + 0.65 * abs(math.sin(index * 0.71 + phase))
             height = max(2.0, self.height() * envelope * wave)
-            color = QColor("#f6b91d") if index < 24 else QColor("#16233f")
+            color = QColor(
+                skin_color("spectrum_active")
+                if index < 24
+                else skin_color("spectrum_inactive")
+            )
             painter.fillRect(
                 round(index * (width + gap)),
                 round(self.height() - height),
@@ -249,8 +254,7 @@ class PlayerBar(QWidget):
         return button
 
     def _set_icon(self, button: QToolButton, icon_name: str, size: int) -> None:
-        button.setIcon(QIcon(str(asset_path(f"icons/{icon_name}"))))
-        button.setIconSize(QSize(size, size))
+        set_themed_icon(button, f"icons/{icon_name}", size)
 
     def _configure_button(
         self,
@@ -381,7 +385,7 @@ class PlayerBar(QWidget):
         if is_playing:
             self._set_icon(self._play_pause_button, "pause_icon.png", 31)
         else:
-            self._play_pause_button.setIcon(QIcon())
+            clear_themed_icon(self._play_pause_button)
         self._play_pause_button.setToolTip("Pause" if is_playing else "Play")
 
     def _update_playback_modes(

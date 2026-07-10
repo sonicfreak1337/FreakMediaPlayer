@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon, QKeySequence, QShortcut
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.models.media import Track
 from freak_media_player.services.local_library_service import LocalLibraryService
-from freak_media_player.ui.assets import asset_path
+from freak_media_player.ui.assets import set_themed_icon
 from freak_media_player.widgets.track_table import TRACK_ID_ROLE, TrackTableWidget
 
 TITLE_COLUMN = 0
@@ -181,8 +181,7 @@ class LocalTracksPanel(QWidget):
         }
         icon_file = icon_files.get(icon)
         if icon_file is not None:
-            button.setIcon(QIcon(str(asset_path(f"icons/{icon_file}"))))
-            button.setIconSize(QSize(18, 18))
+            set_themed_icon(button, f"icons/{icon_file}", 18)
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.clicked.connect(handler)

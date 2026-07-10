@@ -13,7 +13,7 @@ def test_bootstrap_initializes_database(tmp_path: Path) -> None:
 
         try:
             assert context.app_paths.database_path.exists()
-            assert context.database.settings.get("settings.theme_name") == "dark"
+            assert context.database.settings.get("settings.theme_name") == "freaky"
             assert context.equalizer_service.current_preset().preset_id == "flat"
         finally:
             context.database.connection.close()

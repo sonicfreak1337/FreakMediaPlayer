@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
@@ -34,6 +35,9 @@ from freak_media_player.widgets.module_dock import ModuleDockWidget
 from freak_media_player.widgets.player_bar import PlayerBar
 from freak_media_player.widgets.playlist_panel import PlaylistPanel
 
+if TYPE_CHECKING:
+    from freak_media_player.ui.skins import SkinManager
+
 CORE_MODULE_HEIGHTS = [165, 325, 260]
 
 
@@ -46,6 +50,7 @@ class MainWindow(QMainWindow):
         local_library_service: LocalLibraryService,
         playlist_service: PlaylistService,
         equalizer_service: EqualizerService,
+        skin_manager: SkinManager | None = None,
     ) -> None:
         super().__init__()
         self._playback_service = playback_service
@@ -72,7 +77,7 @@ class MainWindow(QMainWindow):
             | QMainWindow.DockOption.AllowTabbedDocks
             | QMainWindow.DockOption.AnimatedDocks
         )
-        self.setMenuWidget(AppTitleBar(self))
+        self.setMenuWidget(AppTitleBar(self, skin_manager))
         self._build_layout()
         self._configure_shortcuts()
 
