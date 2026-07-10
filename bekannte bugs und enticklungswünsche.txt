@@ -1,0 +1,15 @@
+0.2.1 
+- klick auf Equalizer oder Playlist macht nichts, es öffnet sich kein modul
+- nach ende eines Songs wird nicht der nächste abgespielt. library ist nur eine Datenbank, funktioniert noch nicht wie eine Playlist
+- titel aus 'library' sollten sich in ein weiteres modul 'playlist' per drag & drop ziehen lassen. 'playlist' bestimmt dabei die titelreihenfolge
+- klick auf vor und zurück buttons wechseln nicht wie erwartet den titel
+
+gewünschte Features für 0.3
+
+- ui Anpassungen, näher an winamp, Equalizer, Playlist, library und andere module sollen aufklappbare module sein.
+- generell auf modulares design der ui umsteigen. verschieben der einzelnen module untereinander ermöglichen. Player modul ist immer offen.
+- zeitanzeige soll animiert werden und die musik wiederspiegeln, ähnlich wie winamp
+
+Features für 0.4
+
+- Weiterentwicklung der audiopipeline, Equalizer auf DAW umstellen wie geplant.

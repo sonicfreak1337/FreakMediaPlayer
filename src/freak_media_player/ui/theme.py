@@ -196,5 +196,14 @@ def apply_dark_theme(app: QApplication) -> None:
         #playerTrackTitle {{
             color: {DISPLAY_GREEN};
         }}
+        #visualizerControls {{
+            background: #101321;
+            border-bottom: 1px solid #303754;
+        }}
+        #visualizerLive {{
+            color: #28ff9b;
+            font-size: 10px;
+            font-weight: 700;
+        }}
         """
     )

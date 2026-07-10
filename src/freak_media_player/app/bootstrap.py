@@ -9,6 +9,7 @@ from freak_media_player.config.settings import AppSettings
 from freak_media_player.core.ports import AudioBackend
 from freak_media_player.database.session import DatabaseSession, DatabaseSessionFactory
 from freak_media_player.player.audio_backend import create_desktop_audio_backend
+from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
 from freak_media_player.providers.local_files import LocalFileProvider
@@ -27,6 +28,7 @@ LOCAL_METADATA_INDEX_VERSION = 1
 @dataclass(frozen=True)
 class AppContext:
     app_paths: AppPaths
+    audio_samples: AudioSampleBuffer
     database: DatabaseSession
     equalizer_service: EqualizerService
     local_library_service: LocalLibraryService
@@ -62,7 +64,8 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     )
 
     queue = PlaybackQueue(playlist_service.list_tracks())
-    selected_audio_backend = audio_backend or create_desktop_audio_backend()
+    audio_samples = AudioSampleBuffer()
+    selected_audio_backend = audio_backend or create_desktop_audio_backend(audio_samples)
     controller = PlaybackController(
         queue=queue,
         audio_backend=selected_audio_backend,
@@ -73,6 +76,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     search_service = SearchService(providers=provider_registry.providers())
     return AppContext(
         app_paths=app_paths,
+        audio_samples=audio_samples,
         database=database,
         equalizer_service=equalizer_service,
         local_library_service=local_library_service,

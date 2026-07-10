@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added the built-in Freak Visualizer plugin with a real post-DSP audio sample
+  tap and six audio-reactive presets: Neon Spectrum, Radial Bloom, Star Tunnel,
+  Electric Oscilloscope, Aurora Waves and Cosmic Constellation.
+- Added a dockable Visualizer panel and an `Ansicht > Visualizer` toggle with
+  the `Ctrl+Shift+V` shortcut.
+
 ## 0.5.0 - 2026-07-10
 
 - Added embedded metadata extraction for title, artist, album artist, album,

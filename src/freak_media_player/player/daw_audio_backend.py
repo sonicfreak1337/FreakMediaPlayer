@@ -17,6 +17,7 @@ from PySide6.QtMultimedia import (
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
 from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.decode_worker import AudioDecodeWorker
 from freak_media_player.player.dsp.parametric_equalizer import (
     ParametricEqualizerProcessor,
@@ -46,10 +47,12 @@ class DawAudioBackend(QObject):
         self,
         decoder: PyAVStreamingDecoder | None = None,
         sink_factory: SinkFactory | None = None,
+        audio_samples: AudioSampleBuffer | None = None,
     ) -> None:
         super().__init__()
         self._decoder = decoder or PyAVStreamingDecoder()
         self._sink_factory = sink_factory or self._default_sink_factory
+        self._audio_samples = audio_samples
         self._equalizer = ParametricEqualizerProcessor(EQUALIZER_PRESETS[0])
         self._messages: queue.Queue[PipelineMessage] = queue.Queue(
             maxsize=DECODE_QUEUE_CAPACITY
@@ -109,6 +112,8 @@ class DawAudioBackend(QObject):
         self._stop_worker()
         self._reset_output()
         self._clear_messages()
+        if self._audio_samples is not None:
+            self._audio_samples.clear()
 
     def seek(self, position_ms: int) -> None:
         if self._source_path is None:
@@ -160,6 +165,8 @@ class DawAudioBackend(QObject):
         self._base_position_ms = position_ms
         self._pending_audio = b""
         self._decode_finished = False
+        if self._audio_samples is not None:
+            self._audio_samples.clear()
         self._create_sink()
         self._start_worker(position_ms)
         if start_output and self._sink is not None:
@@ -189,9 +196,12 @@ class DawAudioBackend(QObject):
                 break
             if not self._pending_audio:
                 continue
-            written = self._output_device.write(self._pending_audio[:bytes_free])
+            outgoing = self._pending_audio[:bytes_free]
+            written = self._output_device.write(outgoing)
             if written <= 0:
                 break
+            if self._audio_samples is not None:
+                self._audio_samples.append_pcm16_stereo(outgoing[:written])
             self._pending_audio = self._pending_audio[written:]
             bytes_free -= written
 
@@ -223,6 +233,8 @@ class DawAudioBackend(QObject):
         self._status = PlaybackStatus.STOPPED
         self._base_position_ms = self._duration_ms
         self._reset_output()
+        if self._audio_samples is not None:
+            self._audio_samples.clear()
         if self._finished_callback is not None:
             self._finished_callback()
 

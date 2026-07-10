@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from PySide6.QtWidgets import QMainWindow
+
+from freak_media_player.player.audio_samples import AudioSampleBuffer
+
 
 @dataclass(frozen=True)
 class PluginManifest:
@@ -17,6 +21,8 @@ class PluginManifest:
 @dataclass(frozen=True)
 class PluginContext:
     application_name: str
+    main_window: QMainWindow | None = None
+    audio_samples: AudioSampleBuffer | None = None
 
 
 class Plugin(Protocol):

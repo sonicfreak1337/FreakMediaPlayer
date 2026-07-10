@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from freak_media_player.models.media import AudioSource
 from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.daw_audio_backend import DawAudioBackend
 from freak_media_player.player.streaming_decoder import PyAVStreamingDecoder
 
@@ -89,8 +90,10 @@ def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:
     path = tmp_path / "tone.wav"
     write_test_wave(path)
     fake_sink = FakeAudioSink()
+    audio_samples = AudioSampleBuffer()
     backend = DawAudioBackend(
         sink_factory=lambda _format: cast(QAudioSink, fake_sink),
+        audio_samples=audio_samples,
     )
     finished = False
 
@@ -109,4 +112,5 @@ def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:
 
     assert finished is True
     assert fake_sink.device.payload
+    assert audio_samples.sequence > 0
     assert backend.status() == PlaybackStatus.STOPPED

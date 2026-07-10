@@ -9,6 +9,7 @@ from freak_media_player.core.ports import AudioBackend
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
 from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.player.audio_samples import AudioSampleBuffer
 
 DEFAULT_VOLUME = 1.0
 MIN_VOLUME = 0.0
@@ -77,7 +78,9 @@ class NullAudioBackend:
             self._finished_callback()
 
 
-def create_desktop_audio_backend() -> AudioBackend:
+def create_desktop_audio_backend(
+    audio_samples: AudioSampleBuffer | None = None,
+) -> AudioBackend:
     try:
         from freak_media_player.player.daw_audio_backend import DawAudioBackend
     except ImportError:
@@ -87,4 +90,4 @@ def create_desktop_audio_backend() -> AudioBackend:
         except ImportError:
             return NullAudioBackend()
         return QtAudioBackend()
-    return DawAudioBackend()
+    return DawAudioBackend(audio_samples=audio_samples)
