@@ -37,6 +37,7 @@ FFT_SIZE = 2_048
 SPECTRUM_BANDS = 64
 
 PRESETS = (
+    ("freak_pulse", "Freak Pulse"),
     ("neon_spectrum", "Neon Spectrum"),
     ("radial_bloom", "Radial Bloom"),
     ("star_tunnel", "Star Tunnel"),
@@ -97,6 +98,7 @@ class VisualizerCanvas(QWidget):
         painter.fillRect(self.rect(), QColor("#02030a"))
         frame = self._build_frame()
         renderers = {
+            "freak_pulse": self._paint_freak_pulse,
             "neon_spectrum": self._paint_neon_spectrum,
             "radial_bloom": self._paint_radial_bloom,
             "star_tunnel": self._paint_star_tunnel,
@@ -113,6 +115,96 @@ class VisualizerCanvas(QWidget):
         renderers[self._preset](painter, frame)
         self._paint_vignette(painter)
         painter.end()
+
+    def _paint_freak_pulse(self, painter: QPainter, frame: VisualizerFrame) -> None:
+        """Brand-native gold/blue spectrum with an electric waveform pulse."""
+        width, height = self.width(), self.height()
+        horizon = height * 0.73
+
+        background = QLinearGradient(0, 0, width, height)
+        background.setColorAt(0.0, QColor("#030917"))
+        background.setColorAt(0.46, QColor("#071229"))
+        background.setColorAt(1.0, QColor("#010612"))
+        painter.fillRect(self.rect(), background)
+
+        ambient = QRadialGradient(QPointF(width * 0.44, horizon), width * 0.52)
+        ambient.setColorAt(0.0, QColor(31, 79, 163, 95))
+        ambient.setColorAt(0.48, QColor(10, 32, 79, 55))
+        ambient.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillRect(self.rect(), ambient)
+
+        painter.setPen(QPen(QColor(36, 59, 91, 65), 1.0))
+        for row in range(1, 5):
+            y = horizon - row * height * 0.12
+            painter.drawLine(QPointF(0, y), QPointF(width, y))
+
+        band_width = width / len(frame.spectrum)
+        split = max(1, len(frame.spectrum) // 3)
+        for index, level in enumerate(frame.spectrum):
+            level_value = float(level)
+            bar_height = max(2.0, level_value * height * 0.64)
+            if index < split:
+                ratio = index / split
+                color = QColor(
+                    255,
+                    round(151 + ratio * 58),
+                    round(20 + ratio * 22),
+                )
+            else:
+                ratio = (index - split) / max(1, len(frame.spectrum) - split - 1)
+                color = QColor(
+                    round(38 + ratio * 33),
+                    round(115 + ratio * 91),
+                    255,
+                )
+            rect = QRectF(
+                index * band_width + 1.0,
+                horizon - bar_height,
+                max(1.0, band_width - 2.0),
+                bar_height,
+            )
+            glow = QColor(color)
+            glow.setAlpha(42 + round(level_value * 45))
+            painter.fillRect(rect.adjusted(-1.5, -2.0, 1.5, 1.0), glow)
+            bar_gradient = QLinearGradient(0, rect.bottom(), 0, rect.top())
+            base = QColor(color)
+            base.setAlpha(90)
+            bar_gradient.setColorAt(0.0, base)
+            bar_gradient.setColorAt(1.0, color)
+            painter.fillRect(rect, bar_gradient)
+
+            reflection = QRectF(
+                rect.left(),
+                horizon + 2.0,
+                rect.width(),
+                bar_height * 0.16,
+            )
+            reflection_color = QColor(color)
+            reflection_color.setAlpha(22)
+            painter.fillRect(reflection, reflection_color)
+
+        baseline = QLinearGradient(0, horizon, width, horizon)
+        baseline.setColorAt(0.0, QColor("#ffb21d"))
+        baseline.setColorAt(0.32, QColor("#ffd33d"))
+        baseline.setColorAt(0.55, QColor("#4c91ff"))
+        baseline.setColorAt(1.0, QColor("#29c5ff"))
+        painter.setPen(QPen(baseline, 2.0))
+        painter.drawLine(QPointF(0, horizon), QPointF(width, horizon))
+
+        samples = frame.samples[:: max(1, frame.samples.size // max(2, width))]
+        waveform = QPainterPath()
+        wave_center = height * 0.84
+        for index, sample in enumerate(samples):
+            x = index * width / max(1, len(samples) - 1)
+            y = wave_center - float(sample) * height * 0.1
+            if index == 0:
+                waveform.moveTo(x, y)
+            else:
+                waveform.lineTo(x, y)
+        painter.setPen(QPen(QColor(39, 126, 255, 48), 6.0))
+        painter.drawPath(waveform)
+        painter.setPen(QPen(QColor("#59a7ff"), 1.4))
+        painter.drawPath(waveform)
 
     def _build_frame(self) -> VisualizerFrame:
         samples = self._audio_samples.snapshot(FFT_SIZE)
@@ -545,13 +637,13 @@ class VisualizerPanel(QWidget):
         live = QLabel("● AUDIO REACTIVE")
         live.setObjectName("visualizerLive")
         controls_layout.addWidget(live)
-        controls_layout.addWidget(QLabel("12 realtime presets"))
+        controls_layout.addWidget(QLabel(f"{len(PRESETS)} realtime presets"))
         controls_layout.addStretch(1)
         self._canvas = VisualizerCanvas(audio_samples, self)
         selector.currentIndexChanged.connect(
             lambda index: self._canvas.set_preset(str(selector.itemData(index)))
         )
-        for text, preset_index in (("SPECTRUM", 0), ("WAVEFORM", 3), ("SCOPE", 4)):
+        for text, preset_index in (("SPECTRUM", 0), ("WAVEFORM", 5), ("SCOPE", 4)):
             button = QToolButton(modes)
             button.setObjectName("visualizerModeButton")
             button.setText(text)

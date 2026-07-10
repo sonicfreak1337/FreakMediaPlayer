@@ -16,8 +16,8 @@ TEXT_SECONDARY = "#8e9ab1"
 DISPLAY_GREEN = "#4d91ff"
 ACCENT = "#2b83ff"
 AMBER = "#ffc126"
-PLAYING_ROW_BACKGROUND = "#082a70"
-PLAYING_ROW_TEXT = "#ffffff"
+PLAYING_ROW_BACKGROUND = "#503900"
+PLAYING_ROW_TEXT = "#ffd45c"
 
 
 def apply_dark_theme(app: QApplication) -> None:
@@ -29,7 +29,7 @@ def apply_dark_theme(app: QApplication) -> None:
     palette.setColor(QPalette.ColorRole.Text, QColor(TEXT_PRIMARY))
     palette.setColor(QPalette.ColorRole.Button, QColor(PANEL_BACKGROUND))
     palette.setColor(QPalette.ColorRole.ButtonText, QColor(TEXT_PRIMARY))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor(PLAYING_ROW_BACKGROUND))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#071225"))
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
     app.setPalette(palette)
     app.setStyleSheet(
@@ -243,8 +243,8 @@ def apply_dark_theme(app: QApplication) -> None:
             border: 0;
             color: #d7dbe6;
             gridline-color: #0d1c33;
-            selection-background-color: {PLAYING_ROW_BACKGROUND};
-            selection-color: white;
+            selection-background-color: #071225;
+            selection-color: #e1e5ef;
             font-size: 11px;
             outline: 0;
         }}
@@ -253,9 +253,10 @@ def apply_dark_theme(app: QApplication) -> None:
             padding: 4px 7px;
         }}
         QTableWidget::item:selected {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #0b347b, stop:1 #061e58);
-            color: white;
+            background: #071225;
+            border-top: 1px solid #3b4a65;
+            border-bottom: 1px solid #3b4a65;
+            color: #e1e5ef;
         }}
         QHeaderView::section {{
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,

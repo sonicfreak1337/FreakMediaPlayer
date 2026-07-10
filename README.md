@@ -3,7 +3,7 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.7.0`
+Current version: `0.7.1`
 
 ## Current Features
 
@@ -30,9 +30,11 @@ Current version: `0.7.0`
 - Remove playlist entries without deleting library tracks
 - Audible parametric equalizer with metal-subgenre presets and Custom mode
 - DAW-style response graph with frequency, gain, Q, enable, and preamp controls
-- Dockable audio-reactive visualizer with twelve animated presets
+- Dockable audio-reactive visualizer with thirteen animated presets
 - Mockup-driven frameless navy UI with gold and neon-blue accents
 - Branded application/taskbar icon and logo-based fallback artwork
+- Automatic album-cover discovery from conventional images beside local tracks
+- Gold playing-row emphasis and restrained outlined table selection
 - SQLite storage for imported tracks and settings
 - Versioned settings and database migrations
 - Windows executable build script
@@ -73,8 +75,9 @@ PyAV handles local decoding, SciPy applies cascaded second-order filters, and Qt
 Version `0.6.0` adds the built-in Freak Visualizer plugin. It receives the
 actual post-DSP PCM stream through a bounded, thread-safe sample tap and derives
 waveform, spectrum, bass, midrange and treble energy without delaying playback.
-The twelve included presets range from classic spectrum and oscilloscope views
-to layered mandalas, perspective grids, particle orbits and animated solar
+The thirteen included presets range from the branded gold/blue Freak Pulse view
+through classic spectrum and oscilloscope views to layered mandalas, perspective
+grids, particle orbits and animated solar
 corona effects. The module can be toggled through `Module > Visualizer` or
 `Ctrl+Shift+V`.
 

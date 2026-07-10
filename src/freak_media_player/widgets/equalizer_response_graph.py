@@ -36,8 +36,6 @@ GRAPH_MARGIN_LEFT = 58.0
 GRAPH_MARGIN_RIGHT = 26.0
 GRAPH_MARGIN_TOP = 12.0
 GRAPH_MARGIN_BOTTOM = 43.0
-NODE_RADIUS = 6.0
-NODE_HIT_RADIUS = 14.0
 GAIN_TICKS = (-12, 0, 12)
 
 
@@ -96,9 +94,21 @@ class EqualizerResponseGraph(QWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if self._dragging_band is None:
+            cursor = (
+                Qt.CursorShape.SizeVerCursor
+                if self._band_at(event.position()) is not None
+                else Qt.CursorShape.ArrowCursor
+            )
+            self.setCursor(cursor)
             return
-        frequency_hz, gain_db = self._values_from_point(event.position())
-        self.band_edited.emit(self._dragging_band, frequency_hz, gain_db)
+        if self._preset is None:
+            return
+        frequency_hz = self._preset.bands[self._dragging_band].frequency_hz
+        self.band_edited.emit(
+            self._dragging_band,
+            frequency_hz,
+            self._gain_from_point(event.position()),
+        )
 
     def mouseReleaseEvent(self, _event: QMouseEvent) -> None:
         self._dragging_band = None
@@ -168,13 +178,6 @@ class EqualizerResponseGraph(QWidget):
                 QPointF(handle.right() - 6.0, point.y()),
             )
 
-            painter.setBrush(QColor("#0b4fae"))
-            painter.setPen(QPen(QColor("#9fc3ff"), 1.0))
-            painter.drawEllipse(
-                QPointF(point.x(), self._gain_to_y(band.gain_db, graph_rect)),
-                5.0,
-                5.0,
-            )
             label_rect = QRectF(point.x() - 22.0, graph_rect.bottom() + 4.0, 44.0, 17.0)
             painter.setBrush(QColor("#071022"))
             painter.setPen(QPen(QColor("#344767"), 1.0))
@@ -195,8 +198,11 @@ class EqualizerResponseGraph(QWidget):
         nearest: tuple[float, int] | None = None
         for index, _band in enumerate(self._preset.bands):
             band_point = self._band_point(index, graph_rect)
-            distance = math.hypot(point.x() - band_point.x(), point.y() - band_point.y())
-            if distance <= NODE_HIT_RADIUS and (nearest is None or distance < nearest[0]):
+            handle = QRectF(band_point.x() - 19.0, band_point.y() - 12.0, 38.0, 24.0)
+            if not handle.contains(point):
+                continue
+            distance = abs(point.x() - band_point.x())
+            if nearest is None or distance < nearest[0]:
                 nearest = (distance, index)
         return nearest[1] if nearest is not None else None
 
@@ -209,14 +215,11 @@ class EqualizerResponseGraph(QWidget):
             self._gain_to_y(band.gain_db, graph_rect),
         )
 
-    def _values_from_point(self, point: QPointF) -> tuple[int, float]:
+    def _gain_from_point(self, point: QPointF) -> float:
         graph_rect = self._graph_rect()
-        normalized_x = min(1.0, max(0.0, (point.x() - graph_rect.left()) / graph_rect.width()))
-        frequency_ratio = MAX_FREQUENCY_HZ / MIN_FREQUENCY_HZ
-        frequency_hz = round(MIN_FREQUENCY_HZ * math.pow(frequency_ratio, normalized_x))
         normalized_y = min(1.0, max(0.0, (point.y() - graph_rect.top()) / graph_rect.height()))
         gain_db = MAX_GAIN_DB - normalized_y * (MAX_GAIN_DB - MIN_GAIN_DB)
-        return frequency_hz, round(gain_db, 1)
+        return round(gain_db, 1)
 
     def _frequency_to_x(self, frequency_hz: float, graph_rect: QRectF) -> float:
         frequency_hz = min(MAX_FREQUENCY_HZ, max(MIN_FREQUENCY_HZ, frequency_hz))

@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 from freak_media_player.models.playback import PlaybackStatus, RepeatMode
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.ui.assets import asset_path
-from freak_media_player.widgets.artwork import ClippedArtwork
+from freak_media_player.widgets.artwork import ClippedArtwork, LogoArtwork, find_track_cover
 from freak_media_player.widgets.clickable_slider import ClickableSlider
 from freak_media_player.widgets.seek_slider import SeekSlider
 
@@ -78,6 +78,7 @@ class PlayerBar(QWidget):
         self._volume_label = QLabel("100%")
         self._modules_button = QToolButton()
         self._cover = ClippedArtwork(100, 5)
+        self._cover_track_id: str | None = None
         self._refresh_timer = QTimer(self)
         self._volume_before_mute = 1.0
         self.setObjectName("playerPanel")
@@ -90,7 +91,7 @@ class PlayerBar(QWidget):
         layout.setContentsMargins(12, 7, 12, 7)
         layout.setSpacing(12)
 
-        logo = ClippedArtwork(100, 49)
+        logo = LogoArtwork(100)
         layout.addWidget(logo)
         separator = QFrame()
         separator.setObjectName("playerSeparator")
@@ -158,7 +159,6 @@ class PlayerBar(QWidget):
                 "transportButton",
             )
         )
-        self._set_icon(self._repeat_button, "repeat_icon.png", 24)
         self._configure_mode_button(
             self._repeat_button,
             "Repeat Off",
@@ -296,14 +296,18 @@ class PlayerBar(QWidget):
             self._title_label.setText("Nothing playing")
             self._artist_label.setText("Queue is empty")
             self._album_label.setText("Import music into the Local Library")
-            self._cover.set_source(None)
+            if self._cover_track_id is not None:
+                self._cover.set_source(None)
+                self._cover_track_id = None
         else:
             self._title_label.setText(track.title)
             self._artist_label.setText(track.artist.name)
             album = track.album.title if track.album is not None else "Unknown album"
             year = track.album.release_year if track.album is not None else None
             self._album_label.setText(f"{album}{f' ({year})' if year else ''}")
-            self._cover.set_source(track.cover_url)
+            if track.id != self._cover_track_id:
+                self._cover.set_source(find_track_cover(track))
+                self._cover_track_id = track.id
 
         position_ms = self._playback_service.position_ms()
         duration_ms = self._playback_service.duration_ms()
@@ -400,6 +404,12 @@ class PlayerBar(QWidget):
         self._repeat_button.setText(label)
         self._repeat_button.setChecked(repeat_mode != RepeatMode.OFF)
         self._repeat_button.setToolTip(label)
+        repeat_icons = {
+            RepeatMode.OFF: "repeat_all_off.png",
+            RepeatMode.ALL: "repeat_all_on.png",
+            RepeatMode.ONE: "repeat_one_on.png",
+        }
+        self._set_icon(self._repeat_button, repeat_icons[repeat_mode], 31)
 
     def _format_time(self, value_ms: int) -> str:
         total_seconds = max(0, value_ms // 1000)

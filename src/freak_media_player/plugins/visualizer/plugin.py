@@ -17,7 +17,7 @@ class VisualizerPlugin:
     manifest = PluginManifest(
         plugin_id="freak.visualizer",
         name="Freak Visualizer",
-        version="1.2.0",
+        version="1.3.0",
         description="Audio-reactive Winamp-inspired visualizer presets.",
     )
 

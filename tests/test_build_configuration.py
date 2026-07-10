@@ -18,3 +18,6 @@ def test_builds_bundle_brand_assets_and_windows_icon() -> None:
     assert "--add-data" in release_script
     assert "app_logo.ico" in release_script
     assert (project_root / "src/freak_media_player/assets/icons/pause_icon.png").exists()
+    assert (project_root / "src/freak_media_player/assets/icons/repeat_all_off.png").exists()
+    assert (project_root / "src/freak_media_player/assets/icons/repeat_all_on.png").exists()
+    assert (project_root / "src/freak_media_player/assets/icons/repeat_one_on.png").exists()

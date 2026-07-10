@@ -10,6 +10,7 @@ from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.ui.theme import PLAYING_ROW_BACKGROUND
 from freak_media_player.widgets.playlist_panel import PlaylistPanel
+from freak_media_player.widgets.track_table import PLAYING_ROLE
 
 
 class FakePlaylistService:
@@ -53,6 +54,7 @@ def test_playlist_highlight_follows_playing_index() -> None:
     expected_color = QColor(PLAYING_ROW_BACKGROUND).name()
     assert panel._table.item(1, 0).background().color().name() == expected_color
     assert panel._table.item(1, 0).icon().isNull() is False
+    assert panel._table.item(1, 0).data(PLAYING_ROLE) is True
 
     playback_service.playing_index = 0
     panel._sync_playing_highlight()
@@ -62,3 +64,4 @@ def test_playlist_highlight_follows_playing_index() -> None:
     assert panel._table.item(0, 0).icon().isNull() is False
     assert panel._table.item(1, 0).background().style() == Qt.BrushStyle.NoBrush
     assert panel._table.item(1, 0).icon().isNull() is True
+    assert panel._table.item(1, 0).data(PLAYING_ROLE) is False

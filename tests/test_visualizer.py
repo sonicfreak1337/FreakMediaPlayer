@@ -24,7 +24,8 @@ def test_all_visualizer_presets_render() -> None:
     app.processEvents()
 
     preset_ids = [preset_id for preset_id, _name in PRESETS]
-    assert len(preset_ids) == 12
+    assert len(preset_ids) == 13
+    assert preset_ids[0] == "freak_pulse"
     assert len(set(preset_ids)) == len(preset_ids)
     for preset_id in preset_ids:
         canvas.set_preset(preset_id)

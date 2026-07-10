@@ -22,7 +22,11 @@ from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.ui.assets import asset_path
 from freak_media_player.ui.theme import PLAYING_ROW_BACKGROUND, PLAYING_ROW_TEXT
-from freak_media_player.widgets.track_table import TRACK_ID_ROLE, PlaylistTrackTable
+from freak_media_player.widgets.track_table import (
+    PLAYING_ROLE,
+    TRACK_ID_ROLE,
+    PlaylistTrackTable,
+)
 
 ORDER_COLUMN = 0
 TITLE_COLUMN = 1
@@ -256,6 +260,7 @@ class PlaylistPanel(QWidget):
             if item is not None:
                 item.setBackground(background)
                 item.setForeground(foreground)
+                item.setData(PLAYING_ROLE, highlighted)
         order_item = self._table.item(row, ORDER_COLUMN)
         if order_item is not None:
             icon = QIcon()

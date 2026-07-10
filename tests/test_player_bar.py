@@ -29,3 +29,25 @@ def test_shuffle_button_exposes_enabled_state() -> None:
     assert player_bar._shuffle_button.isChecked() is True
     assert player_bar._shuffle_button.text() == "Shuffle: ON"
     assert player_bar._shuffle_button.objectName() == "shuffleButton"
+
+
+def test_repeat_button_uses_distinct_assets_for_each_mode() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=ProviderRegistry(),
+        )
+    )
+    player_bar = PlayerBar(service)
+    player_bar._refresh_timer.stop()
+
+    off_icon = player_bar._repeat_button.icon().cacheKey()
+    player_bar._cycle_repeat_mode()
+    all_icon = player_bar._repeat_button.icon().cacheKey()
+    player_bar._cycle_repeat_mode()
+    one_icon = player_bar._repeat_button.icon().cacheKey()
+
+    assert len({off_icon, all_icon, one_icon}) == 3
+    app.processEvents()

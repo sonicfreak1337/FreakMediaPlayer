@@ -2,11 +2,74 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from PySide6.QtCore import QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QWidget
 
+from freak_media_player.models.media import Track
 from freak_media_player.ui.assets import asset_path
+
+COVER_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png", ".webp"}
+COVER_STEM_PRIORITY = ("cover", "folder", "front", "album", "albumart")
+
+
+def find_track_cover(track: Track) -> str | None:
+    """Find conventional album artwork next to a local track."""
+    if track.cover_url:
+        return track.cover_url
+
+    track_path = Path(track.provider_identity.item_id)
+    album_folder = track_path.parent
+    if not album_folder.is_dir():
+        return None
+    images = sorted(
+        path
+        for path in album_folder.iterdir()
+        if path.is_file() and path.suffix.lower() in COVER_EXTENSIONS
+    )
+    by_stem = {path.stem.casefold(): path for path in images}
+    for preferred_stem in COVER_STEM_PRIORITY:
+        if cover := by_stem.get(preferred_stem):
+            return str(cover)
+
+    if track.album is not None:
+        album_stem = re.sub(r"[^a-z0-9]+", "", track.album.title.casefold())
+        for image in images:
+            image_stem = re.sub(r"[^a-z0-9]+", "", image.stem.casefold())
+            if image_stem == album_stem:
+                return str(image)
+    if len(images) == 1:
+        return str(images[0])
+    return None
+
+
+class LogoArtwork(QWidget):
+    """Transparent unframed brand mark for the left side of the Player."""
+
+    def __init__(self, size: int, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._pixmap = QPixmap(str(asset_path("app_logo.png")))
+        self.setFixedSize(size, size)
+
+    def paintEvent(self, _event: object) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        if self._pixmap.isNull():
+            return
+        scaled = self._pixmap.scaled(
+            round(self.width() * 1.22),
+            round(self.height() * 1.22),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        painter.drawPixmap(
+            (self.width() - scaled.width()) // 2,
+            (self.height() - scaled.height()) // 2,
+            scaled,
+        )
 
 
 class ClippedArtwork(QWidget):

@@ -4,19 +4,72 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from PySide6.QtCore import QByteArray, QMimeData, Qt, Signal
-from PySide6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent
-from PySide6.QtWidgets import QAbstractItemView, QTableWidget, QTableWidgetItem
+from PySide6.QtCore import (
+    QByteArray,
+    QMimeData,
+    QModelIndex,
+    QPersistentModelIndex,
+    Qt,
+    Signal,
+)
+from PySide6.QtGui import (
+    QColor,
+    QDrag,
+    QDragEnterEvent,
+    QDragMoveEvent,
+    QDropEvent,
+    QPainter,
+    QPalette,
+    QPen,
+)
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+    QTableWidget,
+    QTableWidgetItem,
+)
+
+from freak_media_player.ui.theme import AMBER, PLAYING_ROW_TEXT
 
 TRACK_ID_ROLE = Qt.ItemDataRole.UserRole
+PLAYING_ROLE = Qt.ItemDataRole.UserRole + 1
 TRACK_IDS_MIME_TYPE = "application/x-freak-media-player-track-ids"
 PLAYLIST_ROWS_MIME_TYPE = "application/x-freak-media-player-playlist-rows"
+
+
+class TrackRowDelegate(QStyledItemDelegate):
+    """Keep the gold playing state dominant over the subtle selection state."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        playing = bool(index.data(PLAYING_ROLE))
+        styled_option = QStyleOptionViewItem(option)
+        if playing:
+            styled_option.state &= ~QStyle.StateFlag.State_Selected
+            styled_option.palette.setColor(
+                QPalette.ColorRole.Text,
+                QColor(PLAYING_ROW_TEXT),
+            )
+        super().paint(painter, styled_option, index)
+        if playing:
+            painter.save()
+            painter.setPen(QPen(QColor(AMBER), 1.0))
+            painter.drawLine(option.rect.topLeft(), option.rect.topRight())
+            painter.drawLine(option.rect.bottomLeft(), option.rect.bottomRight())
+            painter.restore()
 
 
 class TrackTableWidget(QTableWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setDragEnabled(True)
+        self.setItemDelegate(TrackRowDelegate(self))
         self.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
         self.setDefaultDropAction(Qt.DropAction.CopyAction)
 

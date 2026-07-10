@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.1 - 2026-07-10
+
+- Replaced the original logo, Pause and Repeat graphics with the newly supplied
+  transparent assets, including distinct Repeat Off, All and One states.
+- Removed the circular frame around the Player logo and regenerated the packaged
+  Windows icon from the new transparent brand asset.
+- Added automatic album-cover lookup for conventional image names and album-title
+  matches in each local track's folder.
+- Simplified the equalizer to handle-only vertical gain dragging and removed the
+  blue points that obscured its slider handles.
+- Changed table selection to a restrained outlined state and highlighted the
+  currently playing playlist row in gold, even while it remains selected.
+- Added Freak Pulse, a new audio-reactive gold and electric-blue Visualizer preset,
+  bringing the plugin to thirteen presets.
+
 ## 0.7.0 - 2026-07-10
 
 - Rebuilt the complete interface from the supplied high-fidelity mockup with a
