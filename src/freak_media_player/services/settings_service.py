@@ -25,6 +25,7 @@ THEME_NAME_KEY = "settings.theme_name"
 NOTIFICATIONS_KEY = "settings.enable_notifications"
 PLAYBACK_VOLUME_KEY = "player.volume"
 EQUALIZER_PRESET_KEY = "equalizer.current_preset"
+PLAYBACK_SESSION_KEY = "player.last_session"
 
 
 class SettingsService:
@@ -93,6 +94,27 @@ class SettingsService:
     def save_playback_volume(self, volume: float) -> None:
         bounded = min(1.0, max(0.0, float(volume)))
         self._repository.set(PLAYBACK_VOLUME_KEY, repr(bounded))
+
+    def load_playback_session(self) -> tuple[str, int] | None:
+        raw_session = self._repository.get(PLAYBACK_SESSION_KEY)
+        if raw_session is None:
+            return None
+        try:
+            data = json.loads(raw_session)
+            track_id = str(data["track_id"])
+            position_ms = max(0, int(data["position_ms"]))
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return None
+        if not track_id.strip():
+            return None
+        return track_id, position_ms
+
+    def save_playback_session(self, track_id: str, position_ms: int) -> None:
+        data = {"track_id": track_id, "position_ms": max(0, position_ms)}
+        self._repository.set(
+            PLAYBACK_SESSION_KEY,
+            json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+        )
 
     def load_equalizer_preset(self, default: EqualizerPreset) -> EqualizerPreset:
         """Load the last complete EQ state, falling back if storage is malformed."""

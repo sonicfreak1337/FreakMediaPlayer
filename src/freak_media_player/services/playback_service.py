@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 
 from freak_media_player.models.media import Track
 from freak_media_player.models.playback import PlaybackState, RepeatMode
 from freak_media_player.player.playback_controller import PlaybackController
+
+SESSION_CHECKPOINT_SECONDS = 5.0
 
 
 class PlaybackService:
@@ -14,28 +17,31 @@ class PlaybackService:
         self,
         controller: PlaybackController,
         volume_changed: Callable[[float], None] | None = None,
+        session_changed: Callable[[str, int], None] | None = None,
     ) -> None:
         self._controller = controller
         self._volume_changed = volume_changed
+        self._session_changed = session_changed
+        self._last_checkpoint_at = 0.0
 
     @property
     def state(self) -> PlaybackState:
         return self._controller.state
 
     def enqueue_and_play(self, track: Track) -> PlaybackState:
-        return self._controller.play_now(track)
+        return self._checkpoint_after(self._controller.play_now(track))
 
     def play_playlist(self, tracks: list[Track], start_index: int) -> PlaybackState:
-        return self._controller.play_playlist(tracks, start_index)
+        return self._checkpoint_after(self._controller.play_playlist(tracks, start_index))
 
     def sync_playlist(self, tracks: list[Track]) -> PlaybackState:
         return self._controller.sync_playlist(tracks)
 
     def next_track(self) -> PlaybackState:
-        return self._controller.next_track()
+        return self._checkpoint_after(self._controller.next_track())
 
     def previous_track(self) -> PlaybackState:
-        return self._controller.previous_track()
+        return self._checkpoint_after(self._controller.previous_track())
 
     def current_playlist_index(self) -> int | None:
         return self._controller.current_playlist_index()
@@ -53,22 +59,23 @@ class PlaybackService:
         return self._controller.set_repeat_mode(repeat_mode)
 
     def play(self) -> PlaybackState:
-        return self._controller.play()
+        return self._checkpoint_after(self._controller.play())
 
     def pause(self) -> PlaybackState:
-        return self._controller.pause()
+        return self._checkpoint_after(self._controller.pause())
 
     def toggle_play_pause(self) -> PlaybackState:
-        return self._controller.toggle_play_pause()
+        return self._checkpoint_after(self._controller.toggle_play_pause())
 
     def stop(self) -> PlaybackState:
+        self.checkpoint(force=True)
         return self._controller.stop()
 
     def seek(self, position_ms: int) -> PlaybackState:
-        return self._controller.seek(position_ms)
+        return self._checkpoint_after(self._controller.seek(position_ms))
 
     def seek_relative(self, offset_ms: int) -> PlaybackState:
-        return self._controller.seek_relative(offset_ms)
+        return self._checkpoint_after(self._controller.seek_relative(offset_ms))
 
     def position_ms(self) -> int:
         return self._controller.position_ms()
@@ -84,3 +91,20 @@ class PlaybackService:
 
     def volume(self) -> float:
         return self._controller.volume()
+
+    def checkpoint(self, *, force: bool = False) -> None:
+        """Persist the current track and position at a bounded write frequency."""
+        if self._session_changed is None:
+            return
+        now = time.monotonic()
+        if not force and now - self._last_checkpoint_at < SESSION_CHECKPOINT_SECONDS:
+            return
+        track = self.state.current_track
+        if track is None:
+            return
+        self._session_changed(track.id, self.position_ms())
+        self._last_checkpoint_at = now
+
+    def _checkpoint_after(self, state: PlaybackState) -> PlaybackState:
+        self.checkpoint(force=True)
+        return state

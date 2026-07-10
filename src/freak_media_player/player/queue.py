@@ -42,6 +42,11 @@ class PlaybackQueue:
             self._reset_shuffle_cycle()
         return track
 
+    def select_track(self, track_id: str) -> Track | None:
+        """Select a queued track by its stable library identifier."""
+        index = self._find_track_index(track_id)
+        return self.select(index) if index is not None else None
+
     def _select(self, index: int) -> Track | None:
         if not 0 <= index < len(self._tracks):
             return None

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QDockWidget,
     QLabel,
@@ -73,6 +74,7 @@ class MainWindow(QMainWindow):
         )
         self.setMenuWidget(AppTitleBar(self))
         self._build_layout()
+        self._configure_shortcuts()
 
     @property
     def module_menu(self) -> QMenu:
@@ -214,6 +216,13 @@ class MainWindow(QMainWindow):
         status_bar.addPermanentWidget(QLabel(f"Freak Media Player {__version__}"))
         status_bar.addPermanentWidget(QSizeGrip(self))
         self.setStatusBar(status_bar)
+
+    def _configure_shortcuts(self) -> None:
+        self._play_pause_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
+        self._play_pause_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._play_pause_shortcut.activated.connect(
+            self._playback_service.toggle_play_pause
+        )
 
     def module(self, object_name: str) -> QDockWidget | None:
         """Return a registered module (used by plugins and tests)."""

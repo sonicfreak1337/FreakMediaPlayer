@@ -78,3 +78,12 @@ def test_settings_service_repairs_invalid_runtime_settings() -> None:
 
     assert service.load_playback_volume(0.8) == 0.8
     assert service.load_equalizer_preset(EQUALIZER_PRESETS[0]) == EQUALIZER_PRESETS[0]
+
+
+def test_settings_service_round_trips_last_track_and_position() -> None:
+    repository = InMemorySettingsRepository()
+    service = SettingsService(repository=repository)
+
+    service.save_playback_session("track-42", 123_456)
+
+    assert service.load_playback_session() == ("track-42", 123_456)

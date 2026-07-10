@@ -38,6 +38,16 @@ class PlaybackController:
     def enqueue(self, track: Track) -> None:
         self._queue.add(track)
 
+    def restore(self, track: Track, position_ms: int) -> PlaybackState:
+        """Load a previous session without automatically starting playback."""
+        self._queue.select_track(track.id)
+        source = self._source_resolver.resolve_audio_source(track)
+        self._audio_backend.load(source)
+        self._loaded_track_id = track.id
+        self._audio_backend.seek(max(MIN_POSITION_MS, position_ms))
+        self._state = self._snapshot(status=PlaybackStatus.PAUSED, track=track)
+        return self.state
+
     def play_now(self, track: Track) -> PlaybackState:
         self._queue.replace([track])
         self._queue.select(0)

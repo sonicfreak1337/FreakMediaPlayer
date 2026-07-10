@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.2 - 2026-07-10
+
+- Restored native Windows taskbar minimization behavior for the frameless player
+  window.
+- Persisted playback volume and the complete equalizer state across launches,
+  including custom band parameters and preamp gain.
+- Restored the last played track and timestamp in a paused state without automatic
+  playback, with periodic and shutdown checkpoints.
+- Added the Space key as a window-wide Play/Pause shortcut.
+
 ## 0.7.1 - 2026-07-10
 
 - Replaced the original logo, Pause and Repeat graphics with the newly supplied

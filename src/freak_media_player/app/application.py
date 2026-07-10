@@ -40,6 +40,7 @@ def run_application() -> int:
     )
     plugin_manager.register(VisualizerPlugin())
     plugin_manager.activate_all()
+    qt_app.aboutToQuit.connect(lambda: context.playback_service.checkpoint(force=True))
     qt_app.aboutToQuit.connect(plugin_manager.deactivate_all)
     window.show()
 

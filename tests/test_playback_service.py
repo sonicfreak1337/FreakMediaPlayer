@@ -109,6 +109,41 @@ def test_volume_control_notifies_persistence_with_bounded_backend_value() -> Non
     assert saved_volumes == [1.0]
 
 
+def test_playback_checkpoint_persists_track_and_timestamp() -> None:
+    saved_sessions: list[tuple[str, int]] = []
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=FakeSourceResolver(),
+        ),
+        session_changed=lambda track_id, position_ms: saved_sessions.append(
+            (track_id, position_ms)
+        ),
+    )
+
+    service.enqueue_and_play(make_track("remember-me"))
+    service.seek(54_321)
+
+    assert saved_sessions[-1] == ("remember-me", 54_321)
+
+
+def test_controller_restores_track_paused_at_saved_timestamp() -> None:
+    track = make_track("remember-me")
+    controller = PlaybackController(
+        queue=PlaybackQueue([make_track("first"), track]),
+        audio_backend=NullAudioBackend(),
+        source_resolver=FakeSourceResolver(),
+    )
+
+    state = controller.restore(track, 54_321)
+
+    assert state.status == PlaybackStatus.PAUSED
+    assert state.current_track == track
+    assert controller.position_ms() == 54_321
+    assert controller.current_playlist_index() == 1
+
+
 def test_playlist_navigation_uses_selected_order() -> None:
     service = PlaybackService(
         controller=PlaybackController(

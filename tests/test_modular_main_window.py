@@ -1,4 +1,6 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDockWidget
 
 from freak_media_player.app.bootstrap import build_app_context
@@ -54,4 +56,37 @@ def test_main_window_registers_movable_visibility_modules(tmp_path, monkeypatch)
 
     window.close()
     app.processEvents()
+    context.database.connection.close()
+
+
+def test_space_toggles_play_pause_from_main_window(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    context = build_app_context(audio_backend=NullAudioBackend())
+    calls = 0
+    original_toggle = context.playback_service.toggle_play_pause
+
+    def record_toggle():
+        nonlocal calls
+        calls += 1
+        return original_toggle()
+
+    context.playback_service.toggle_play_pause = record_toggle
+    window = MainWindow(
+        playback_service=context.playback_service,
+        local_library_service=context.local_library_service,
+        playlist_service=context.playlist_service,
+        equalizer_service=context.equalizer_service,
+    )
+    window.show()
+    window.activateWindow()
+    app.processEvents()
+
+    shortcuts = window.findChildren(QShortcut)
+    assert any(shortcut.key() == QKeySequence(Qt.Key.Key_Space) for shortcut in shortcuts)
+    QTest.keyClick(window, Qt.Key.Key_Space)
+    app.processEvents()
+
+    assert calls == 1
+    window.close()
     context.database.connection.close()

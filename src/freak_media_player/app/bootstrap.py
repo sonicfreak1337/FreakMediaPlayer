@@ -75,9 +75,15 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         audio_backend=selected_audio_backend,
         source_resolver=provider_registry,
     )
+    saved_session = settings_service.load_playback_session()
+    if saved_session is not None:
+        track_id, position_ms = saved_session
+        if (track := database.tracks.get_by_id(track_id)) is not None:
+            controller.restore(track, position_ms)
     playback_service = PlaybackService(
         controller=controller,
         volume_changed=settings_service.save_playback_volume,
+        session_changed=settings_service.save_playback_session,
     )
     equalizer_service = EqualizerService(
         audio_backend=selected_audio_backend,

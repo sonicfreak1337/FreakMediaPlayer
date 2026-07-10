@@ -287,6 +287,7 @@ class PlayerBar(QWidget):
         self.refresh()
 
     def refresh(self) -> None:
+        self._playback_service.checkpoint()
         state = self._playback_service.state
         self._update_play_pause_button(state.status)
         self._update_playback_modes(state.repeat_mode, state.shuffle_enabled)
