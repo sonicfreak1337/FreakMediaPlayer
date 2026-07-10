@@ -3,14 +3,16 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.6.0`
+Current version: `0.7.0`
 
 ## Current Features
 
 - Import local audio by file, folder, or drag and drop
 - Read embedded title, artist, album, year, genre and track metadata
 - Separate local library and persistent active playlist
-- Shared resizable workspace with collapsible Library, Playlist, and Equalizer
+- Desktop-detachable dock modules for Library, Playlist, Equalizer, Player, and
+  Visualizer (use the title-bar undock button or double-click the title bar)
+- Close and restore optional modules through the `Module` menu; Player stays open
 - Drag and drop from the library into a chosen playlist position
 - Manual playlist ordering through drag and drop or move controls
 - Playback for common local formats supported by the bundled FFmpeg libraries
@@ -29,7 +31,8 @@ Current version: `0.6.0`
 - Audible parametric equalizer with metal-subgenre presets and Custom mode
 - DAW-style response graph with frequency, gain, Q, enable, and preamp controls
 - Dockable audio-reactive visualizer with twelve animated presets
-- Compact Winamp-inspired dark UI with green library/display accents
+- Mockup-driven frameless navy UI with gold and neon-blue accents
+- Branded application/taskbar icon and logo-based fallback artwork
 - SQLite storage for imported tracks and settings
 - Versioned settings and database migrations
 - Windows executable build script
@@ -46,6 +49,14 @@ The project is built around small, replaceable modules:
 - **Plugins:** Extension points for visualizers, lyrics, integrations, and tools
 
 See `docs/ARCHITECTURE.md` for the architecture plan.
+
+## Modular desktop interface
+
+Version `0.7.0` introduces the fully redesigned mockup-driven interface. Player,
+Library, Playlist, Equalizer and Visualizer use a consistent dock module chrome.
+Use the `↗` control or drag a module title to detach it into its own desktop
+window; double-clicking its title docks it again. Optional modules can be closed
+and restored from the `Module` button in the Player. The Player remains available.
 
 ## Equalizer
 
@@ -64,7 +75,7 @@ actual post-DSP PCM stream through a bounded, thread-safe sample tap and derives
 waveform, spectrum, bass, midrange and treble energy without delaying playback.
 The twelve included presets range from classic spectrum and oscilloscope views
 to layered mandalas, perspective grids, particle orbits and animated solar
-corona effects. The dock can be toggled through `Ansicht > Visualizer` or
+corona effects. The module can be toggled through `Module > Visualizer` or
 `Ctrl+Shift+V`.
 
 ## Build

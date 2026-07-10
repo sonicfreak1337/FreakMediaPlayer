@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QBrush, QColor, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -20,15 +20,17 @@ from PySide6.QtWidgets import (
 from freak_media_player.models.media import Track
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
+from freak_media_player.ui.assets import asset_path
 from freak_media_player.ui.theme import PLAYING_ROW_BACKGROUND, PLAYING_ROW_TEXT
 from freak_media_player.widgets.track_table import TRACK_ID_ROLE, PlaylistTrackTable
 
 ORDER_COLUMN = 0
 TITLE_COLUMN = 1
 ARTIST_COLUMN = 2
-ALBUM_COLUMN = 3
-YEAR_COLUMN = 4
-SOURCE_COLUMN = 5
+LENGTH_COLUMN = 3
+ALBUM_COLUMN = 4
+YEAR_COLUMN = 5
+SOURCE_COLUMN = 6
 PLAYING_HIGHLIGHT_REFRESH_MS = 250
 
 
@@ -46,12 +48,18 @@ class PlaylistPanel(QWidget):
         self._tracks: list[Track] = []
         self._playing_row: int | None = None
         self._table = PlaylistTrackTable()
+        self._summary_label = QLabel()
+        self._header_controls: list[QWidget] = []
         self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
         self._highlight_timer = QTimer(self)
         self._build_layout()
         self._connect_interactions()
         self._configure_highlight_timer()
         self.refresh()
+
+    @property
+    def header_controls(self) -> tuple[QWidget, ...]:
+        return tuple(self._header_controls)
 
     def refresh(self) -> None:
         self._show_tracks(self._playlist_service.list_tracks())
@@ -66,40 +74,42 @@ class PlaylistPanel(QWidget):
 
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         header = QHBoxLayout()
+        header.setContentsMargins(10, 4, 10, 4)
+        header.setSpacing(6)
         if self._show_title:
             title = QLabel("Playlist")
             title.setObjectName("panelTitle")
             header.addWidget(title)
-        header.addStretch(1)
-        header.addWidget(
+        buttons = [
             self._build_button(
                 QStyle.StandardPixmap.SP_ArrowUp,
                 "Move selected up",
                 self._move_selected_up,
-            )
-        )
-        header.addWidget(
+            ),
             self._build_button(
                 QStyle.StandardPixmap.SP_ArrowDown,
                 "Move selected down",
                 self._move_selected_down,
-            )
-        )
-        header.addWidget(
+            ),
             self._build_button(
                 QStyle.StandardPixmap.SP_TrashIcon,
                 "Remove selected from playlist",
                 self._remove_selected,
-            )
-        )
+            ),
+        ]
+        self._header_controls.extend(buttons)
+        if self._show_title:
+            header.addStretch(1)
+            for button in buttons:
+                header.addWidget(button)
 
-        self._table.setColumnCount(6)
+        self._table.setColumnCount(7)
         self._table.setHorizontalHeaderLabels(
-            ["#", "Title", "Artist", "Album", "Year", "Source"]
+            ["#", "Title", "Artist", "Length", "Album", "Year", "Source"]
         )
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -108,9 +118,22 @@ class PlaylistPanel(QWidget):
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setStretchLastSection(True)
         self._table.setColumnWidth(ORDER_COLUMN, 44)
+        self._table.setColumnWidth(TITLE_COLUMN, 310)
+        self._table.setColumnWidth(ARTIST_COLUMN, 220)
+        self._table.setColumnWidth(LENGTH_COLUMN, 66)
+        self._table.setColumnHidden(ALBUM_COLUMN, True)
+        self._table.setColumnHidden(YEAR_COLUMN, True)
+        self._table.setColumnHidden(SOURCE_COLUMN, True)
+        self._table.horizontalHeader().setMinimumHeight(34)
+        self._table.verticalHeader().setDefaultSectionSize(35)
 
-        layout.addLayout(header)
+        if self._show_title:
+            layout.addLayout(header)
         layout.addWidget(self._table, 1)
+        self._summary_label.setObjectName("panelSummary")
+        self._summary_label.setContentsMargins(12, 5, 12, 5)
+        self._summary_label.setFixedHeight(34)
+        layout.addWidget(self._summary_label)
 
     def _connect_interactions(self) -> None:
         self._delete_shortcut.activated.connect(self._remove_selected)
@@ -130,7 +153,15 @@ class PlaylistPanel(QWidget):
         handler: Callable[[], object],
     ) -> QToolButton:
         button = QToolButton()
-        button.setIcon(self.style().standardIcon(icon))
+        symbols = {
+            QStyle.StandardPixmap.SP_ArrowUp: "↑",
+            QStyle.StandardPixmap.SP_ArrowDown: "↓",
+            QStyle.StandardPixmap.SP_TrashIcon: "−",
+        }
+        button.setText(symbols.get(icon, "•"))
+        if icon == QStyle.StandardPixmap.SP_TrashIcon:
+            button.setIcon(QIcon(str(asset_path("icons/minus_icon.png"))))
+            button.setIconSize(QSize(18, 18))
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.clicked.connect(handler)
@@ -144,6 +175,14 @@ class PlaylistPanel(QWidget):
             self._set_row(row, track)
         self._playback_service.sync_playlist(tracks)
         self._sync_playing_highlight()
+        total_seconds = sum(
+            int(track.duration.total_seconds())
+            for track in tracks
+            if track.duration is not None
+        )
+        self._summary_label.setText(
+            f"{len(tracks)} tracks, {self._format_duration(total_seconds)} total duration"
+        )
 
     def _set_row(self, row: int, track: Track) -> None:
         order = QTableWidgetItem(str(row + 1))
@@ -151,6 +190,11 @@ class PlaylistPanel(QWidget):
         title = QTableWidgetItem(track.title)
         title.setData(TRACK_ID_ROLE, track.id)
         artist = QTableWidgetItem(track.artist.name)
+        length = QTableWidgetItem(
+            self._format_duration(int(track.duration.total_seconds()))
+            if track.duration is not None
+            else ""
+        )
         album = QTableWidgetItem(track.album.title if track.album else "")
         year = QTableWidgetItem(
             str(track.album.release_year)
@@ -161,6 +205,7 @@ class PlaylistPanel(QWidget):
         self._table.setItem(row, ORDER_COLUMN, order)
         self._table.setItem(row, TITLE_COLUMN, title)
         self._table.setItem(row, ARTIST_COLUMN, artist)
+        self._table.setItem(row, LENGTH_COLUMN, length)
         self._table.setItem(row, ALBUM_COLUMN, album)
         self._table.setItem(row, YEAR_COLUMN, year)
         self._table.setItem(row, SOURCE_COLUMN, source)
@@ -217,3 +262,7 @@ class PlaylistPanel(QWidget):
             if highlighted:
                 icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
             order_item.setIcon(icon)
+
+    def _format_duration(self, seconds: int) -> str:
+        minutes, remaining_seconds = divmod(max(0, seconds), 60)
+        return f"{minutes}:{remaining_seconds:02d}"

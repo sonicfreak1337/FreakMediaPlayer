@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QKeySequence, QShortcut
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -21,13 +21,15 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.models.media import Track
 from freak_media_player.services.local_library_service import LocalLibraryService
+from freak_media_player.ui.assets import asset_path
 from freak_media_player.widgets.track_table import TRACK_ID_ROLE, TrackTableWidget
 
 TITLE_COLUMN = 0
 ARTIST_COLUMN = 1
 ALBUM_COLUMN = 2
 YEAR_COLUMN = 3
-SOURCE_COLUMN = 4
+LENGTH_COLUMN = 4
+SOURCE_COLUMN = 5
 
 
 class LocalTracksPanel(QWidget):
@@ -44,6 +46,8 @@ class LocalTracksPanel(QWidget):
         self._show_title = show_title
         self._local_library_service = local_library_service
         self._table = TrackTableWidget()
+        self._summary_label = QLabel()
+        self._header_controls: list[QWidget] = []
         self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
         self.setAcceptDrops(True)
         self._build_layout()
@@ -61,6 +65,18 @@ class LocalTracksPanel(QWidget):
         self._table.setSortingEnabled(True)
         if sort_column >= 0:
             self._table.sortItems(sort_column, sort_order)
+        total_seconds = sum(
+            int(track.duration.total_seconds())
+            for track in tracks
+            if track.duration is not None
+        )
+        self._summary_label.setText(
+            f"{len(tracks)} tracks, {self._format_duration(total_seconds)} total duration"
+        )
+
+    @property
+    def header_controls(self) -> tuple[QWidget, ...]:
+        return tuple(self._header_controls)
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if self._event_has_local_paths(event):
@@ -74,47 +90,47 @@ class LocalTracksPanel(QWidget):
 
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         header = QHBoxLayout()
+        header.setContentsMargins(10, 4, 10, 4)
+        header.setSpacing(6)
         if self._show_title:
             title = QLabel(self._title)
             title.setObjectName("panelTitle")
             header.addWidget(title)
-        header.addStretch(1)
-        header.addWidget(
+        buttons = [
             self._build_button(
                 QStyle.StandardPixmap.SP_ArrowRight,
                 "Add selected to playlist",
                 self._add_selected_to_playlist,
-            )
-        )
-        header.addWidget(
+            ),
             self._build_button(
                 QStyle.StandardPixmap.SP_FileIcon,
                 "Import files",
                 self._select_files,
-            )
-        )
-        header.addWidget(
+            ),
             self._build_button(
                 QStyle.StandardPixmap.SP_DirIcon,
                 "Import folder",
                 self._select_folder,
-            )
-        )
-        header.addWidget(
+            ),
             self._build_button(
                 QStyle.StandardPixmap.SP_TrashIcon,
                 "Remove selected",
                 self._remove_selected_track,
-            )
-        )
+            ),
+        ]
+        self._header_controls.extend(buttons)
+        if self._show_title:
+            header.addStretch(1)
+            for button in buttons:
+                header.addWidget(button)
 
-        self._table.setColumnCount(5)
+        self._table.setColumnCount(6)
         self._table.setHorizontalHeaderLabels(
-            ["Title", "Artist", "Album", "Year", "Source"]
+            ["Title", "Artist", "Album", "Year", "Length", "Source"]
         )
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -123,12 +139,25 @@ class LocalTracksPanel(QWidget):
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setStretchLastSection(True)
         self._table.horizontalHeader().setSortIndicatorShown(True)
+        self._table.horizontalHeader().setMinimumHeight(34)
+        self._table.verticalHeader().setDefaultSectionSize(35)
         self._table.setSortingEnabled(True)
+        self._table.setColumnWidth(TITLE_COLUMN, 235)
+        self._table.setColumnWidth(ARTIST_COLUMN, 165)
+        self._table.setColumnWidth(ALBUM_COLUMN, 150)
+        self._table.setColumnWidth(YEAR_COLUMN, 52)
+        self._table.setColumnWidth(LENGTH_COLUMN, 60)
+        self._table.setColumnHidden(SOURCE_COLUMN, True)
         self._table.sortItems(TITLE_COLUMN, Qt.SortOrder.AscendingOrder)
         self._table.itemDoubleClicked.connect(self._add_item_to_playlist)
 
-        layout.addLayout(header)
+        if self._show_title:
+            layout.addLayout(header)
         layout.addWidget(self._table, 1)
+        self._summary_label.setObjectName("panelSummary")
+        self._summary_label.setContentsMargins(12, 5, 12, 5)
+        self._summary_label.setFixedHeight(34)
+        layout.addWidget(self._summary_label)
 
     def _build_button(
         self,
@@ -137,7 +166,23 @@ class LocalTracksPanel(QWidget):
         handler: Callable[[], object],
     ) -> QToolButton:
         button = QToolButton()
-        button.setIcon(self.style().standardIcon(icon))
+        symbols = {
+            QStyle.StandardPixmap.SP_ArrowRight: "→",
+            QStyle.StandardPixmap.SP_FileIcon: "+",
+            QStyle.StandardPixmap.SP_DirIcon: "▣+",
+            QStyle.StandardPixmap.SP_TrashIcon: "−",
+        }
+        button.setText(symbols.get(icon, "+"))
+        icon_files = {
+            QStyle.StandardPixmap.SP_ArrowRight: "plus_icon.png",
+            QStyle.StandardPixmap.SP_FileIcon: "plus_icon.png",
+            QStyle.StandardPixmap.SP_DirIcon: "folder_add_icon.png",
+            QStyle.StandardPixmap.SP_TrashIcon: "minus_icon.png",
+        }
+        icon_file = icon_files.get(icon)
+        if icon_file is not None:
+            button.setIcon(QIcon(str(asset_path(f"icons/{icon_file}"))))
+            button.setIconSize(QSize(18, 18))
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.clicked.connect(handler)
@@ -174,10 +219,16 @@ class LocalTracksPanel(QWidget):
             else ""
         )
         source = QTableWidgetItem(track.provider_identity.item_id)
+        length = QTableWidgetItem(
+            self._format_duration(int(track.duration.total_seconds()))
+            if track.duration is not None
+            else ""
+        )
         self._table.setItem(row, TITLE_COLUMN, title)
         self._table.setItem(row, ARTIST_COLUMN, artist)
         self._table.setItem(row, ALBUM_COLUMN, album)
         self._table.setItem(row, YEAR_COLUMN, year)
+        self._table.setItem(row, LENGTH_COLUMN, length)
         self._table.setItem(row, SOURCE_COLUMN, source)
 
     def _add_item_to_playlist(self, item: QTableWidgetItem) -> None:
@@ -215,6 +266,10 @@ class LocalTracksPanel(QWidget):
 
     def _extensions(self) -> tuple[str, ...]:
         return self._local_library_service.supported_extensions()
+
+    def _format_duration(self, seconds: int) -> str:
+        minutes, remaining_seconds = divmod(max(0, seconds), 60)
+        return f"{minutes}:{remaining_seconds:02d}"
 
     def _event_has_local_paths(self, event: QDragEnterEvent | QDropEvent) -> bool:
         mime_data = event.mimeData()

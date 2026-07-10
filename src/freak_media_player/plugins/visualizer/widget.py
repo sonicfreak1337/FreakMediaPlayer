@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QSizePolicy,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -519,25 +520,49 @@ class VisualizerCanvas(QWidget):
 class VisualizerPanel(QWidget):
     def __init__(self, audio_samples: AudioSampleBuffer, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(9, 8, 9, 8)
+        layout.setSpacing(9)
+        modes = QWidget(self)
+        modes.setObjectName("visualizerModes")
+        modes.setFixedWidth(92)
+        modes_layout = QVBoxLayout(modes)
+        modes_layout.setContentsMargins(0, 0, 0, 0)
+        modes_layout.setSpacing(7)
         controls = QWidget(self)
         controls.setObjectName("visualizerControls")
-        controls_layout = QHBoxLayout(controls)
-        controls_layout.setContentsMargins(10, 5, 10, 5)
-        controls_layout.addWidget(QLabel("PRESET"))
+        controls.setFixedWidth(190)
+        controls_layout = QVBoxLayout(controls)
+        controls_layout.setContentsMargins(12, 9, 12, 9)
+        controls_layout.setSpacing(7)
+        preset_label = QLabel("VISUAL PRESET")
+        preset_label.setObjectName("compactLabel")
+        controls_layout.addWidget(preset_label)
         selector = QComboBox()
         for preset_id, name in PRESETS:
             selector.addItem(name, preset_id)
         controls_layout.addWidget(selector)
-        controls_layout.addStretch(1)
         live = QLabel("● AUDIO REACTIVE")
         live.setObjectName("visualizerLive")
         controls_layout.addWidget(live)
+        controls_layout.addWidget(QLabel("12 realtime presets"))
+        controls_layout.addStretch(1)
         self._canvas = VisualizerCanvas(audio_samples, self)
         selector.currentIndexChanged.connect(
             lambda index: self._canvas.set_preset(str(selector.itemData(index)))
         )
-        layout.addWidget(controls)
+        for text, preset_index in (("SPECTRUM", 0), ("WAVEFORM", 3), ("SCOPE", 4)):
+            button = QToolButton(modes)
+            button.setObjectName("visualizerModeButton")
+            button.setText(text)
+            button.setCheckable(True)
+            button.setAutoExclusive(True)
+            button.setChecked(preset_index == 0)
+            button.clicked.connect(
+                lambda _checked=False, index=preset_index: selector.setCurrentIndex(index)
+            )
+            modes_layout.addWidget(button)
+        modes_layout.addStretch(1)
+        layout.addWidget(modes)
         layout.addWidget(self._canvas, 1)
+        layout.addWidget(controls)

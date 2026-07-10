@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.0 - 2026-07-10
+
+- Rebuilt the complete interface from the supplied high-fidelity mockup with a
+  frameless branded window, navy panel chrome, gold accents and neon-blue controls.
+- Reworked Player, Library, Playlist, Equalizer and Visualizer into consistent
+  movable dock modules that can be reordered or detached into independent desktop
+  windows via visible title-bar controls.
+- Added a shared `Module` menu for closing and restoring Library, Playlist,
+  Equalizer and Visualizer while keeping the Player permanently available.
+- Redesigned the Player around branded artwork, track metadata, a mini spectrum,
+  a central transport surface and dedicated volume and utility controls.
+- Added mockup-style table headers, duration columns, row sizing and summary
+  footers while retaining import, sorting, selection and drag-and-drop behavior.
+- Reworked the equalizer visualization into ten illuminated gain lanes with an
+  amber response curve while keeping frequency, gain, Q, enable and preset editing.
+- Added a three-mode Visualizer launcher and retained all twelve realtime presets.
+- Bundled the supplied logo for in-app artwork, package data and a multi-resolution
+  Windows executable icon.
+
 ## 0.6.0 - 2026-07-10
 
 - Added the built-in Freak Visualizer plugin with a real post-DSP audio sample

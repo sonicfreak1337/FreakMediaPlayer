@@ -1,14 +1,19 @@
-"""Player controls."""
+"""Mockup-inspired always-available player module."""
 
 from __future__ import annotations
 
+import math
+import time
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QIcon, QPainter
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
-    QStyle,
+    QMenu,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -16,7 +21,8 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.models.playback import PlaybackStatus, RepeatMode
 from freak_media_player.services.playback_service import PlaybackService
-from freak_media_player.ui.constants import PLAYER_BAR_HEIGHT
+from freak_media_player.ui.assets import asset_path
+from freak_media_player.widgets.artwork import ClippedArtwork
 from freak_media_player.widgets.clickable_slider import ClickableSlider
 from freak_media_player.widgets.seek_slider import SeekSlider
 
@@ -25,12 +31,42 @@ VOLUME_SCALE = 100
 DEFAULT_RESTORE_VOLUME = 0.5
 
 
+class MiniSpectrum(QWidget):
+    """Decorative amber mini spectrum used as the track-info accent."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setFixedHeight(25)
+        self.setMinimumWidth(180)
+
+    def paintEvent(self, _event: object) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        count = 34
+        gap = 3.0
+        width = max(1.0, (self.width() - gap * (count - 1)) / count)
+        phase = time.monotonic() * 1.4
+        for index in range(count):
+            envelope = max(0.12, 1.0 - index / count)
+            wave = 0.35 + 0.65 * abs(math.sin(index * 0.71 + phase))
+            height = max(2.0, self.height() * envelope * wave)
+            color = QColor("#f6b91d") if index < 24 else QColor("#16233f")
+            painter.fillRect(
+                round(index * (width + gap)),
+                round(self.height() - height),
+                max(1, round(width)),
+                round(height),
+                color,
+            )
+
+
 class PlayerBar(QWidget):
     def __init__(self, playback_service: PlaybackService) -> None:
         super().__init__()
         self._playback_service = playback_service
         self._title_label = QLabel("Nothing playing")
         self._artist_label = QLabel("Queue is empty")
+        self._album_label = QLabel("Import music into the Local Library")
         self._position_label = QLabel("0:00")
         self._duration_label = QLabel("0:00")
         self._seek_slider = SeekSlider()
@@ -40,129 +76,209 @@ class PlayerBar(QWidget):
         self._volume_button = QToolButton()
         self._volume_slider = ClickableSlider(Qt.Orientation.Horizontal)
         self._volume_label = QLabel("100%")
+        self._modules_button = QToolButton()
+        self._cover = ClippedArtwork(100, 5)
         self._refresh_timer = QTimer(self)
         self._volume_before_mute = 1.0
-        self.setFixedHeight(PLAYER_BAR_HEIGHT)
+        self.setObjectName("playerPanel")
+        self.setMinimumHeight(125)
         self._build_layout()
         self._configure_timer()
 
     def _build_layout(self) -> None:
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(10)
+        layout.setContentsMargins(12, 7, 12, 7)
+        layout.setSpacing(12)
 
-        track_info = QVBoxLayout()
+        logo = ClippedArtwork(100, 49)
+        layout.addWidget(logo)
+        separator = QFrame()
+        separator.setObjectName("playerSeparator")
+        separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFixedWidth(1)
+        layout.addWidget(separator)
+        layout.addWidget(self._cover)
+
+        info = QVBoxLayout()
+        info.setContentsMargins(4, 0, 4, 0)
+        info.setSpacing(3)
+        info.addWidget(MiniSpectrum())
         self._title_label.setObjectName("playerTrackTitle")
-        self._artist_label.setObjectName("playerTrackMeta")
-        track_info.addWidget(self._title_label)
-        track_info.addWidget(self._artist_label)
-
+        self._artist_label.setObjectName("playerArtist")
+        self._album_label.setObjectName("playerTrackMeta")
+        info.addWidget(self._title_label)
+        info.addWidget(self._artist_label)
+        info.addWidget(self._album_label)
         timeline = QHBoxLayout()
+        timeline.setSpacing(10)
         self._position_label.setObjectName("playerTime")
         self._duration_label.setObjectName("playerTime")
+        self._seek_slider.setObjectName("seekSlider")
         self._seek_slider.seek_requested.connect(self._seek)
         self._seek_slider.sliderReleased.connect(self._seek_to_slider_position)
         timeline.addWidget(self._position_label)
         timeline.addWidget(self._seek_slider, 1)
         timeline.addWidget(self._duration_label)
+        info.addLayout(timeline)
+        layout.addLayout(info, 5)
 
-        center = QVBoxLayout()
-        controls = QHBoxLayout()
-        controls.setSpacing(8)
-
-        volume_controls = QHBoxLayout()
-        volume_controls.setSpacing(8)
-
-        layout.addLayout(track_info, 1)
-        controls.addWidget(
-            self._build_button(
-                QStyle.StandardPixmap.SP_MediaSkipBackward,
+        transport = QWidget()
+        transport.setObjectName("transportSurface")
+        transport_layout = QHBoxLayout(transport)
+        transport_layout.setContentsMargins(8, 8, 8, 8)
+        transport_layout.setSpacing(5)
+        self._configure_mode_button(
+            self._shuffle_button,
+            "Shuffle: OFF",
+            "Shuffle playlist",
+            self._toggle_shuffle,
+        )
+        self._shuffle_button.setObjectName("shuffleButton")
+        self._set_icon(self._shuffle_button, "shuffle_icon.png", 24)
+        transport_layout.addWidget(self._shuffle_button)
+        transport_layout.addWidget(
+            self._icon_button(
+                "previous_icon.png",
+                "Previous",
                 "Previous track",
                 self._previous_track,
+                "transportButton",
             )
         )
-        self._configure_button(
-            self._play_pause_button,
-            QStyle.StandardPixmap.SP_MediaPlay,
-            "Play",
-            self._toggle_play_pause,
-        )
-        controls.addWidget(self._play_pause_button)
-        controls.addWidget(
-            self._build_button(
-                QStyle.StandardPixmap.SP_MediaStop,
-                "Stop",
-                self._stop,
-            )
-        )
-        controls.addWidget(
-            self._build_button(
-                QStyle.StandardPixmap.SP_MediaSkipForward,
+        self._play_pause_button.setObjectName("playPauseButton")
+        self._play_pause_button.setFixedSize(72, 72)
+        self._configure_button(self._play_pause_button, "▶", "Play", self._toggle_play_pause)
+        transport_layout.addWidget(self._play_pause_button)
+        transport_layout.addWidget(
+            self._icon_button(
+                "next_icon.png",
+                "Next",
                 "Next track",
                 self._next_track,
+                "transportButton",
             )
         )
-        self._configure_playback_modes(controls)
-        center.addLayout(controls)
-        center.addLayout(timeline)
+        self._set_icon(self._repeat_button, "repeat_icon.png", 24)
+        self._configure_mode_button(
+            self._repeat_button,
+            "Repeat Off",
+            "Repeat mode",
+            self._cycle_repeat_mode,
+        )
+        transport_layout.addWidget(self._repeat_button)
+        layout.addWidget(transport, 4)
 
-        layout.addLayout(center, 3)
-        self._configure_volume_controls()
-        volume_controls.addWidget(self._volume_button)
-        volume_controls.addWidget(self._volume_slider)
-        volume_controls.addWidget(self._volume_label)
-        layout.addLayout(volume_controls, 1)
+        side = QVBoxLayout()
+        side.setSpacing(9)
+        volume = QHBoxLayout()
+        self._configure_button(self._volume_button, "◖", "Mute", self._toggle_mute)
+        self._set_icon(self._volume_button, "volume_icon.png", 20)
+        self._volume_button.setObjectName("flatPlayerButton")
+        self._volume_slider.setObjectName("volumeSlider")
+        self._volume_slider.setRange(0, VOLUME_SCALE)
+        self._volume_slider.setMinimumWidth(110)
+        self._sync_volume_slider(self._playback_service.volume())
+        self._volume_slider.valueChanged.connect(self._set_volume_from_slider)
+        self._volume_label.setObjectName("playerTime")
+        self._volume_label.setMinimumWidth(38)
+        volume.addWidget(self._volume_button)
+        volume.addWidget(self._volume_slider, 1)
+        volume.addWidget(self._volume_label)
+        side.addLayout(volume)
 
-    def _build_button(
+        utility = QHBoxLayout()
+        utility.setSpacing(7)
+        stop = self._text_button("■", "Stop", self._stop, "utilityButton")
+        utility.addWidget(stop)
+        self._modules_button = self._text_button(
+            "☷", "Open the Module menu", lambda: None, "utilityButton"
+        )
+        self._set_icon(self._modules_button, "queue_icon.png", 22)
+        self._modules_button.setEnabled(False)
+        utility.addWidget(self._modules_button)
+        favorite = self._text_button(
+            "♡",
+            "Favorites are not available yet",
+            lambda: None,
+            "utilityButton",
+        )
+        self._set_icon(favorite, "favorite_icon.png", 22)
+        favorite.setEnabled(False)
+        utility.addWidget(favorite)
+        settings = self._icon_button(
+            "settings_icon.png",
+            "Settings",
+            "Settings are not available yet",
+            lambda: None,
+            "utilityButton",
+        )
+        settings.setEnabled(False)
+        utility.addWidget(settings)
+        side.addLayout(utility)
+        side.addStretch(1)
+        layout.addLayout(side, 2)
+
+    def set_module_menu(self, menu: QMenu) -> None:
+        """Attach the main module visibility menu to the mockup utility button."""
+        self._modules_button.setMenu(menu)
+        self._modules_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._modules_button.setEnabled(True)
+
+    def _text_button(
         self,
-        icon: QStyle.StandardPixmap,
+        text: str,
         tooltip: str,
         handler: Callable[[], object],
+        object_name: str,
     ) -> QToolButton:
         button = QToolButton()
-        self._configure_button(button, icon, tooltip, handler)
+        button.setObjectName(object_name)
+        self._configure_button(button, text, tooltip, handler)
         return button
+
+    def _icon_button(
+        self,
+        icon_name: str,
+        text: str,
+        tooltip: str,
+        handler: Callable[[], object],
+        object_name: str,
+    ) -> QToolButton:
+        button = self._text_button(text, tooltip, handler, object_name)
+        self._set_icon(button, icon_name, 22)
+        return button
+
+    def _set_icon(self, button: QToolButton, icon_name: str, size: int) -> None:
+        button.setIcon(QIcon(str(asset_path(f"icons/{icon_name}"))))
+        button.setIconSize(QSize(size, size))
 
     def _configure_button(
         self,
         button: QToolButton,
-        icon: QStyle.StandardPixmap,
+        text: str,
         tooltip: str,
         handler: Callable[[], object],
     ) -> None:
-        button.setIcon(self.style().standardIcon(icon))
+        button.setText(text)
         button.setToolTip(tooltip)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.clicked.connect(handler)
 
-    def _configure_volume_controls(self) -> None:
-        self._configure_button(
-            self._volume_button,
-            QStyle.StandardPixmap.SP_MediaVolume,
-            "Mute",
-            self._toggle_mute,
-        )
-        self._volume_label.setObjectName("playerTime")
-        self._volume_label.setMinimumWidth(36)
-        self._volume_slider.setRange(0, VOLUME_SCALE)
-        self._volume_slider.setFixedWidth(120)
-        self._sync_volume_slider(self._playback_service.volume())
-        self._volume_slider.valueChanged.connect(self._set_volume_from_slider)
-
-    def _configure_playback_modes(self, controls: QHBoxLayout) -> None:
-        self._shuffle_button.setObjectName("shuffleButton")
-        self._shuffle_button.setText("Shuffle: OFF")
-        self._shuffle_button.setCheckable(True)
-        self._shuffle_button.setFixedWidth(92)
-        self._shuffle_button.setToolTip("Shuffle playlist")
-        self._shuffle_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._shuffle_button.clicked.connect(self._toggle_shuffle)
-        controls.addWidget(self._shuffle_button)
-
-        self._repeat_button.setFixedWidth(78)
-        self._repeat_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._repeat_button.clicked.connect(self._cycle_repeat_mode)
-        controls.addWidget(self._repeat_button)
+    def _configure_mode_button(
+        self,
+        button: QToolButton,
+        text: str,
+        tooltip: str,
+        handler: Callable[[], object],
+    ) -> None:
+        button.setObjectName("modeButton")
+        button.setText(text)
+        button.setToolTip(tooltip)
+        button.setCheckable(True)
+        button.setFixedSize(54, 62)
+        button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.clicked.connect(handler)
 
     def _configure_timer(self) -> None:
         self._refresh_timer.setInterval(POSITION_REFRESH_MS)
@@ -179,21 +295,24 @@ class PlayerBar(QWidget):
         if track is None:
             self._title_label.setText("Nothing playing")
             self._artist_label.setText("Queue is empty")
+            self._album_label.setText("Import music into the Local Library")
+            self._cover.set_source(None)
         else:
             self._title_label.setText(track.title)
-            metadata = track.artist.name
-            if track.album is not None:
-                metadata = f"{metadata} | {track.album.title}"
-            self._artist_label.setText(metadata)
+            self._artist_label.setText(track.artist.name)
+            album = track.album.title if track.album is not None else "Unknown album"
+            year = track.album.release_year if track.album is not None else None
+            self._album_label.setText(f"{album}{f' ({year})' if year else ''}")
+            self._cover.set_source(track.cover_url)
 
         position_ms = self._playback_service.position_ms()
         duration_ms = self._playback_service.duration_ms()
         self._position_label.setText(self._format_time(position_ms))
         self._duration_label.setText(self._format_time(duration_ms))
-
         if not self._seek_slider.isSliderDown():
             self._seek_slider.setRange(0, max(0, duration_ms))
             self._seek_slider.setValue(min(position_ms, max(0, duration_ms)))
+        self.update()
 
     def _seek_to_slider_position(self) -> None:
         self._seek(self._seek_slider.value())
@@ -248,20 +367,17 @@ class PlayerBar(QWidget):
 
     def _update_volume_controls(self) -> None:
         volume_percent = round(self._playback_service.volume() * VOLUME_SCALE)
-        icon = QStyle.StandardPixmap.SP_MediaVolume
-        if volume_percent <= 0:
-            icon = QStyle.StandardPixmap.SP_MediaVolumeMuted
-        self._volume_button.setIcon(self.style().standardIcon(icon))
+        self._volume_button.setText("Muted" if volume_percent <= 0 else "Volume")
         self._volume_label.setText(f"{volume_percent}%")
 
     def _update_play_pause_button(self, status: PlaybackStatus) -> None:
-        icon = QStyle.StandardPixmap.SP_MediaPlay
-        tooltip = "Play"
-        if status == PlaybackStatus.PLAYING:
-            icon = QStyle.StandardPixmap.SP_MediaPause
-            tooltip = "Pause"
-        self._play_pause_button.setIcon(self.style().standardIcon(icon))
-        self._play_pause_button.setToolTip(tooltip)
+        is_playing = status == PlaybackStatus.PLAYING
+        self._play_pause_button.setText("Ⅱ" if is_playing else "▶")
+        if is_playing:
+            self._set_icon(self._play_pause_button, "pause_icon.png", 31)
+        else:
+            self._play_pause_button.setIcon(QIcon())
+        self._play_pause_button.setToolTip("Pause" if is_playing else "Play")
 
     def _update_playback_modes(
         self,
@@ -271,13 +387,9 @@ class PlayerBar(QWidget):
         self._shuffle_button.blockSignals(True)
         self._shuffle_button.setChecked(shuffle_enabled)
         self._shuffle_button.blockSignals(False)
-        self._shuffle_button.setText(
-            "Shuffle: ON" if shuffle_enabled else "Shuffle: OFF"
-        )
+        self._shuffle_button.setText("Shuffle: ON" if shuffle_enabled else "Shuffle: OFF")
         self._shuffle_button.setToolTip(
-            "Disable playlist shuffle"
-            if shuffle_enabled
-            else "Enable playlist shuffle"
+            "Disable playlist shuffle" if shuffle_enabled else "Enable playlist shuffle"
         )
         repeat_labels = {
             RepeatMode.OFF: "Repeat Off",
@@ -286,6 +398,7 @@ class PlayerBar(QWidget):
         }
         label = repeat_labels[repeat_mode]
         self._repeat_button.setText(label)
+        self._repeat_button.setChecked(repeat_mode != RepeatMode.OFF)
         self._repeat_button.setToolTip(label)
 
     def _format_time(self, value_ms: int) -> str:

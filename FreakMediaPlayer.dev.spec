@@ -6,12 +6,13 @@ from PyInstaller.utils.hooks import collect_all
 
 project_root = Path(SPECPATH).resolve()
 av_data, av_binaries, av_hidden_imports = collect_all("av")
+app_assets = project_root / "src" / "freak_media_player" / "assets"
 
 analysis = Analysis(
     [str(project_root / "src" / "freak_media_player" / "main.py")],
     pathex=[str(project_root / "src")],
     binaries=av_binaries,
-    datas=av_data,
+    datas=av_data + [(str(app_assets), "freak_media_player/assets")],
     hiddenimports=av_hidden_imports,
     hookspath=[],
     hooksconfig={},
@@ -58,6 +59,7 @@ executable = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
+    icon=str(app_assets / "app_logo.ico"),
 )
 
 collection = COLLECT(

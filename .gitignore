@@ -18,3 +18,4 @@ dist-dev/
 !FreakMediaPlayer.dev.spec
 *.sqlite3
 .codex-git-tmp/
+Freak_Media_Player_Assets_*/

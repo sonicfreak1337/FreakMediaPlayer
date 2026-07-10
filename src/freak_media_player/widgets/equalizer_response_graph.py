@@ -5,10 +5,18 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen
+from PySide6.QtGui import (
+    QColor,
+    QLinearGradient,
+    QMouseEvent,
+    QPainter,
+    QPainterPath,
+    QPen,
+)
 from PySide6.QtWidgets import QWidget
 
 from freak_media_player.models.equalizer import (
+    EQUALIZER_FREQUENCIES_HZ,
     MAX_FREQUENCY_HZ,
     MAX_GAIN_DB,
     MIN_FREQUENCY_HZ,
@@ -17,21 +25,20 @@ from freak_media_player.models.equalizer import (
 )
 from freak_media_player.ui.theme import (
     AMBER,
-    DISPLAY_GREEN,
     HEADER_HIGHLIGHT,
     PANEL_BORDER,
     PANEL_SUNKEN,
+    TEXT_PRIMARY,
     TEXT_SECONDARY,
 )
 
-GRAPH_MARGIN_LEFT = 44.0
-GRAPH_MARGIN_RIGHT = 16.0
+GRAPH_MARGIN_LEFT = 58.0
+GRAPH_MARGIN_RIGHT = 26.0
 GRAPH_MARGIN_TOP = 12.0
-GRAPH_MARGIN_BOTTOM = 24.0
+GRAPH_MARGIN_BOTTOM = 43.0
 NODE_RADIUS = 6.0
 NODE_HIT_RADIUS = 14.0
-FREQUENCY_TICKS = (20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000)
-GAIN_TICKS = (-12, -6, 0, 6, 12)
+GAIN_TICKS = (-12, 0, 12)
 
 
 class EqualizerResponseGraph(QWidget):
@@ -45,7 +52,7 @@ class EqualizerResponseGraph(QWidget):
         self._response_values: tuple[float, ...] = ()
         self._selected_band = 0
         self._dragging_band: int | None = None
-        self.setMinimumHeight(170)
+        self.setMinimumHeight(145)
         self.setMouseTracking(True)
 
     def sizeHint(self) -> QSize:
@@ -69,7 +76,10 @@ class EqualizerResponseGraph(QWidget):
     def paintEvent(self, _event: object) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor(PANEL_SUNKEN))
+        background = QLinearGradient(0, 0, 0, self.height())
+        background.setColorAt(0, QColor("#030b1b"))
+        background.setColorAt(1, QColor(PANEL_SUNKEN))
+        painter.fillRect(self.rect(), background)
         graph_rect = self._graph_rect()
         self._draw_grid(painter, graph_rect)
         self._draw_response(painter, graph_rect)
@@ -107,17 +117,6 @@ class EqualizerResponseGraph(QWidget):
                 f"{gain_db:+d}",
             )
 
-        for frequency_hz in FREQUENCY_TICKS:
-            x = self._frequency_to_x(float(frequency_hz), graph_rect)
-            painter.setPen(QPen(QColor(PANEL_BORDER), 1.0))
-            painter.drawLine(QPointF(x, graph_rect.top()), QPointF(x, graph_rect.bottom()))
-            painter.setPen(QColor(TEXT_SECONDARY))
-            painter.drawText(
-                QRectF(x - 24.0, graph_rect.bottom() + 3.0, 48.0, 18.0),
-                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
-                self._frequency_label(frequency_hz),
-            )
-
     def _draw_response(self, painter: QPainter, graph_rect: QRectF) -> None:
         if not self._response_values:
             return
@@ -133,7 +132,7 @@ class EqualizerResponseGraph(QWidget):
                 path.moveTo(point)
             else:
                 path.lineTo(point)
-        painter.setPen(QPen(QColor(DISPLAY_GREEN), 2.0))
+        painter.setPen(QPen(QColor(AMBER), 2.0))
         painter.drawPath(path)
 
     def _draw_nodes(self, painter: QPainter, graph_rect: QRectF) -> None:
@@ -141,12 +140,53 @@ class EqualizerResponseGraph(QWidget):
             return
         for index, band in enumerate(self._preset.bands):
             point = self._band_point(index, graph_rect)
-            color = TEXT_SECONDARY
-            if band.enabled:
-                color = AMBER if index == self._selected_band else DISPLAY_GREEN
-            painter.setPen(QPen(QColor(PANEL_SUNKEN), 2.0))
-            painter.setBrush(QColor(color))
-            painter.drawEllipse(point, NODE_RADIUS, NODE_RADIUS)
+            line_color = QColor("#287cff" if band.enabled else "#29364b")
+            glow = QColor(line_color.red(), line_color.green(), line_color.blue(), 45)
+            painter.setPen(QPen(glow, 7))
+            painter.drawLine(
+                QPointF(point.x(), graph_rect.top()),
+                QPointF(point.x(), graph_rect.bottom()),
+            )
+            painter.setPen(QPen(line_color, 2.0))
+            painter.drawLine(
+                QPointF(point.x(), graph_rect.top()),
+                QPointF(point.x(), graph_rect.bottom()),
+            )
+
+            handle = QRectF(point.x() - 16.0, point.y() - 9.0, 32.0, 18.0)
+            handle_gradient = QLinearGradient(handle.topLeft(), handle.bottomLeft())
+            handle_gradient.setColorAt(0, QColor("#17243a"))
+            handle_gradient.setColorAt(1, QColor("#020714"))
+            painter.setBrush(handle_gradient)
+            painter.setPen(
+                QPen(QColor(AMBER if index == self._selected_band else "#41516d"), 1.0)
+            )
+            painter.drawRoundedRect(handle, 3.0, 3.0)
+            painter.setPen(QPen(QColor(AMBER), 2.0))
+            painter.drawLine(
+                QPointF(handle.left() + 6.0, point.y()),
+                QPointF(handle.right() - 6.0, point.y()),
+            )
+
+            painter.setBrush(QColor("#0b4fae"))
+            painter.setPen(QPen(QColor("#9fc3ff"), 1.0))
+            painter.drawEllipse(
+                QPointF(point.x(), self._gain_to_y(band.gain_db, graph_rect)),
+                5.0,
+                5.0,
+            )
+            label_rect = QRectF(point.x() - 22.0, graph_rect.bottom() + 4.0, 44.0, 17.0)
+            painter.setBrush(QColor("#071022"))
+            painter.setPen(QPen(QColor("#344767"), 1.0))
+            painter.drawRoundedRect(label_rect, 2.0, 2.0)
+            painter.setPen(QColor(TEXT_PRIMARY))
+            painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, str(index + 1))
+            painter.setPen(QColor(TEXT_SECONDARY))
+            painter.drawText(
+                QRectF(point.x() - 32.0, graph_rect.bottom() + 22.0, 64.0, 18.0),
+                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
+                self._frequency_label(EQUALIZER_FREQUENCIES_HZ[index]),
+            )
 
     def _band_at(self, point: QPointF) -> int | None:
         if self._preset is None:

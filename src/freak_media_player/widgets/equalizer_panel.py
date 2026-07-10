@@ -59,38 +59,46 @@ class EqualizerPanel(QWidget):
         self._q = QDoubleSpinBox()
         self._preamp = QDoubleSpinBox()
         self._selected_band = 0
+        self._header_controls: list[QWidget] = []
         self._updating_controls = False
         self._response_frequencies = self._make_response_frequencies()
         self._build_layout()
         self._configure_controls()
         self._load_presets()
 
+    @property
+    def header_controls(self) -> tuple[QWidget, ...]:
+        return tuple(self._header_controls)
+
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 10, 16, 10)
-        layout.setSpacing(8)
+        layout.setContentsMargins(10, 7, 10, 7)
+        layout.setSpacing(5)
 
         header = QHBoxLayout()
+        preamp_label = QLabel("PREAMP")
+        preamp_label.setObjectName("compactLabel")
+        presets_label = QLabel("PRESETS")
+        presets_label.setObjectName("compactLabel")
+        self._header_controls.extend(
+            [preamp_label, self._preamp, presets_label, self._preset_combo]
+        )
         if self._show_title:
             title = QLabel("Equalizer")
             title.setObjectName("panelTitle")
             header.addWidget(title)
-        header.addStretch(1)
-        header.addWidget(QLabel("Preamp"))
-        header.addWidget(self._preamp)
-        header.addWidget(self._preset_combo)
+            header.addStretch(1)
+            for control in self._header_controls:
+                header.addWidget(control)
 
-        band_selector = QHBoxLayout()
-        band_selector.setSpacing(4)
         for index in range(len(EQUALIZER_FREQUENCIES_HZ)):
-            button = QToolButton()
+            button = QToolButton(self)
             button.setText(str(index + 1))
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             self._band_group.addButton(button, index)
             self._band_buttons.append(button)
-            band_selector.addWidget(button)
-        band_selector.addStretch(1)
+            button.hide()
 
         controls = QHBoxLayout()
         controls.setSpacing(8)
@@ -103,9 +111,9 @@ class EqualizerPanel(QWidget):
         controls.addWidget(self._q)
         controls.addStretch(1)
 
-        layout.addLayout(header)
+        if self._show_title:
+            layout.addLayout(header)
         layout.addWidget(self._graph, 1)
-        layout.addLayout(band_selector)
         layout.addLayout(controls)
 
     def _configure_controls(self) -> None:
