@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Iterable
+from datetime import timedelta
 from pathlib import Path
 
-from freak_media_player.models.media import Artist, AudioSource, ProviderIdentity, Track
+from freak_media_player.models.media import Album, Artist, AudioSource, ProviderIdentity, Track
 from freak_media_player.providers.base import ProviderCapabilities, SearchQuery
+from freak_media_player.providers.local_metadata import LocalMetadataReader
 
 LOCAL_FILE_PROVIDER_ID = "local-files"
 UNKNOWN_ARTIST = "Unknown Artist"
@@ -33,8 +35,13 @@ class LocalFileProvider:
     display_name = "Local Files"
     capabilities = ProviderCapabilities(search=True, streaming=True, library=True)
 
-    def __init__(self, library_roots: Iterable[Path] | None = None) -> None:
+    def __init__(
+        self,
+        library_roots: Iterable[Path] | None = None,
+        metadata_reader: LocalMetadataReader | None = None,
+    ) -> None:
         self._library_roots = tuple(Path(root) for root in library_roots or ())
+        self._metadata_reader = metadata_reader or LocalMetadataReader()
 
     def search_tracks(self, query: SearchQuery) -> list[Track]:
         text = query.text.strip().lower()
@@ -63,14 +70,33 @@ class LocalFileProvider:
         resolved = path.resolve()
         if not self.is_supported_file(resolved):
             raise ValueError(f"Unsupported audio file: {resolved}")
+        metadata = self._metadata_reader.read(resolved)
+        artist = Artist(name=metadata.artist or UNKNOWN_ARTIST)
+        album_artist = Artist(name=metadata.album_artist or artist.name)
+        album = None
+        if metadata.album_title:
+            album = Album(
+                title=metadata.album_title,
+                artist=album_artist,
+                release_year=metadata.release_year,
+            )
         return Track(
             id=self._track_id(resolved),
             provider_identity=ProviderIdentity(
                 provider_id=self.provider_id,
                 item_id=str(resolved),
             ),
-            title=resolved.stem,
-            artist=Artist(name=UNKNOWN_ARTIST),
+            title=metadata.title or resolved.stem,
+            artist=artist,
+            album=album,
+            duration=(
+                timedelta(seconds=metadata.duration_seconds)
+                if metadata.duration_seconds is not None
+                else None
+            ),
+            genre=metadata.genre,
+            track_number=metadata.track_number,
+            disc_number=metadata.disc_number,
         )
 
     def is_supported_file(self, path: Path) -> bool:

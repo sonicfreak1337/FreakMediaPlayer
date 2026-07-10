@@ -46,6 +46,19 @@ def test_processor_preserves_state_across_audio_blocks() -> None:
     np.testing.assert_allclose(streamed, complete, atol=1e-6)
 
 
+def test_processor_applies_audible_band_gain() -> None:
+    timeline = np.arange(8192, dtype=np.float32) / SAMPLE_RATE
+    signal = np.sin(2.0 * np.pi * 1000.0 * timeline).astype(np.float32)
+    stereo = np.vstack((signal, signal))
+    processor = ParametricEqualizerProcessor(make_peak_preset(6.0))
+
+    processed = processor.process(stereo, SAMPLE_RATE)
+    input_rms = float(np.sqrt(np.mean(np.square(stereo[:, 4096:]))))
+    output_rms = float(np.sqrt(np.mean(np.square(processed[:, 4096:]))))
+
+    assert output_rms > input_rms * 1.8
+
+
 def test_pcm_conversion_clips_and_interleaves_stereo() -> None:
     samples = np.asarray(((1.5, -1.5), (0.5, -0.5)), dtype=np.float32)
 

@@ -3,11 +3,12 @@
 A modular Winamp-inspired desktop music player focused on local playback today,
 with a provider-based architecture for YouTube Music and other sources later.
 
-Current version: `0.4.0`
+Current version: `0.5.0`
 
 ## Current Features
 
 - Import local audio by file, folder, or drag and drop
+- Read embedded title, artist, album, year, genre and track metadata
 - Separate local library and persistent active playlist
 - Shared resizable workspace with collapsible Library, Playlist, and Equalizer
 - Drag and drop from the library into a chosen playlist position
@@ -16,6 +17,8 @@ Current version: `0.4.0`
 - Streaming local decoding through PyAV/FFmpeg with bounded memory usage
 - Native PCM output through Qt AudioSink
 - Play, pause, stop, previous, next, seek, volume, and mute controls
+- Non-repeating playlist shuffle with previous/next history
+- Repeat All and Repeat One playback modes
 - Automatic playback of the next playlist title
 - Highlighted currently playing playlist row
 - Clickable and draggable playback and volume sliders
@@ -23,7 +26,7 @@ Current version: `0.4.0`
 - Sortable library columns and explicit playlist ordering
 - Remove one or more selected local tracks from the library
 - Remove playlist entries without deleting library tracks
-- Audible parametric equalizer with Flat, Metal, Metalcore, and Custom presets
+- Audible parametric equalizer with metal-subgenre presets and Custom mode
 - DAW-style response graph with frequency, gain, Q, enable, and preamp controls
 - Compact Winamp-inspired dark UI with green library/display accents
 - SQLite storage for imported tracks and settings
@@ -45,7 +48,7 @@ See `docs/ARCHITECTURE.md` for the architecture plan.
 
 ## Equalizer
 
-Version `0.4.0` processes decoded PCM audio through a real parametric equalizer
+Version `0.5.0` processes decoded PCM audio through a real parametric equalizer
 before it reaches the Windows output device. Each band is a stateful peaking
 filter with frequency, gain and Q controls. The displayed response curve uses
 the same coefficients as the audio processor.
@@ -62,6 +65,18 @@ Run this on Windows to create the desktop executable:
 ```
 
 The generated executable is written to `dist\FreakMediaPlayer\FreakMediaPlayer.exe`.
+
+For fast development iterations, run:
+
+```powershell
+.\fast_build.bat
+```
+
+This reuses the build environment and PyInstaller cache, skips dependency
+synchronization when the required packages are already installed, and excludes
+unused optional Qt modules. Its executable is written to
+`dist-dev\FreakMediaPlayer\FreakMediaPlayer.exe`. Run `build.bat` after changing
+dependencies and for release builds.
 
 ## Development Checks
 

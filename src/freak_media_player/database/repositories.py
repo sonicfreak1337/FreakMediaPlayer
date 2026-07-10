@@ -48,16 +48,26 @@ class SQLiteTrackRepository:
                 title,
                 artist,
                 album,
-                duration_seconds
+                duration_seconds,
+                album_artist,
+                release_year,
+                genre,
+                track_number,
+                disc_number
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 provider_id = excluded.provider_id,
                 provider_track_id = excluded.provider_track_id,
                 title = excluded.title,
                 artist = excluded.artist,
                 album = excluded.album,
-                duration_seconds = excluded.duration_seconds
+                duration_seconds = excluded.duration_seconds,
+                album_artist = excluded.album_artist,
+                release_year = excluded.release_year,
+                genre = excluded.genre,
+                track_number = excluded.track_number,
+                disc_number = excluded.disc_number
             """,
             (
                 track.id,
@@ -67,6 +77,11 @@ class SQLiteTrackRepository:
                 track.artist.name,
                 track.album.title if track.album else None,
                 int(track.duration.total_seconds()) if track.duration else None,
+                track.album.artist.name if track.album and track.album.artist else None,
+                track.album.release_year if track.album else None,
+                track.genre,
+                track.track_number,
+                track.disc_number,
             ),
         )
         self._connection.commit()
@@ -74,7 +89,10 @@ class SQLiteTrackRepository:
     def get_by_id(self, track_id: str) -> Track | None:
         row = self._connection.execute(
             """
-            SELECT id, provider_id, provider_track_id, title, artist, album, duration_seconds
+            SELECT
+                id, provider_id, provider_track_id, title, artist, album,
+                duration_seconds, album_artist, release_year, genre,
+                track_number, disc_number
             FROM tracks
             WHERE id = ?
             """,
@@ -95,7 +113,10 @@ class SQLiteTrackRepository:
     def list_all(self) -> list[Track]:
         rows = self._connection.execute(
             """
-            SELECT id, provider_id, provider_track_id, title, artist, album, duration_seconds
+            SELECT
+                id, provider_id, provider_track_id, title, artist, album,
+                duration_seconds, album_artist, release_year, genre,
+                track_number, disc_number
             FROM tracks
             ORDER BY title COLLATE NOCASE, artist COLLATE NOCASE
             """
@@ -130,7 +151,12 @@ class SQLitePlaylistRepository:
                 tracks.title,
                 tracks.artist,
                 tracks.album,
-                tracks.duration_seconds
+                tracks.duration_seconds,
+                tracks.album_artist,
+                tracks.release_year,
+                tracks.genre,
+                tracks.track_number,
+                tracks.disc_number
             FROM playlist_tracks
             JOIN tracks ON tracks.id = playlist_tracks.track_id
             WHERE playlist_tracks.playlist_id = ?
@@ -165,7 +191,19 @@ class SQLitePlaylistRepository:
 def _track_from_row(row: sqlite3.Row) -> Track:
     artist = Artist(name=str(row["artist"]))
     album_title = row["album"]
+    album_artist_name = row["album_artist"]
     duration_seconds = row["duration_seconds"]
+    album = None
+    if album_title:
+        album = Album(
+            title=str(album_title),
+            artist=Artist(name=str(album_artist_name)) if album_artist_name else artist,
+            release_year=(
+                int(row["release_year"])
+                if row["release_year"] is not None
+                else None
+            ),
+        )
     return Track(
         id=str(row["id"]),
         provider_identity=ProviderIdentity(
@@ -174,10 +212,17 @@ def _track_from_row(row: sqlite3.Row) -> Track:
         ),
         title=str(row["title"]),
         artist=artist,
-        album=Album(title=str(album_title), artist=artist) if album_title else None,
+        album=album,
         duration=(
             timedelta(seconds=int(duration_seconds))
             if duration_seconds is not None
             else None
+        ),
+        genre=str(row["genre"]) if row["genre"] else None,
+        track_number=(
+            int(row["track_number"]) if row["track_number"] is not None else None
+        ),
+        disc_number=(
+            int(row["disc_number"]) if row["disc_number"] is not None else None
         ),
     )

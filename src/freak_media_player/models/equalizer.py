@@ -100,4 +100,46 @@ EQUALIZER_PRESETS = (
         (2.0, 3.0, 1.0, -2.5, -2.0, 0.5, 2.5, 1.5, 1.0, 0.5),
         preamp_db=-3.0,
     ),
+    make_preset(
+        "death-metal",
+        "Death Metal",
+        (1.0, 2.0, 1.0, -1.5, -0.8, 0.5, 1.5, 2.0, 1.0, 0.0),
+        preamp_db=-2.0,
+    ),
+    make_preset(
+        "deathcore",
+        "Deathcore",
+        (1.5, 2.5, 1.0, -2.0, -1.0, 0.8, 2.0, 2.5, 1.0, 0.0),
+        preamp_db=-2.5,
+    ),
+    make_preset(
+        "black-metal",
+        "Black Metal",
+        (-1.0, -0.5, 0.0, -0.5, 0.5, 1.5, 2.0, 2.5, 2.0, 1.0),
+        preamp_db=-2.5,
+    ),
+    make_preset(
+        "doom-metal",
+        "Doom Metal",
+        (2.0, 2.5, 2.0, 1.5, 0.5, 0.0, -0.5, -1.0, -1.0, -1.5),
+        preamp_db=-2.5,
+    ),
+    make_preset(
+        "thrash-metal",
+        "Thrash Metal",
+        (0.5, 1.5, 0.5, -1.5, -0.5, 1.0, 2.0, 2.5, 1.5, 0.5),
+        preamp_db=-2.5,
+    ),
+    make_preset(
+        "djent",
+        "Djent",
+        (0.5, 1.0, 0.0, -2.5, -1.5, 1.0, 2.5, 2.0, 0.5, -0.5),
+        preamp_db=-2.5,
+    ),
+    make_preset(
+        "progressive-metal",
+        "Progressive Metal",
+        (0.5, 1.0, 0.5, -1.0, -0.5, 0.8, 1.5, 1.5, 1.0, 0.5),
+        preamp_db=-1.5,
+    ),
 )

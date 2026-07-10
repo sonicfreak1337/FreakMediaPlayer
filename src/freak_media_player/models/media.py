@@ -30,6 +30,7 @@ class Album:
     artist: Artist | None = None
     provider_identity: ProviderIdentity | None = None
     cover_url: str | None = None
+    release_year: int | None = None
 
 
 @dataclass(frozen=True)
@@ -41,3 +42,6 @@ class Track:
     album: Album | None = None
     duration: timedelta | None = None
     cover_url: str | None = None
+    genre: str | None = None
+    track_number: int | None = None
+    disc_number: int | None = None

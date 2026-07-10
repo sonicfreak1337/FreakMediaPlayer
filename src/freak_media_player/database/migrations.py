@@ -103,6 +103,16 @@ INITIAL_MIGRATIONS: tuple[Migration, ...] = (
         );
         """,
     ),
+    Migration(
+        version=3,
+        sql="""
+        ALTER TABLE tracks ADD COLUMN album_artist TEXT;
+        ALTER TABLE tracks ADD COLUMN release_year INTEGER;
+        ALTER TABLE tracks ADD COLUMN genre TEXT;
+        ALTER TABLE tracks ADD COLUMN track_number INTEGER;
+        ALTER TABLE tracks ADD COLUMN disc_number INTEGER;
+        """,
+    ),
 )
 
 

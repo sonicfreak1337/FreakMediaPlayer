@@ -46,6 +46,23 @@ drag and drop never depends on navigation state. The equalizer shares the same
 workspace in a vertical splitter. `CollapsiblePanel` owns only presentation
 state and does not introduce dependencies between the contained modules.
 
+`LocalMetadataReader` is the provider-side adapter for embedded audio tags. The
+provider maps extracted values into immutable media models, while SQLite
+repositories persist those models without exposing tag-library details. A
+versioned startup index refresh upgrades existing local rows exactly once.
+
+## Playback Policies
+
+`PlaybackQueue` owns playlist position and delegates randomized traversal to
+`ShuffleCycle`. The cycle tracks played and remaining positions, avoids repeats
+until every current playlist entry has played, and keeps navigation history for
+previous/next. Disabling shuffle destroys that transient state.
+
+`PlaybackController` owns end-of-track policy. Repeat One restarts the current
+track, Repeat All wraps ordered playback, and shuffle starts a fresh randomized
+cycle after exhausting the previous one. Qt controls only issue service
+commands and render the resulting immutable `PlaybackState`.
+
 ## First Milestone
 
 The first milestone is a runnable shell with:

@@ -5,18 +5,27 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from freak_media_player.models.media import Track
+from freak_media_player.player.shuffle import ShuffleCycle
 
 
 class PlaybackQueue:
-    def __init__(self, tracks: Iterable[Track] | None = None) -> None:
+    def __init__(
+        self,
+        tracks: Iterable[Track] | None = None,
+        shuffle_cycle: ShuffleCycle | None = None,
+    ) -> None:
         self._tracks = list(tracks or ())
         self._current_index: int | None = None
+        self._shuffle_enabled = False
+        self._shuffle_cycle = shuffle_cycle or ShuffleCycle()
 
     def add(self, track: Track) -> None:
         self._tracks.append(track)
+        self._reset_shuffle_cycle()
 
     def extend(self, tracks: Iterable[Track]) -> None:
         self._tracks.extend(tracks)
+        self._reset_shuffle_cycle()
 
     def replace(
         self,
@@ -25,8 +34,15 @@ class PlaybackQueue:
     ) -> None:
         self._tracks = list(tracks)
         self._current_index = self._find_track_index(current_track_id)
+        self._reset_shuffle_cycle()
 
     def select(self, index: int) -> Track | None:
+        track = self._select(index)
+        if track is not None:
+            self._reset_shuffle_cycle()
+        return track
+
+    def _select(self, index: int) -> Track | None:
         if not 0 <= index < len(self._tracks):
             return None
         self._current_index = index
@@ -34,6 +50,8 @@ class PlaybackQueue:
 
     def current(self) -> Track | None:
         if self._current_index is None:
+            if self._shuffle_enabled:
+                return self.next()
             return self.select(0)
         return self._tracks[self._current_index]
 
@@ -41,22 +59,44 @@ class PlaybackQueue:
         return self._current_index
 
     def next(self) -> Track | None:
+        if self._shuffle_enabled:
+            next_index = self._shuffle_cycle.next_index(self._current_index)
+            return self._select(next_index) if next_index is not None else None
         next_index = 0 if self._current_index is None else self._current_index + 1
         return self.select(next_index)
 
     def previous(self) -> Track | None:
+        if self._shuffle_enabled:
+            previous_index = self._shuffle_cycle.previous_index()
+            return self._select(previous_index) if previous_index is not None else None
         if self._current_index is None:
             return None
         return self.select(self._current_index - 1)
 
+    def set_shuffle_enabled(self, enabled: bool) -> None:
+        if enabled == self._shuffle_enabled:
+            return
+        self._shuffle_enabled = enabled
+        if enabled:
+            self._shuffle_cycle.reset(len(self._tracks), self._current_index)
+        else:
+            self._shuffle_cycle.clear()
+
+    def shuffle_enabled(self) -> bool:
+        return self._shuffle_enabled
+
     def clear(self) -> None:
         self._tracks.clear()
         self._current_index = None
+        self._shuffle_cycle.clear()
 
     def pending_count(self) -> int:
         if self._current_index is None:
             return len(self._tracks)
         return max(0, len(self._tracks) - self._current_index - 1)
+
+    def track_count(self) -> int:
+        return len(self._tracks)
 
     def _find_track_index(self, track_id: str | None) -> int | None:
         if track_id is None:
@@ -65,3 +105,7 @@ class PlaybackQueue:
             (index for index, track in enumerate(self._tracks) if track.id == track_id),
             None,
         )
+
+    def _reset_shuffle_cycle(self) -> None:
+        if self._shuffle_enabled:
+            self._shuffle_cycle.reset(len(self._tracks), self._current_index)

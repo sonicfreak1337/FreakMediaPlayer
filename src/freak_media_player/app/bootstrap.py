@@ -20,6 +20,9 @@ from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.services.search_service import SearchService
 from freak_media_player.services.settings_service import SettingsService
 
+LOCAL_METADATA_INDEX_KEY = "library.local_metadata_index_version"
+LOCAL_METADATA_INDEX_VERSION = 1
+
 
 @dataclass(frozen=True)
 class AppContext:
@@ -46,6 +49,13 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         provider=local_provider,
         track_repository=database.tracks,
     )
+    indexed_version = database.settings.get(LOCAL_METADATA_INDEX_KEY)
+    if indexed_version != str(LOCAL_METADATA_INDEX_VERSION):
+        local_library_service.refresh_metadata()
+        database.settings.set(
+            LOCAL_METADATA_INDEX_KEY,
+            str(LOCAL_METADATA_INDEX_VERSION),
+        )
     playlist_service = PlaylistService(
         playlist_repository=database.playlists,
         track_repository=database.tracks,

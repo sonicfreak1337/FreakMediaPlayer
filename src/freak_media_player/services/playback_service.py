@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from freak_media_player.models.media import Track
-from freak_media_player.models.playback import PlaybackState
+from freak_media_player.models.playback import PlaybackState, RepeatMode
 from freak_media_player.player.playback_controller import PlaybackController
 
 
@@ -32,6 +32,18 @@ class PlaybackService:
 
     def current_playlist_index(self) -> int | None:
         return self._controller.current_playlist_index()
+
+    def toggle_shuffle(self) -> PlaybackState:
+        return self._controller.toggle_shuffle()
+
+    def set_shuffle_enabled(self, enabled: bool) -> PlaybackState:
+        return self._controller.set_shuffle_enabled(enabled)
+
+    def cycle_repeat_mode(self) -> PlaybackState:
+        return self._controller.cycle_repeat_mode()
+
+    def set_repeat_mode(self, repeat_mode: RepeatMode) -> PlaybackState:
+        return self._controller.set_repeat_mode(repeat_mode)
 
     def play(self) -> PlaybackState:
         return self._controller.play()

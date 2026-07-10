@@ -47,13 +47,21 @@ def test_settings_repository_round_trips_values() -> None:
 def test_track_repository_round_trips_track() -> None:
     repository = SQLiteTrackRepository(make_connection())
     artist = Artist(name="Artist")
+    album_artist = Artist(name="Album Artist")
     track = Track(
         id="track-1",
         provider_identity=ProviderIdentity(provider_id="local", item_id="file-1"),
         title="Song",
         artist=artist,
-        album=Album(title="Album", artist=artist),
+        album=Album(
+            title="Album",
+            artist=album_artist,
+            release_year=2024,
+        ),
         duration=timedelta(seconds=123),
+        genre="Metalcore",
+        track_number=4,
+        disc_number=2,
     )
 
     repository.save(track)
@@ -64,7 +72,12 @@ def test_track_repository_round_trips_track() -> None:
     assert loaded.artist.name == "Artist"
     assert loaded.album is not None
     assert loaded.album.title == "Album"
+    assert loaded.album.artist == album_artist
+    assert loaded.album.release_year == 2024
     assert loaded.duration == timedelta(seconds=123)
+    assert loaded.genre == "Metalcore"
+    assert loaded.track_number == 4
+    assert loaded.disc_number == 2
 
 
 def test_track_repository_lists_tracks() -> None:

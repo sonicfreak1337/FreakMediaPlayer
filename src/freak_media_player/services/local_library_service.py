@@ -7,6 +7,7 @@ from pathlib import Path
 from freak_media_player.core.ports import TrackRepository
 from freak_media_player.models.media import Track
 from freak_media_player.providers.local_files import (
+    LOCAL_FILE_PROVIDER_ID,
     SUPPORTED_AUDIO_EXTENSIONS,
     LocalFileProvider,
 )
@@ -46,6 +47,18 @@ class LocalLibraryService:
 
     def remove_track(self, track_id: str) -> bool:
         return self._track_repository.delete(track_id)
+
+    def refresh_metadata(self) -> int:
+        refreshed_count = 0
+        for track in self._track_repository.list_all():
+            if track.provider_identity.provider_id != LOCAL_FILE_PROVIDER_ID:
+                continue
+            path = Path(track.provider_identity.item_id)
+            if not path.is_file() or not self._provider.is_supported_file(path):
+                continue
+            self._track_repository.save(self._provider.track_from_path(path))
+            refreshed_count += 1
+        return refreshed_count
 
     def supported_extensions(self) -> tuple[str, ...]:
         return tuple(sorted(SUPPORTED_AUDIO_EXTENSIONS))

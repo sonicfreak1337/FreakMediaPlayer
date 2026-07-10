@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import PlaybackStatus, RepeatMode
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.ui.constants import PLAYER_BAR_HEIGHT
 from freak_media_player.widgets.clickable_slider import ClickableSlider
@@ -35,6 +35,8 @@ class PlayerBar(QWidget):
         self._duration_label = QLabel("0:00")
         self._seek_slider = SeekSlider()
         self._play_pause_button = QToolButton()
+        self._shuffle_button = QToolButton()
+        self._repeat_button = QToolButton()
         self._volume_button = QToolButton()
         self._volume_slider = ClickableSlider(Qt.Orientation.Horizontal)
         self._volume_label = QLabel("100%")
@@ -100,6 +102,7 @@ class PlayerBar(QWidget):
                 self._next_track,
             )
         )
+        self._configure_playback_modes(controls)
         center.addLayout(controls)
         center.addLayout(timeline)
 
@@ -146,6 +149,21 @@ class PlayerBar(QWidget):
         self._sync_volume_slider(self._playback_service.volume())
         self._volume_slider.valueChanged.connect(self._set_volume_from_slider)
 
+    def _configure_playback_modes(self, controls: QHBoxLayout) -> None:
+        self._shuffle_button.setObjectName("shuffleButton")
+        self._shuffle_button.setText("Shuffle: OFF")
+        self._shuffle_button.setCheckable(True)
+        self._shuffle_button.setFixedWidth(92)
+        self._shuffle_button.setToolTip("Shuffle playlist")
+        self._shuffle_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._shuffle_button.clicked.connect(self._toggle_shuffle)
+        controls.addWidget(self._shuffle_button)
+
+        self._repeat_button.setFixedWidth(78)
+        self._repeat_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._repeat_button.clicked.connect(self._cycle_repeat_mode)
+        controls.addWidget(self._repeat_button)
+
     def _configure_timer(self) -> None:
         self._refresh_timer.setInterval(POSITION_REFRESH_MS)
         self._refresh_timer.timeout.connect(self.refresh)
@@ -155,6 +173,7 @@ class PlayerBar(QWidget):
     def refresh(self) -> None:
         state = self._playback_service.state
         self._update_play_pause_button(state.status)
+        self._update_playback_modes(state.repeat_mode, state.shuffle_enabled)
         self._update_volume_controls()
         track = state.current_track
         if track is None:
@@ -162,7 +181,10 @@ class PlayerBar(QWidget):
             self._artist_label.setText("Queue is empty")
         else:
             self._title_label.setText(track.title)
-            self._artist_label.setText(track.artist.name)
+            metadata = track.artist.name
+            if track.album is not None:
+                metadata = f"{metadata} | {track.album.title}"
+            self._artist_label.setText(metadata)
 
         position_ms = self._playback_service.position_ms()
         duration_ms = self._playback_service.duration_ms()
@@ -194,6 +216,14 @@ class PlayerBar(QWidget):
 
     def _stop(self) -> None:
         self._playback_service.stop()
+        self.refresh()
+
+    def _toggle_shuffle(self) -> None:
+        self._playback_service.toggle_shuffle()
+        self.refresh()
+
+    def _cycle_repeat_mode(self) -> None:
+        self._playback_service.cycle_repeat_mode()
         self.refresh()
 
     def _toggle_mute(self) -> None:
@@ -232,6 +262,31 @@ class PlayerBar(QWidget):
             tooltip = "Pause"
         self._play_pause_button.setIcon(self.style().standardIcon(icon))
         self._play_pause_button.setToolTip(tooltip)
+
+    def _update_playback_modes(
+        self,
+        repeat_mode: RepeatMode,
+        shuffle_enabled: bool,
+    ) -> None:
+        self._shuffle_button.blockSignals(True)
+        self._shuffle_button.setChecked(shuffle_enabled)
+        self._shuffle_button.blockSignals(False)
+        self._shuffle_button.setText(
+            "Shuffle: ON" if shuffle_enabled else "Shuffle: OFF"
+        )
+        self._shuffle_button.setToolTip(
+            "Disable playlist shuffle"
+            if shuffle_enabled
+            else "Enable playlist shuffle"
+        )
+        repeat_labels = {
+            RepeatMode.OFF: "Repeat Off",
+            RepeatMode.ALL: "Repeat All",
+            RepeatMode.ONE: "Repeat One",
+        }
+        label = repeat_labels[repeat_mode]
+        self._repeat_button.setText(label)
+        self._repeat_button.setToolTip(label)
 
     def _format_time(self, value_ms: int) -> str:
         total_seconds = max(0, value_ms // 1000)

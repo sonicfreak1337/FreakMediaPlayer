@@ -4,6 +4,10 @@ from freak_media_player.database.migrations import MigrationRunner
 from freak_media_player.database.repositories import SQLiteTrackRepository
 from freak_media_player.providers.base import SearchQuery
 from freak_media_player.providers.local_files import LOCAL_FILE_PROVIDER_ID, LocalFileProvider
+from freak_media_player.providers.local_metadata import (
+    LocalMetadataReader,
+    LocalTrackMetadata,
+)
 from freak_media_player.providers.registry import ProviderNotFoundError, ProviderRegistry
 from freak_media_player.services.local_library_service import LocalLibraryService
 from tests.test_database import make_connection
@@ -24,6 +28,66 @@ def test_local_file_provider_creates_track_from_path(tmp_path: Path) -> None:
     assert track.title == "Song"
     assert track.provider_identity.provider_id == LOCAL_FILE_PROVIDER_ID
     assert Path(track.provider_identity.item_id) == file_path.resolve()
+
+
+def test_metadata_reader_normalizes_common_audio_tags() -> None:
+    metadata = LocalMetadataReader().from_tags(
+        {
+            "TITLE": " The Song ",
+            "ARTIST": "The Artist",
+            "ALBUM": "The Album",
+            "album artist": "Various Artists",
+            "DATE": "2025-03-14",
+            "GENRE": "Deathcore",
+            "TRACKNUMBER": "07/12",
+            "DISCNUMBER": "2/2",
+        },
+        duration_seconds=123.5,
+    )
+
+    assert metadata.title == "The Song"
+    assert metadata.artist == "The Artist"
+    assert metadata.album_title == "The Album"
+    assert metadata.album_artist == "Various Artists"
+    assert metadata.release_year == 2025
+    assert metadata.genre == "Deathcore"
+    assert metadata.track_number == 7
+    assert metadata.disc_number == 2
+    assert metadata.duration_seconds == 123.5
+
+
+class StubMetadataReader(LocalMetadataReader):
+    def read(self, _path: Path) -> LocalTrackMetadata:
+        return LocalTrackMetadata(
+            title="Tagged Song",
+            artist="Tagged Artist",
+            album_title="Tagged Album",
+            album_artist="Album Artist",
+            release_year=2026,
+            genre="Metal",
+            track_number=3,
+            disc_number=1,
+            duration_seconds=180.0,
+        )
+
+
+def test_local_file_provider_uses_embedded_metadata(tmp_path: Path) -> None:
+    file_path = tmp_path / "fallback-name.flac"
+    write_audio_file(file_path)
+    provider = LocalFileProvider(metadata_reader=StubMetadataReader())
+
+    track = provider.track_from_path(file_path)
+
+    assert track.title == "Tagged Song"
+    assert track.artist.name == "Tagged Artist"
+    assert track.album is not None
+    assert track.album.title == "Tagged Album"
+    assert track.album.artist is not None
+    assert track.album.artist.name == "Album Artist"
+    assert track.album.release_year == 2026
+    assert track.genre == "Metal"
+    assert track.track_number == 3
+    assert track.disc_number == 1
 
 
 def test_local_file_provider_searches_library_roots(tmp_path: Path) -> None:
@@ -103,3 +167,24 @@ def test_local_library_service_removes_track(tmp_path: Path) -> None:
 
     assert removed is True
     assert service.list_tracks() == []
+
+
+def test_local_library_service_refreshes_existing_metadata(tmp_path: Path) -> None:
+    audio_file = tmp_path / "old-title.mp3"
+    write_audio_file(audio_file)
+    repository = SQLiteTrackRepository(make_connection())
+    original_provider = LocalFileProvider()
+    original_track = original_provider.track_from_path(audio_file)
+    repository.save(original_track)
+    service = LocalLibraryService(
+        LocalFileProvider(metadata_reader=StubMetadataReader()),
+        repository,
+    )
+
+    refreshed_count = service.refresh_metadata()
+    refreshed_track = repository.get_by_id(original_track.id)
+
+    assert refreshed_count == 1
+    assert refreshed_track is not None
+    assert refreshed_track.title == "Tagged Song"
+    assert refreshed_track.artist.name == "Tagged Artist"

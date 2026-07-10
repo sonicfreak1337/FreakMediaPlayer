@@ -26,7 +26,9 @@ from freak_media_player.widgets.track_table import TRACK_ID_ROLE, PlaylistTrackT
 ORDER_COLUMN = 0
 TITLE_COLUMN = 1
 ARTIST_COLUMN = 2
-SOURCE_COLUMN = 3
+ALBUM_COLUMN = 3
+YEAR_COLUMN = 4
+SOURCE_COLUMN = 5
 PLAYING_HIGHLIGHT_REFRESH_MS = 250
 
 
@@ -95,8 +97,10 @@ class PlaylistPanel(QWidget):
             )
         )
 
-        self._table.setColumnCount(4)
-        self._table.setHorizontalHeaderLabels(["#", "Title", "Artist", "Source"])
+        self._table.setColumnCount(6)
+        self._table.setHorizontalHeaderLabels(
+            ["#", "Title", "Artist", "Album", "Year", "Source"]
+        )
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
@@ -147,10 +151,18 @@ class PlaylistPanel(QWidget):
         title = QTableWidgetItem(track.title)
         title.setData(TRACK_ID_ROLE, track.id)
         artist = QTableWidgetItem(track.artist.name)
+        album = QTableWidgetItem(track.album.title if track.album else "")
+        year = QTableWidgetItem(
+            str(track.album.release_year)
+            if track.album and track.album.release_year is not None
+            else ""
+        )
         source = QTableWidgetItem(track.provider_identity.item_id)
         self._table.setItem(row, ORDER_COLUMN, order)
         self._table.setItem(row, TITLE_COLUMN, title)
         self._table.setItem(row, ARTIST_COLUMN, artist)
+        self._table.setItem(row, ALBUM_COLUMN, album)
+        self._table.setItem(row, YEAR_COLUMN, year)
         self._table.setItem(row, SOURCE_COLUMN, source)
 
     def _play_item(self, item: QTableWidgetItem) -> None:

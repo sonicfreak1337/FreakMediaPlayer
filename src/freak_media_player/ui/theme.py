@@ -90,6 +90,12 @@ def apply_dark_theme(app: QApplication) -> None:
             border-color: {DISPLAY_GREEN};
             color: {DISPLAY_GREEN};
         }}
+        QToolButton#shuffleButton:checked {{
+            background: {DISPLAY_GREEN};
+            border-color: {AMBER};
+            color: {PANEL_SUNKEN};
+            font-weight: 600;
+        }}
         #collapsibleHeader {{
             background: {HEADER_BACKGROUND};
             border: 1px solid {PANEL_BORDER};

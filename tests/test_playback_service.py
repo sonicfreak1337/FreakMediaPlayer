@@ -1,5 +1,5 @@
 from freak_media_player.models.media import Artist, AudioSource, ProviderIdentity, Track
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import PlaybackStatus, RepeatMode
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
@@ -165,3 +165,54 @@ def test_finished_last_playlist_track_stops_playback() -> None:
 
     assert service.state.status == PlaybackStatus.STOPPED
     assert service.state.current_track is None
+
+
+def test_repeat_one_restarts_finished_track() -> None:
+    backend = NullAudioBackend()
+    service = PlaybackService(
+        controller=PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=backend,
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    service.play_playlist([make_track("1"), make_track("2")], 0)
+    service.set_repeat_mode(RepeatMode.ONE)
+
+    backend.finish()
+
+    assert service.state.status == PlaybackStatus.PLAYING
+    assert service.state.current_track.id == "1"
+
+
+def test_repeat_all_wraps_at_end_of_playlist() -> None:
+    backend = NullAudioBackend()
+    service = PlaybackService(
+        controller=PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=backend,
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    service.play_playlist([make_track("1"), make_track("2")], 1)
+    service.set_repeat_mode(RepeatMode.ALL)
+
+    backend.finish()
+
+    assert service.state.status == PlaybackStatus.PLAYING
+    assert service.state.current_track.id == "1"
+
+
+def test_shuffle_mode_survives_stop_and_is_cleared_when_disabled() -> None:
+    service = PlaybackService(
+        controller=PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    service.play_playlist([make_track("1"), make_track("2")], 0)
+
+    assert service.toggle_shuffle().shuffle_enabled is True
+    assert service.stop().shuffle_enabled is True
+    assert service.toggle_shuffle().shuffle_enabled is False

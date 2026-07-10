@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.0 - 2026-07-10
+
+- Added embedded metadata extraction for title, artist, album artist, album,
+  release year, genre, track number, disc number and duration.
+- Added a versioned, one-time metadata refresh for existing local-library rows.
+- Added Album and Year columns to both the library and active playlist.
+- Added non-repeating playlist shuffle with played/unplayed cycle state and
+  playback history for previous/next navigation.
+- Added Repeat All and Repeat One modes with automatic end-of-track handling.
+- Added Death Metal, Deathcore, Black Metal, Doom Metal, Thrash Metal, Djent and
+  Progressive Metal equalizer presets with preamp headroom.
+- Added `fast_build.bat` with cached developer builds and optional Qt-module
+  exclusions.
+- Reduced release build overhead by relying on PyInstaller's PySide6 import
+  analysis instead of collecting every PySide6 component.
+- Added an explicit green `Shuffle: ON` indicator to the player controls.
+- Kept all transitive SciPy signal dependencies in developer builds so the DAW
+  equalizer cannot silently disappear through an incomplete package.
+
 ## 0.4.0 - 2026-07-10
 
 - Replaced direct `QMediaPlayer` playback with a streaming audio pipeline.

@@ -11,7 +11,10 @@ htmlcov/
 venv/
 build/
 dist/
+build-dev/
+dist-dev/
 *.egg-info/
 *.spec
+!FreakMediaPlayer.dev.spec
 *.sqlite3
 .codex-git-tmp/

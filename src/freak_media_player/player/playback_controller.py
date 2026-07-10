@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from freak_media_player.core.ports import AudioBackend, AudioSourceResolver
 from freak_media_player.models.media import Track
-from freak_media_player.models.playback import PlaybackState, PlaybackStatus
+from freak_media_player.models.playback import PlaybackState, PlaybackStatus, RepeatMode
 from freak_media_player.player.queue import PlaybackQueue
 
 MIN_POSITION_MS = 0
@@ -41,7 +41,7 @@ class PlaybackController:
     def play_now(self, track: Track) -> PlaybackState:
         self._queue.replace([track])
         self._queue.select(0)
-        self._state = PlaybackState()
+        self._state = self._idle_state()
         return self._start_track(track)
 
     def play_playlist(self, tracks: list[Track], start_index: int) -> PlaybackState:
@@ -49,7 +49,7 @@ class PlaybackController:
         track = self._queue.select(start_index)
         if track is None:
             return self.state
-        self._state = PlaybackState()
+        self._state = self._idle_state()
         return self._start_track(track)
 
     def sync_playlist(self, tracks: list[Track]) -> PlaybackState:
@@ -77,18 +77,39 @@ class PlaybackController:
 
     def next_track(self) -> PlaybackState:
         track = self._queue.next()
+        if track is None and self._state.repeat_mode == RepeatMode.ALL:
+            track = self._queue.select(0)
         if track is None:
-            self._audio_backend.stop()
-            self._loaded_track_id = None
-            self._state = PlaybackState()
-            return self.state
+            return self.stop()
         return self._start_track(track)
 
     def previous_track(self) -> PlaybackState:
         track = self._queue.previous()
+        if track is None and self._state.repeat_mode == RepeatMode.ALL:
+            track = self._queue.select(self._queue.track_count() - 1)
         if track is None:
             return self.state
         return self._start_track(track)
+
+    def set_shuffle_enabled(self, enabled: bool) -> PlaybackState:
+        self._queue.set_shuffle_enabled(enabled)
+        self._state = self._snapshot(shuffle_enabled=enabled)
+        return self.state
+
+    def toggle_shuffle(self) -> PlaybackState:
+        return self.set_shuffle_enabled(not self._state.shuffle_enabled)
+
+    def set_repeat_mode(self, repeat_mode: RepeatMode) -> PlaybackState:
+        self._state = self._snapshot(repeat_mode=repeat_mode)
+        return self.state
+
+    def cycle_repeat_mode(self) -> PlaybackState:
+        next_mode = {
+            RepeatMode.OFF: RepeatMode.ALL,
+            RepeatMode.ALL: RepeatMode.ONE,
+            RepeatMode.ONE: RepeatMode.OFF,
+        }[self._state.repeat_mode]
+        return self.set_repeat_mode(next_mode)
 
     def pause(self) -> PlaybackState:
         self._audio_backend.pause()
@@ -109,7 +130,7 @@ class PlaybackController:
     def stop(self) -> PlaybackState:
         self._audio_backend.stop()
         self._loaded_track_id = None
-        self._state = PlaybackState()
+        self._state = self._idle_state()
         return self.state
 
     def seek(self, position_ms: int) -> PlaybackState:
@@ -146,17 +167,35 @@ class PlaybackController:
         return self.state
 
     def _handle_finished(self) -> None:
+        if (
+            self._state.repeat_mode == RepeatMode.ONE
+            and self._state.current_track is not None
+        ):
+            self._start_track(self._state.current_track)
+            return
         self.next_track()
 
     def _snapshot(
         self,
         status: PlaybackStatus | None = None,
         track: Track | None = None,
+        repeat_mode: RepeatMode | None = None,
+        shuffle_enabled: bool | None = None,
     ) -> PlaybackState:
         return PlaybackState(
             status=status or self._audio_backend.status(),
             current_track=track or self._state.current_track,
             position=self._position(),
+            repeat_mode=repeat_mode or self._state.repeat_mode,
+            shuffle_enabled=(
+                self._state.shuffle_enabled
+                if shuffle_enabled is None
+                else shuffle_enabled
+            ),
+        )
+
+    def _idle_state(self) -> PlaybackState:
+        return PlaybackState(
             repeat_mode=self._state.repeat_mode,
             shuffle_enabled=self._state.shuffle_enabled,
         )

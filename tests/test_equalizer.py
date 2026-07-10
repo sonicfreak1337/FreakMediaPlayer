@@ -9,6 +9,21 @@ def test_equalizer_presets_have_matching_band_counts() -> None:
     assert all(len(preset.bands) == band_count for preset in EQUALIZER_PRESETS)
 
 
+def test_equalizer_includes_metal_subgenre_presets_with_headroom() -> None:
+    presets = {preset.preset_id: preset for preset in EQUALIZER_PRESETS}
+
+    assert {
+        "death-metal",
+        "deathcore",
+        "black-metal",
+        "doom-metal",
+        "thrash-metal",
+        "djent",
+        "progressive-metal",
+    } <= presets.keys()
+    assert all(preset.preamp_db <= 0 for preset in presets.values())
+
+
 def test_equalizer_service_selects_preset() -> None:
     backend = NullAudioBackend()
     service = EqualizerService(audio_backend=backend)
