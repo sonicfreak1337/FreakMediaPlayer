@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 
 from freak_media_player.core.equalizer_math import response_db
@@ -21,8 +22,13 @@ CUSTOM_PRESET_NAME = "Custom"
 
 
 class EqualizerService:
-    def __init__(self, audio_backend: AudioBackend) -> None:
+    def __init__(
+        self,
+        audio_backend: AudioBackend,
+        preset_changed: Callable[[EqualizerPreset], None] | None = None,
+    ) -> None:
         self._audio_backend = audio_backend
+        self._preset_changed = preset_changed
         self._presets = {preset.preset_id: preset for preset in EQUALIZER_PRESETS}
 
     def presets(self) -> tuple[EqualizerPreset, ...]:
@@ -33,7 +39,7 @@ class EqualizerService:
 
     def select_preset(self, preset_id: str) -> EqualizerPreset:
         preset = self._presets[preset_id]
-        self._audio_backend.set_equalizer_preset(preset)
+        self._apply_preset(preset)
         return preset
 
     def set_custom_gains(self, gains_db: tuple[float, ...]) -> EqualizerPreset:
@@ -45,7 +51,7 @@ class EqualizerService:
             for band, gain_db in zip(current.bands, gains_db, strict=True)
         )
         preset = self._custom_preset(bands, current.preamp_db)
-        self._audio_backend.set_equalizer_preset(preset)
+        self._apply_preset(preset)
         return preset
 
     def update_band(
@@ -66,13 +72,13 @@ class EqualizerService:
             enabled=enabled,
         )
         preset = self._custom_preset(tuple(bands), current.preamp_db)
-        self._audio_backend.set_equalizer_preset(preset)
+        self._apply_preset(preset)
         return preset
 
     def set_preamp(self, preamp_db: float) -> EqualizerPreset:
         current = self.current_preset()
         preset = self._custom_preset(current.bands, clamp_preamp(preamp_db))
-        self._audio_backend.set_equalizer_preset(preset)
+        self._apply_preset(preset)
         return preset
 
     def frequency_response_db(
@@ -93,3 +99,8 @@ class EqualizerService:
             bands=bands,
             preamp_db=preamp_db,
         )
+
+    def _apply_preset(self, preset: EqualizerPreset) -> None:
+        self._audio_backend.set_equalizer_preset(preset)
+        if self._preset_changed is not None:
+            self._preset_changed(preset)

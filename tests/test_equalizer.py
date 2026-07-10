@@ -44,3 +44,15 @@ def test_equalizer_service_stores_custom_gains() -> None:
 
     assert selected.preset_id == "custom"
     assert tuple(band.gain_db for band in selected.bands) == gains
+
+
+def test_equalizer_service_notifies_persistence_after_changes() -> None:
+    saved_presets = []
+    service = EqualizerService(
+        audio_backend=NullAudioBackend(),
+        preset_changed=saved_presets.append,
+    )
+
+    selected = service.select_preset("metalcore")
+
+    assert saved_presets == [selected]

@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 from freak_media_player.config.settings import AppSettings, SettingsMigrator
 from freak_media_player.core.ports import SettingsRepository
+from freak_media_player.models.equalizer import (
+    EqualizerBand,
+    EqualizerPreset,
+    clamp_frequency,
+    clamp_gain,
+    clamp_preamp,
+    clamp_q,
+)
 
 SETTINGS_VERSION_KEY = "settings.version"
 DATABASE_PATH_KEY = "settings.database_path"
 THEME_NAME_KEY = "settings.theme_name"
 NOTIFICATIONS_KEY = "settings.enable_notifications"
+PLAYBACK_VOLUME_KEY = "player.volume"
+EQUALIZER_PRESET_KEY = "equalizer.current_preset"
 
 
 class SettingsService:
@@ -63,3 +76,80 @@ class SettingsService:
         )
         self.save(updated)
         return updated
+
+    def load_playback_volume(self, default: float = 1.0) -> float:
+        """Load a finite, bounded playback volume and repair invalid storage."""
+        raw_value = self._repository.get(PLAYBACK_VOLUME_KEY)
+        try:
+            volume = float(raw_value) if raw_value is not None else float(default)
+        except (TypeError, ValueError):
+            volume = float(default)
+        if not math.isfinite(volume):
+            volume = float(default)
+        volume = min(1.0, max(0.0, volume))
+        self.save_playback_volume(volume)
+        return volume
+
+    def save_playback_volume(self, volume: float) -> None:
+        bounded = min(1.0, max(0.0, float(volume)))
+        self._repository.set(PLAYBACK_VOLUME_KEY, repr(bounded))
+
+    def load_equalizer_preset(self, default: EqualizerPreset) -> EqualizerPreset:
+        """Load the last complete EQ state, falling back if storage is malformed."""
+        raw_value = self._repository.get(EQUALIZER_PRESET_KEY)
+        if raw_value is None:
+            preset = default
+        else:
+            try:
+                preset = self._equalizer_from_data(json.loads(raw_value), default)
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                preset = default
+        self.save_equalizer_preset(preset)
+        return preset
+
+    def save_equalizer_preset(self, preset: EqualizerPreset) -> None:
+        data = {
+            "preset_id": preset.preset_id,
+            "name": preset.name,
+            "preamp_db": preset.preamp_db,
+            "bands": [asdict(band) for band in preset.bands],
+        }
+        self._repository.set(
+            EQUALIZER_PRESET_KEY,
+            json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+        )
+
+    def _equalizer_from_data(
+        self,
+        data: Any,
+        default: EqualizerPreset,
+    ) -> EqualizerPreset:
+        if not isinstance(data, dict) or not isinstance(data.get("bands"), list):
+            raise ValueError("Invalid equalizer settings")
+        if len(data["bands"]) != len(default.bands):
+            raise ValueError("Unexpected equalizer band count")
+        bands = tuple(self._equalizer_band_from_data(item) for item in data["bands"])
+        preamp_db = float(data["preamp_db"])
+        if not math.isfinite(preamp_db):
+            raise ValueError("Invalid equalizer preamp")
+        return EqualizerPreset(
+            preset_id=str(data["preset_id"]),
+            name=str(data["name"]),
+            bands=bands,
+            preamp_db=clamp_preamp(preamp_db),
+        )
+
+    def _equalizer_band_from_data(self, data: Any) -> EqualizerBand:
+        if not isinstance(data, dict) or not isinstance(data.get("enabled"), bool):
+            raise ValueError("Invalid equalizer band")
+        frequency_hz = int(data["frequency_hz"])
+        gain_db = float(data["gain_db"])
+        q = float(data["q"])
+        if not all(math.isfinite(value) for value in (frequency_hz, gain_db, q)):
+            raise ValueError("Invalid equalizer band value")
+        return EqualizerBand(
+            frequency_hz=clamp_frequency(frequency_hz),
+            gain_db=clamp_gain(gain_db),
+            q=clamp_q(q),
+            enabled=data["enabled"],
+        )

@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from freak_media_player.models.media import Track
 from freak_media_player.models.playback import PlaybackState, RepeatMode
 from freak_media_player.player.playback_controller import PlaybackController
 
 
 class PlaybackService:
-    def __init__(self, controller: PlaybackController) -> None:
+    def __init__(
+        self,
+        controller: PlaybackController,
+        volume_changed: Callable[[float], None] | None = None,
+    ) -> None:
         self._controller = controller
+        self._volume_changed = volume_changed
 
     @property
     def state(self) -> PlaybackState:
@@ -70,7 +77,10 @@ class PlaybackService:
         return self._controller.duration_ms()
 
     def set_volume(self, volume: float) -> PlaybackState:
-        return self._controller.set_volume(volume)
+        state = self._controller.set_volume(volume)
+        if self._volume_changed is not None:
+            self._volume_changed(self._controller.volume())
+        return state
 
     def volume(self) -> float:
         return self._controller.volume()

@@ -66,13 +66,23 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     queue = PlaybackQueue(playlist_service.list_tracks())
     audio_samples = AudioSampleBuffer()
     selected_audio_backend = audio_backend or create_desktop_audio_backend(audio_samples)
+    selected_audio_backend.set_volume(settings_service.load_playback_volume())
+    selected_audio_backend.set_equalizer_preset(
+        settings_service.load_equalizer_preset(selected_audio_backend.equalizer_preset())
+    )
     controller = PlaybackController(
         queue=queue,
         audio_backend=selected_audio_backend,
         source_resolver=provider_registry,
     )
-    playback_service = PlaybackService(controller=controller)
-    equalizer_service = EqualizerService(audio_backend=selected_audio_backend)
+    playback_service = PlaybackService(
+        controller=controller,
+        volume_changed=settings_service.save_playback_volume,
+    )
+    equalizer_service = EqualizerService(
+        audio_backend=selected_audio_backend,
+        preset_changed=settings_service.save_equalizer_preset,
+    )
     search_service = SearchService(providers=provider_registry.providers())
     return AppContext(
         app_paths=app_paths,

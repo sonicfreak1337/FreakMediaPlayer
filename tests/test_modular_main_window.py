@@ -19,6 +19,10 @@ def test_main_window_registers_movable_visibility_modules(tmp_path, monkeypatch)
     window.show()
     app.processEvents()
 
+    assert window.windowFlags() & Qt.WindowType.FramelessWindowHint
+    assert window.windowFlags() & Qt.WindowType.WindowMinimizeButtonHint
+    assert window.windowFlags() & Qt.WindowType.WindowMaximizeButtonHint
+
     player = window.module("playerModule")
     assert player is not None
     assert player.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable

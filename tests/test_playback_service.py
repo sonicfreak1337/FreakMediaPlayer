@@ -95,6 +95,20 @@ def test_volume_control_updates_backend() -> None:
     assert service.volume() == 0.35
 
 
+def test_volume_control_notifies_persistence_with_bounded_backend_value() -> None:
+    saved_volumes: list[float] = []
+    controller = PlaybackController(
+        queue=PlaybackQueue(),
+        audio_backend=NullAudioBackend(),
+        source_resolver=FakeSourceResolver(),
+    )
+    service = PlaybackService(controller, volume_changed=saved_volumes.append)
+
+    service.set_volume(2.0)
+
+    assert saved_volumes == [1.0]
+
+
 def test_playlist_navigation_uses_selected_order() -> None:
     service = PlaybackService(
         controller=PlaybackController(
