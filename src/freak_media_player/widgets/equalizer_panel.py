@@ -142,9 +142,15 @@ class EqualizerPanel(QWidget):
         self._graph.band_edited.connect(self._edit_band_from_graph)
 
     def _load_presets(self) -> None:
-        for preset in self._equalizer_service.presets():
-            self._preset_combo.addItem(preset.name, preset.preset_id)
-        self._preset_combo.addItem("Custom", CUSTOM_PRESET_ID)
+        # Adding the first combo-box item emits currentIndexChanged. During startup
+        # that would select and persist Flat before the restored preset is applied.
+        self._preset_combo.blockSignals(True)
+        try:
+            for preset in self._equalizer_service.presets():
+                self._preset_combo.addItem(preset.name, preset.preset_id)
+            self._preset_combo.addItem("Custom", CUSTOM_PRESET_ID)
+        finally:
+            self._preset_combo.blockSignals(False)
         self._band_buttons[0].setChecked(True)
         self._apply_preset(self._equalizer_service.current_preset())
 
