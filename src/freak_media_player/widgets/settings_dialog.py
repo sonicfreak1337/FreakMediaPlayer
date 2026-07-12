@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
+    QMessageBox,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from freak_media_player.config.settings import PlayerPreferences
 from freak_media_player.models.playback import AudioOutputDevice, AudioOutputMode
+from freak_media_player.services.backup_service import BackupService
 
 
 class SettingsDialog(QDialog):
@@ -24,6 +31,7 @@ class SettingsDialog(QDialog):
         preferences: PlayerPreferences,
         audio_devices: list[AudioOutputDevice],
         parent: QWidget | None = None,
+        backup_service: BackupService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Freak Media Player Settings")
@@ -32,6 +40,7 @@ class SettingsDialog(QDialog):
         self._audio_device = QComboBox()
         self._audio_mode = QComboBox()
         self._audio_devices = audio_devices
+        self._backup_service = backup_service
         self._restore_session = QCheckBox("Restore last track and position (paused)")
         self._continue_after_track = QCheckBox("Continue with the next playlist track")
         self._restore_layout = QCheckBox("Restore window and module layout")
@@ -85,6 +94,17 @@ class SettingsDialog(QDialog):
         interface_form.addRow("Visualizer performance", self._visualizer_quality)
         layout.addWidget(interface)
 
+        if self._backup_service is not None:
+            data = QGroupBox("Local data")
+            data_layout = QHBoxLayout(data)
+            export_button = QPushButton("Export backup…")
+            restore_button = QPushButton("Restore backup…")
+            export_button.clicked.connect(self._export_backup)
+            restore_button.clicked.connect(self._restore_backup)
+            data_layout.addWidget(export_button)
+            data_layout.addWidget(restore_button)
+            layout.addWidget(data)
+
         note = QLabel("Changes apply immediately and are used on the next start.")
         note.setWordWrap(True)
         layout.addWidget(note)
@@ -136,3 +156,52 @@ class SettingsDialog(QDialog):
         if index < 0:
             index = self._audio_mode.findData(AudioOutputMode.STEREO.value)
         self._audio_mode.setCurrentIndex(max(0, index))
+
+    def _export_backup(self) -> None:
+        if self._backup_service is None:
+            return
+        selected, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Freak Media Player backup",
+            "freak-media-player-backup.freakbackup",
+            "Freak backups (*.freakbackup)",
+        )
+        if not selected:
+            return
+        try:
+            path = self._backup_service.export_backup(Path(selected))
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, "Backup failed", str(error))
+            return
+        QMessageBox.information(self, "Backup complete", f"Saved to:\n{path}")
+
+    def _restore_backup(self) -> None:
+        if self._backup_service is None:
+            return
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Restore Freak Media Player backup",
+            "",
+            "Freak backups (*.freakbackup)",
+        )
+        if not selected:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Restore backup?",
+            "Current local data will be replaced after a safety backup is created.",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            result = self._backup_service.restore_backup(Path(selected))
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, "Restore failed", str(error))
+            return
+        QMessageBox.information(
+            self,
+            "Restore complete",
+            f"Data restored. Safety backup:\n{result.safety_backup}\n\n"
+            "Restart Freak Media Player before continuing.",
+        )
+        self.reject()

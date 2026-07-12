@@ -53,6 +53,8 @@ Current version: `0.9.1`
 - Gold playing-row emphasis and restrained outlined table selection
 - SQLite storage for imported tracks and settings
 - Versioned settings and database migrations
+- Validated `.freakbackup` export and restore for the complete local database,
+  with an automatic safety backup before replacement
 - Windows executable build script
 
 ## Architecture

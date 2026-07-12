@@ -15,6 +15,7 @@ from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
 from freak_media_player.providers.local_files import LocalFileProvider
 from freak_media_player.providers.registry import ProviderRegistry
+from freak_media_player.services.backup_service import BackupService
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
@@ -30,6 +31,7 @@ LOCAL_METADATA_INDEX_VERSION = 1
 class AppContext:
     app_paths: AppPaths
     audio_samples: AudioSampleBuffer
+    backup_service: BackupService
     database: DatabaseSession
     equalizer_service: EqualizerService
     local_library_service: LocalLibraryService
@@ -44,6 +46,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     app_paths = AppPathResolver().resolve()
     database = DatabaseSessionFactory(app_paths.database_path).create()
     settings_service = SettingsService(repository=database.settings)
+    backup_service = BackupService(database.connection, app_paths.data_dir)
     settings_service.load(AppSettings(database_path=app_paths.database_path))
     player_preferences = settings_service.load_player_preferences()
 
@@ -119,6 +122,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     return AppContext(
         app_paths=app_paths,
         audio_samples=audio_samples,
+        backup_service=backup_service,
         database=database,
         equalizer_service=equalizer_service,
         local_library_service=local_library_service,

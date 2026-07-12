@@ -37,6 +37,7 @@ def run_application() -> int:
         skin_manager=skin_manager,
         search_service=context.search_service,
         settings_service=context.settings_service,
+        backup_service=context.backup_service,
     )
     plugin_manager = PluginManager(
         PluginContext(

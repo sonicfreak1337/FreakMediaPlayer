@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.2 - Unreleased
+
+- Added validated local backup packages for library data, playlists, favorites and
+  settings, plus integrity-checked restore with an automatic pre-restore backup.
+
 ## 0.9.1 - 2026-07-12
 
 - Activated a persistent Settings dialog for audio output, paused session restore,

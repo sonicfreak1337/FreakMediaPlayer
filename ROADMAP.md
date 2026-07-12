@@ -58,9 +58,6 @@ Windows-System zuverlässig installiert und diagnostiziert werden kann.
 
 ### Featureliste
 
-- **MUSS – Sicherung und Wiederherstellung:** Bibliothek, Wiedergabelisten,
-  Favoriten, Bewertungen, Einstellungen und benutzerdefinierte Equalizer-Daten in
-  ein lokales Sicherungspaket exportieren und wieder einlesen.
 - **MUSS – Diagnoseansicht:** App-Version, Datenbankversion, Datenpfade,
   Audioausgabe und letzte Fehler anzeigen sowie Protokollordner öffnen können.
 - **MUSS – Über/About-Dialog:** Version, Projektinformationen, Lizenzen und
