@@ -8,6 +8,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QIODevice, QObject, QTimer, QUrl
 from PySide6.QtMultimedia import (
+    QAudioDevice,
     QAudioFormat,
     QAudioSink,
     QMediaDevices,
@@ -16,7 +17,7 @@ from PySide6.QtMultimedia import (
 
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import AudioOutputDevice, PlaybackStatus
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.decode_worker import AudioDecodeWorker
 from freak_media_player.player.dsp.parametric_equalizer import (
@@ -71,6 +72,7 @@ class DawAudioBackend(QObject):
         self._finished_callback: Callable[[], None] | None = None
         self._status = PlaybackStatus.STOPPED
         self._error_message: str | None = None
+        self._output_device_id: str | None = None
         self._duration_ms = 0
         self._base_position_ms = 0
         self._volume = 1.0
@@ -167,6 +169,40 @@ class DawAudioBackend(QObject):
 
     def error_message(self) -> str | None:
         return self._error_message
+
+    def available_output_devices(self) -> list[AudioOutputDevice]:
+        default_id = self._device_id(QMediaDevices.defaultAudioOutput())
+        return [
+            AudioOutputDevice(
+                self._device_id(device),
+                device.description(),
+                self._device_id(device) == default_id,
+            )
+            for device in QMediaDevices.audioOutputs()
+        ]
+
+    def selected_output_device_id(self) -> str | None:
+        return self._output_device_id
+
+    def set_output_device(self, device_id: str | None) -> None:
+        if device_id is not None and device_id not in {
+            device.device_id for device in self.available_output_devices()
+        }:
+            raise ValueError(f"Audio output device is unavailable: {device_id}")
+        if device_id == self._output_device_id:
+            return
+        position_ms = self.position_ms()
+        previous_status = self._status
+        self._output_device_id = device_id
+        if self._source_path is None:
+            return
+        if previous_status == PlaybackStatus.PLAYING:
+            self._restart_pipeline(position_ms, start_output=True)
+            self._status = PlaybackStatus.PLAYING
+            self._pump_timer.start()
+        elif previous_status == PlaybackStatus.PAUSED:
+            self._prepare_pipeline(position_ms)
+            self._status = PlaybackStatus.PAUSED
 
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
@@ -268,10 +304,20 @@ class DawAudioBackend(QObject):
         self._sink.setVolume(self._volume)
 
     def _default_sink_factory(self, audio_format: QAudioFormat) -> QAudioSink:
-        output = QMediaDevices.defaultAudioOutput()
+        output = self._selected_output_device()
         if not output.isFormatSupported(audio_format):
             raise RuntimeError("Default audio device does not support 48 kHz stereo PCM.")
         return QAudioSink(output, audio_format, self)
+
+    def _selected_output_device(self) -> QAudioDevice:
+        if self._output_device_id is not None:
+            for device in QMediaDevices.audioOutputs():
+                if self._device_id(device) == self._output_device_id:
+                    return device
+        return QMediaDevices.defaultAudioOutput()
+
+    def _device_id(self, device: QAudioDevice) -> str:
+        return bytes(device.id().data()).hex()
 
     def _stop_worker(self) -> None:
         self._decode_worker.stop()

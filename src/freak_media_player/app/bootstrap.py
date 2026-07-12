@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from freak_media_player.config.paths import AppPathResolver, AppPaths
 from freak_media_player.config.settings import AppSettings
@@ -44,6 +44,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     database = DatabaseSessionFactory(app_paths.database_path).create()
     settings_service = SettingsService(repository=database.settings)
     settings_service.load(AppSettings(database_path=app_paths.database_path))
+    player_preferences = settings_service.load_player_preferences()
 
     local_provider = LocalFileProvider()
     provider_registry = ProviderRegistry([local_provider])
@@ -69,6 +70,12 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     queue = PlaybackQueue(playlist_service.list_tracks())
     audio_samples = AudioSampleBuffer(capture_enabled=False)
     selected_audio_backend = audio_backend or create_desktop_audio_backend(audio_samples)
+    try:
+        selected_audio_backend.set_output_device(player_preferences.audio_device_id)
+    except ValueError:
+        player_preferences = replace(player_preferences, audio_device_id=None)
+        selected_audio_backend.set_output_device(None)
+        settings_service.save_player_preferences(player_preferences)
     selected_audio_backend.set_volume(settings_service.load_playback_volume())
     selected_audio_backend.set_equalizer_preset(
         settings_service.load_equalizer_preset(selected_audio_backend.equalizer_preset())
@@ -78,10 +85,15 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         audio_backend=selected_audio_backend,
         source_resolver=provider_registry,
     )
+    controller.set_continue_after_track(player_preferences.continue_after_track)
     repeat_mode, shuffle_enabled = settings_service.load_playback_modes()
     controller.set_repeat_mode(repeat_mode)
     controller.set_shuffle_enabled(shuffle_enabled)
-    saved_session = settings_service.load_playback_session()
+    saved_session = (
+        settings_service.load_playback_session()
+        if player_preferences.restore_session
+        else None
+    )
     if saved_session is not None:
         track_id, position_ms = saved_session
         if (track := database.tracks.get_by_id(track_id)) is not None:

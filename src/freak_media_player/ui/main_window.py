@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QByteArray, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QDialog,
     QDockWidget,
     QLabel,
     QMainWindow,
@@ -23,6 +24,7 @@ from freak_media_player.services.local_library_service import LocalLibraryServic
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.services.search_service import SearchService
+from freak_media_player.services.settings_service import SettingsService
 from freak_media_player.ui.constants import (
     WINDOW_MINIMUM_HEIGHT,
     WINDOW_MINIMUM_WIDTH,
@@ -35,6 +37,7 @@ from freak_media_player.widgets.local_tracks_panel import LocalTracksPanel
 from freak_media_player.widgets.module_dock import ModuleDockWidget
 from freak_media_player.widgets.player_bar import PlayerBar
 from freak_media_player.widgets.playlist_panel import PlaylistPanel
+from freak_media_player.widgets.settings_dialog import SettingsDialog
 
 if TYPE_CHECKING:
     from freak_media_player.ui.skins import SkinManager
@@ -47,6 +50,7 @@ class MainWindow(QMainWindow):
     """Frameless branded shell composed from real QDockWidget modules."""
 
     layout_reset_requested = Signal()
+    visualizer_quality_changed = Signal(str)
 
     def __init__(
         self,
@@ -56,6 +60,7 @@ class MainWindow(QMainWindow):
         equalizer_service: EqualizerService,
         skin_manager: SkinManager | None = None,
         search_service: SearchService | None = None,
+        settings_service: SettingsService | None = None,
     ) -> None:
         super().__init__()
         self._playback_service = playback_service
@@ -64,6 +69,7 @@ class MainWindow(QMainWindow):
         self._equalizer_service = equalizer_service
         self._search_service = search_service
         self._skin_manager = skin_manager
+        self._settings_service = settings_service
         self._module_menu = QMenu("Module", self)
         self._module_docks: dict[str, QDockWidget] = {}
         self._shortcuts: list[QShortcut] = []
@@ -210,6 +216,7 @@ class MainWindow(QMainWindow):
         )
         library_panel.tracks_removed.connect(playlist_panel.refresh)
         player_panel.remove_current_requested.connect(playlist_panel.remove_current_track)
+        player_panel.settings_requested.connect(self._open_settings)
         player_panel.favorite_changed.connect(lambda _track_id, _favorite: library_panel.refresh())
         player_panel.favorite_changed.connect(lambda _track_id, _favorite: playlist_panel.refresh())
         for panel in (player_panel, library_panel, playlist_panel, equalizer_panel):
@@ -271,6 +278,31 @@ class MainWindow(QMainWindow):
     def show_status_message(self, message: str, timeout_ms: int = 4_000) -> None:
         """Show a concise transient result without interrupting the workflow."""
         self.statusBar().showMessage(message, timeout_ms)
+
+    def _open_settings(self) -> None:
+        if self._settings_service is None:
+            self.show_status_message("Settings storage is unavailable.")
+            return
+        preferences = self._settings_service.load_player_preferences()
+        dialog = SettingsDialog(
+            preferences,
+            self._playback_service.available_output_devices(),
+            self,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        updated = dialog.preferences()
+        try:
+            self._playback_service.set_output_device(updated.audio_device_id)
+        except ValueError as error:
+            self.show_status_message(f"Could not select audio output: {error}")
+            return
+        self._playback_service.set_continue_after_track(
+            updated.continue_after_track
+        )
+        self._settings_service.save_player_preferences(updated)
+        self.visualizer_quality_changed.emit(updated.visualizer_quality)
+        self.show_status_message("Settings saved and applied.")
 
     def _add_layout_reset_action(self) -> None:
         self._module_menu.addSeparator()

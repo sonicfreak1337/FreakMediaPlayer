@@ -17,6 +17,16 @@ class AppSettings:
     enable_notifications: bool = True
 
 
+@dataclass(frozen=True)
+class PlayerPreferences:
+    restore_session: bool = True
+    continue_after_track: bool = True
+    restore_layout: bool = True
+    visualizer_quality: str = "balanced"
+    enable_notifications: bool = True
+    audio_device_id: str | None = None
+
+
 class SettingsMigrationError(RuntimeError):
     """Raised when settings cannot be migrated safely."""
 

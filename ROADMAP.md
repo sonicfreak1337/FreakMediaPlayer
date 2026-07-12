@@ -57,11 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **MUSS – Einstellungsdialog:** Den vorhandenen Button aktivieren und mindestens
-  Audioausgabe, Sitzungswiederherstellung, Verhalten bei Titelende, Oberfläche,
-  Visualizer-Leistung und Benachrichtigungen konfigurierbar machen.
-- **MUSS – Audioausgabegerät:** Verfügbare Windows-Ausgabegeräte anzeigen, ein
-  Gerät wählen und auf Wunsch dem Windows-Standardgerät folgen.
 - **MUSS – Ausgabekonfiguration:** Mono, Stereo, 5.1 und 7.1 als echte
   Wiedergabemodi anbieten. Nur vom gewählten Gerät unterstützte Modi dürfen
   aktivierbar sein; nicht unterstützte Konfigurationen werden verständlich erklärt

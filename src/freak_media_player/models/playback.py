@@ -9,6 +9,13 @@ from enum import StrEnum
 from freak_media_player.models.media import Track
 
 
+@dataclass(frozen=True)
+class AudioOutputDevice:
+    device_id: str
+    description: str
+    is_default: bool = False
+
+
 class PlaybackStatus(StrEnum):
     STOPPED = "stopped"
     PLAYING = "playing"

@@ -16,8 +16,7 @@ from freak_media_player.player.dsp.parametric_equalizer import (
     ParametricEqualizerProcessor,
 )
 from freak_media_player.plugins.visualizer.widget import (
-    BACKGROUND_FRAME_INTERVAL_MS,
-    FOREGROUND_FRAME_INTERVAL_MS,
+    QUALITY_INTERVALS,
     VisualizerCanvas,
 )
 
@@ -105,12 +104,12 @@ def test_visualizer_only_runs_during_playback_and_tracks_application_focus(
 
     samples.set_playback_active(True)
     assert canvas._timer.isActive() is True
-    assert canvas._timer.interval() == FOREGROUND_FRAME_INTERVAL_MS
+    assert canvas._timer.interval() == QUALITY_INTERVALS["balanced"][0]
     samples.append_pcm16_stereo(_stereo_payload([1_000, 2_000]))
 
     focused[0] = False
     canvas._sync_frame_interval()
-    assert canvas._timer.interval() == BACKGROUND_FRAME_INTERVAL_MS
+    assert canvas._timer.interval() == QUALITY_INTERVALS["balanced"][1]
 
     samples.set_playback_active(False)
     assert canvas._timer.isActive() is False

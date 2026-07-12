@@ -58,3 +58,17 @@ def test_visualizer_panel_selects_branded_skin_preset() -> None:
     app.processEvents()
     assert selector.currentData() == "abyssal_cataclysm"
     panel.close()
+
+
+def test_visualizer_quality_changes_runtime_frame_interval() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    samples = AudioSampleBuffer()
+    samples.set_playback_active(True)
+    canvas = VisualizerCanvas(samples)
+    canvas.show()
+    app.processEvents()
+
+    canvas.set_quality("eco")
+
+    assert canvas._timer.interval() in {50, 150}
+    canvas.close()

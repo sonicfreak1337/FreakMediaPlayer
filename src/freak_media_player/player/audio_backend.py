@@ -8,7 +8,7 @@ from collections.abc import Callable
 from freak_media_player.core.ports import AudioBackend
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import AudioOutputDevice, PlaybackStatus
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 
 DEFAULT_VOLUME = 1.0
@@ -28,6 +28,7 @@ class NullAudioBackend:
         self._volume = DEFAULT_VOLUME
         self._equalizer_preset = EQUALIZER_PRESETS[0]
         self._finished_callback: Callable[[], None] | None = None
+        self._output_device_id: str | None = None
 
     def load(self, source: AudioSource) -> None:
         self._source = source
@@ -71,6 +72,17 @@ class NullAudioBackend:
 
     def error_message(self) -> str | None:
         return None
+
+    def available_output_devices(self) -> list[AudioOutputDevice]:
+        return [AudioOutputDevice("default", "Default audio output", True)]
+
+    def selected_output_device_id(self) -> str | None:
+        return self._output_device_id
+
+    def set_output_device(self, device_id: str | None) -> None:
+        if device_id not in {None, "default"}:
+            raise ValueError(f"Unknown audio output device: {device_id}")
+        self._output_device_id = device_id
 
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback

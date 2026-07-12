@@ -1,9 +1,16 @@
 # Changelog
 
-## 0.9.0 - 2026-07-12
+## 0.9.1 - Unreleased
 
+- Activated a persistent Settings dialog for audio output, paused session restore,
+  end-of-track behavior, layout restore, Visualizer performance and notifications.
+- Added live enumeration and selection of Windows audio output devices with an
+  explicit follow-default option and safe fallback for unavailable saved devices.
 - Added documented window-wide shortcuts for transport, volume, mute, Shuffle,
   Repeat, library search and core module visibility.
+
+## 0.9.0 - 2026-07-12
+
 - Added transactional batch upserts and automated 10,000-track acceptance coverage
   for import, search, rescan, ordering, multi-row moves and every schema upgrade.
 - Clarified playlist removal, library-only removal and irreversible disk deletion,

@@ -206,6 +206,39 @@ def test_finished_track_automatically_starts_next_playlist_track() -> None:
     assert service.state.current_track.id == "2"
 
 
+def test_finished_track_can_stop_instead_of_continuing() -> None:
+    backend = NullAudioBackend()
+    service = PlaybackService(
+        controller=PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=backend,
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    service.play_playlist([make_track("1"), make_track("2")], 0)
+    service.set_continue_after_track(False)
+
+    backend.finish()
+
+    assert service.state.status == PlaybackStatus.STOPPED
+    assert service.state.current_track is None
+
+
+def test_audio_output_devices_can_be_selected() -> None:
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+
+    assert service.available_output_devices()[0].device_id == "default"
+    service.set_output_device("default")
+
+    assert service.selected_output_device_id() == "default"
+
+
 def test_playlist_reorder_updates_the_next_track_without_interrupting_playback() -> None:
     service = PlaybackService(
         controller=PlaybackController(

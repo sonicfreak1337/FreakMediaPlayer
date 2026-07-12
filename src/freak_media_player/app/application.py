@@ -36,12 +36,14 @@ def run_application() -> int:
         equalizer_service=context.equalizer_service,
         skin_manager=skin_manager,
         search_service=context.search_service,
+        settings_service=context.settings_service,
     )
     plugin_manager = PluginManager(
         PluginContext(
             application_name=qt_app.applicationName(),
             main_window=window,
             audio_samples=context.audio_samples,
+            visualizer_quality=context.settings_service.load_player_preferences().visualizer_quality,
         )
     )
     plugin_manager.register(VisualizerPlugin())
@@ -50,7 +52,11 @@ def run_application() -> int:
     window.layout_reset_requested.connect(
         lambda: _reset_window_layout(window, context.settings_service, default_layout)
     )
-    if (saved_layout := context.settings_service.load_window_layout()) is not None:
+    preferences = context.settings_service.load_player_preferences()
+    if (
+        preferences.restore_layout
+        and (saved_layout := context.settings_service.load_window_layout()) is not None
+    ):
         window.restore_layout(*saved_layout)
     qt_app.aboutToQuit.connect(lambda: context.playback_service.checkpoint(force=True))
     qt_app.aboutToQuit.connect(

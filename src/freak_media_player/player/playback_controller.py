@@ -7,7 +7,12 @@ from datetime import timedelta
 
 from freak_media_player.core.ports import AudioBackend, AudioSourceResolver
 from freak_media_player.models.media import Track
-from freak_media_player.models.playback import PlaybackState, PlaybackStatus, RepeatMode
+from freak_media_player.models.playback import (
+    AudioOutputDevice,
+    PlaybackState,
+    PlaybackStatus,
+    RepeatMode,
+)
 from freak_media_player.player.queue import PlaybackQueue
 
 MIN_POSITION_MS = 0
@@ -26,6 +31,7 @@ class PlaybackController:
         self._source_resolver = source_resolver
         self._state = PlaybackState()
         self._loaded_track_id: str | None = None
+        self._continue_after_track = True
         self._audio_backend.set_finished_callback(self._handle_finished)
 
     @property
@@ -202,6 +208,20 @@ class PlaybackController:
     def volume(self) -> float:
         return self._audio_backend.volume()
 
+    def available_output_devices(self) -> list[AudioOutputDevice]:
+        return self._audio_backend.available_output_devices()
+
+    def selected_output_device_id(self) -> str | None:
+        return self._audio_backend.selected_output_device_id()
+
+    def set_output_device(self, device_id: str | None) -> PlaybackState:
+        self._audio_backend.set_output_device(device_id)
+        self._state = self._snapshot()
+        return self.state
+
+    def set_continue_after_track(self, enabled: bool) -> None:
+        self._continue_after_track = enabled
+
     def _start_track(self, track: Track) -> PlaybackState:
         try:
             if self._loaded_track_id != track.id:
@@ -226,6 +246,9 @@ class PlaybackController:
             and self._state.current_track is not None
         ):
             self._start_track(self._state.current_track)
+            return
+        if not self._continue_after_track:
+            self.stop()
             return
         self.next_track()
 

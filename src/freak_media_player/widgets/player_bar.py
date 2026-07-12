@@ -68,6 +68,7 @@ class PlayerBar(QWidget):
     remove_current_requested = Signal()
     status_message = Signal(str)
     favorite_changed = Signal(str, bool)
+    settings_requested = Signal()
 
     def __init__(
         self,
@@ -93,6 +94,7 @@ class PlayerBar(QWidget):
         self._volume_label = QLabel("100%")
         self._modules_button = QToolButton()
         self._favorite_button = QToolButton()
+        self._settings_button = QToolButton()
         self._cover = ClippedArtwork(100, 5)
         self._cover_track_id: str | None = None
         self._track_display_initialized = False
@@ -233,15 +235,14 @@ class PlayerBar(QWidget):
         self._set_icon(self._favorite_button, "favorite_icon.png", 22)
         self._favorite_button.setEnabled(False)
         utility.addWidget(self._favorite_button)
-        settings = self._icon_button(
+        self._settings_button = self._icon_button(
             "settings_icon.png",
             "Settings",
-            "Settings are not available yet",
-            lambda: None,
+            "Open player settings",
+            self.settings_requested.emit,
             "utilityButton",
         )
-        settings.setEnabled(False)
-        utility.addWidget(settings)
+        utility.addWidget(self._settings_button)
         side.addLayout(utility)
         side.addStretch(1)
         layout.addLayout(side, 2)

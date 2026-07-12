@@ -31,6 +31,7 @@ class VisualizerPlugin:
         if context.main_window is None or context.audio_samples is None:
             return
         panel = VisualizerPanel(context.audio_samples, context.main_window)
+        panel.set_quality(context.visualizer_quality)
         skin_manager = getattr(context.main_window, "skin_manager", None)
         active_skin_id = getattr(skin_manager, "active_skin_id", None)
         if isinstance(active_skin_id, str):
@@ -38,6 +39,11 @@ class VisualizerPlugin:
         skin_changed = getattr(skin_manager, "skin_changed", None)
         if skin_changed is not None and hasattr(skin_changed, "connect"):
             skin_changed.connect(panel.select_skin_preset)
+        quality_changed = getattr(
+            context.main_window, "visualizer_quality_changed", None
+        )
+        if quality_changed is not None and hasattr(quality_changed, "connect"):
+            quality_changed.connect(panel.set_quality)
         add_module = getattr(context.main_window, "add_module", None)
         if callable(add_module):
             register = cast(Callable[..., QDockWidget], add_module)

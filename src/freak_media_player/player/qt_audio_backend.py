@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import QUrl
-from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+from PySide6.QtMultimedia import QAudioDevice, QAudioOutput, QMediaDevices, QMediaPlayer
 
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import AudioOutputDevice, PlaybackStatus
 
 MIN_VOLUME = 0.0
 MAX_VOLUME = 1.0
@@ -23,6 +23,7 @@ class QtAudioBackend:
         self._player.setAudioOutput(self._audio_output)
         self._equalizer_preset = EQUALIZER_PRESETS[0]
         self._finished_callback: Callable[[], None] | None = None
+        self._output_device_id: str | None = None
         self._player.mediaStatusChanged.connect(self._handle_media_status_changed)
 
     def load(self, source: AudioSource) -> None:
@@ -73,6 +74,36 @@ class QtAudioBackend:
             return None
         return self._player.errorString() or "The audio file could not be played."
 
+    def available_output_devices(self) -> list[AudioOutputDevice]:
+        default_id = self._device_id(QMediaDevices.defaultAudioOutput())
+        return [
+            AudioOutputDevice(
+                self._device_id(device),
+                device.description(),
+                self._device_id(device) == default_id,
+            )
+            for device in QMediaDevices.audioOutputs()
+        ]
+
+    def selected_output_device_id(self) -> str | None:
+        return self._output_device_id
+
+    def set_output_device(self, device_id: str | None) -> None:
+        devices = QMediaDevices.audioOutputs()
+        device: QAudioDevice | None
+        if device_id is None:
+            device = QMediaDevices.defaultAudioOutput()
+        else:
+            device = next(
+                (item for item in devices if self._device_id(item) == device_id),
+                None,
+            )
+            if device is None:
+                raise ValueError(f"Audio output device is unavailable: {device_id}")
+        assert device is not None
+        self._audio_output.setDevice(device)
+        self._output_device_id = device_id
+
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
 
@@ -85,3 +116,6 @@ class QtAudioBackend:
 
     def _clamp_volume(self, volume: float) -> float:
         return min(MAX_VOLUME, max(MIN_VOLUME, volume))
+
+    def _device_id(self, device: QAudioDevice) -> str:
+        return bytes(device.id().data()).hex()

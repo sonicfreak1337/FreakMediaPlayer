@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 
 from freak_media_player.models.media import Track
-from freak_media_player.models.playback import PlaybackState, RepeatMode
+from freak_media_player.models.playback import AudioOutputDevice, PlaybackState, RepeatMode
 from freak_media_player.player.playback_controller import PlaybackController
 
 SESSION_CHECKPOINT_SECONDS = 5.0
@@ -111,6 +111,18 @@ class PlaybackService:
             self._volume_before_mute = current
             return self.set_volume(0.0)
         return self.set_volume(max(0.05, self._volume_before_mute))
+
+    def available_output_devices(self) -> list[AudioOutputDevice]:
+        return self._controller.available_output_devices()
+
+    def selected_output_device_id(self) -> str | None:
+        return self._controller.selected_output_device_id()
+
+    def set_output_device(self, device_id: str | None) -> PlaybackState:
+        return self._controller.set_output_device(device_id)
+
+    def set_continue_after_track(self, enabled: bool) -> None:
+        self._controller.set_continue_after_track(enabled)
 
     def checkpoint(self, *, force: bool = False) -> None:
         """Persist the current track and position at a bounded write frequency."""

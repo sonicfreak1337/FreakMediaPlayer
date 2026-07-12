@@ -36,6 +36,11 @@ from freak_media_player.player.audio_samples import AudioSampleBuffer
 
 FOREGROUND_FRAME_INTERVAL_MS = 17
 BACKGROUND_FRAME_INTERVAL_MS = 50
+QUALITY_INTERVALS = {
+    "eco": (50, 150),
+    "balanced": (33, 100),
+    "smooth": (FOREGROUND_FRAME_INTERVAL_MS, BACKGROUND_FRAME_INTERVAL_MS),
+}
 FFT_SIZE = 2_048
 SPECTRUM_BANDS = 64
 
@@ -87,6 +92,7 @@ class VisualizerCanvas(QWidget):
             SPECTRUM_BANDS + 1,
         ).astype(int)[:-1]
         self._playback_active = self._audio_samples.playback_active
+        self._quality = "balanced"
         self._vignette_cache: QPixmap | None = None
         self._vignette_cache_key: tuple[int, int, float] | None = None
         self._renderers = {
@@ -128,6 +134,11 @@ class VisualizerCanvas(QWidget):
             self._preset = preset_id
             self.update()
 
+    def set_quality(self, quality: str) -> None:
+        if quality in QUALITY_INTERVALS:
+            self._quality = quality
+            self._sync_frame_interval()
+
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
         self._audio_samples.add_playback_activity_listener(self._activity_listener)
@@ -167,11 +178,8 @@ class VisualizerCanvas(QWidget):
     def _sync_frame_interval(self) -> None:
         if not self._playback_active or not self.isVisible():
             return
-        interval = (
-            FOREGROUND_FRAME_INTERVAL_MS
-            if self._is_application_focused()
-            else BACKGROUND_FRAME_INTERVAL_MS
-        )
+        foreground, background = QUALITY_INTERVALS[self._quality]
+        interval = foreground if self._is_application_focused() else background
         if self._timer.interval() != interval:
             self._timer.setInterval(interval)
 
@@ -1111,3 +1119,6 @@ class VisualizerPanel(QWidget):
         index = self._selector.findData(preset_id)
         if index >= 0:
             self._selector.setCurrentIndex(index)
+
+    def set_quality(self, quality: str) -> None:
+        self._canvas.set_quality(quality)

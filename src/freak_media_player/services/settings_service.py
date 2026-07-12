@@ -9,7 +9,11 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from freak_media_player.config.settings import AppSettings, SettingsMigrator
+from freak_media_player.config.settings import (
+    AppSettings,
+    PlayerPreferences,
+    SettingsMigrator,
+)
 from freak_media_player.core.ports import SettingsRepository
 from freak_media_player.models.equalizer import (
     EqualizerBand,
@@ -32,6 +36,8 @@ PLAYBACK_MODES_KEY = "player.playback_modes"
 WINDOW_LAYOUT_KEY = "window.layout"
 MUSIC_FOLDERS_KEY = "library.music_folders"
 ACTIVE_PLAYLIST_KEY = "playlist.active_id"
+PLAYER_PREFERENCES_KEY = "player.preferences"
+VISUALIZER_QUALITIES = frozenset({"eco", "balanced", "smooth"})
 
 
 class SettingsService:
@@ -211,6 +217,51 @@ class SettingsService:
 
     def save_active_playlist_id(self, playlist_id: str) -> None:
         self._repository.set(ACTIVE_PLAYLIST_KEY, playlist_id)
+
+    def load_player_preferences(self) -> PlayerPreferences:
+        raw_value = self._repository.get(PLAYER_PREFERENCES_KEY)
+        if raw_value is None:
+            return PlayerPreferences()
+        try:
+            data = json.loads(raw_value)
+            if not isinstance(data, dict):
+                raise TypeError("preferences must be an object")
+            quality = str(data.get("visualizer_quality", "balanced"))
+            if quality not in VISUALIZER_QUALITIES:
+                quality = "balanced"
+            device_id = data.get("audio_device_id")
+            if device_id is not None and not isinstance(device_id, str):
+                device_id = None
+            return PlayerPreferences(
+                restore_session=self._preference_bool(data, "restore_session", True),
+                continue_after_track=self._preference_bool(
+                    data, "continue_after_track", True
+                ),
+                restore_layout=self._preference_bool(data, "restore_layout", True),
+                visualizer_quality=quality,
+                enable_notifications=self._preference_bool(
+                    data, "enable_notifications", True
+                ),
+                audio_device_id=device_id or None,
+            )
+        except (TypeError, json.JSONDecodeError):
+            return PlayerPreferences()
+
+    def save_player_preferences(self, preferences: PlayerPreferences) -> None:
+        data = asdict(preferences)
+        self._repository.set(
+            PLAYER_PREFERENCES_KEY,
+            json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+        )
+        self._repository.set(
+            NOTIFICATIONS_KEY, str(preferences.enable_notifications)
+        )
+
+    def _preference_bool(
+        self, data: dict[str, Any], key: str, default: bool
+    ) -> bool:
+        value = data.get(key, default)
+        return value if isinstance(value, bool) else default
 
     def load_equalizer_preset(self, default: EqualizerPreset) -> EqualizerPreset:
         """Load the last complete EQ state, falling back if storage is malformed."""

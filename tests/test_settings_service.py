@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from freak_media_player.config.settings import AppSettings
+from freak_media_player.config.settings import AppSettings, PlayerPreferences
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerBand, EqualizerPreset
 from freak_media_player.models.playback import RepeatMode
 from freak_media_player.services.settings_service import SettingsService
@@ -148,3 +148,31 @@ def test_settings_service_round_trips_active_playlist() -> None:
     service.save_active_playlist_id("playlist-42")
 
     assert service.load_active_playlist_id("active-playlist") == "playlist-42"
+
+
+def test_settings_service_round_trips_player_preferences() -> None:
+    repository = InMemorySettingsRepository()
+    service = SettingsService(repository=repository)
+    preferences = PlayerPreferences(
+        restore_session=False,
+        continue_after_track=False,
+        restore_layout=False,
+        visualizer_quality="eco",
+        enable_notifications=False,
+        audio_device_id="speakers-42",
+    )
+
+    service.save_player_preferences(preferences)
+
+    assert service.load_player_preferences() == preferences
+
+
+def test_settings_service_repairs_invalid_player_preferences() -> None:
+    repository = InMemorySettingsRepository()
+    repository.values["player.preferences"] = (
+        '{"restore_session":"yes","visualizer_quality":"ultra",'
+        '"audio_device_id":17}'
+    )
+    service = SettingsService(repository=repository)
+
+    assert service.load_player_preferences() == PlayerPreferences()

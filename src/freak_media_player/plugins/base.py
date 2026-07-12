@@ -23,6 +23,7 @@ class PluginContext:
     application_name: str
     main_window: QMainWindow | None = None
     audio_samples: AudioSampleBuffer | None = None
+    visualizer_quality: str = "balanced"
 
 
 class Plugin(Protocol):

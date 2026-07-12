@@ -7,7 +7,7 @@ from typing import Protocol
 
 from freak_media_player.models.equalizer import EqualizerPreset
 from freak_media_player.models.media import AudioSource, Track
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import AudioOutputDevice, PlaybackStatus
 from freak_media_player.models.playlist import NamedPlaylist
 
 
@@ -49,6 +49,15 @@ class AudioBackend(Protocol):
         ...
 
     def error_message(self) -> str | None:
+        ...
+
+    def available_output_devices(self) -> list[AudioOutputDevice]:
+        ...
+
+    def selected_output_device_id(self) -> str | None:
+        ...
+
+    def set_output_device(self, device_id: str | None) -> None:
         ...
 
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
