@@ -3,13 +3,21 @@
 A modular Winamp-inspired desktop music player focused on local playback through
 version 1.0, with a provider-based architecture for external sources after 1.0.
 
-Current version: `0.8.0`
+Current version: `0.9.0`
 
 ## Current Features
 
 - Import local audio by file, folder, or drag and drop
+- Manage persistent music folders with targeted background rescans and cancellation
 - Read embedded title, artist, album, year, genre and track metadata
+- Search and combine artist, album, genre, year, favorite and file-status filters
+- Browse grouped artists, albums and genres plus Favorites and Recently Added views
 - Separate local library and persistent active playlist
+- Create, open, duplicate, rename, clear and delete multiple named playlists
+- Import and export local M3U/M3U8 playlists with relative or absolute paths
+- Mark favorites from the Player and see them in library and playlist tables
+- Detect missing or unreadable files, relocate moved tracks and safely edit
+  database-only metadata without modifying audio files
 - Desktop-detachable dock modules for Library, Playlist, Equalizer, Player, and
   Visualizer (use the title-bar undock button or double-click the title bar)
 - Close and restore optional modules through the `Module` menu; Player stays open

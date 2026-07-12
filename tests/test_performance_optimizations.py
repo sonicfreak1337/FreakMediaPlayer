@@ -120,8 +120,8 @@ def test_visualizer_only_runs_during_playback_and_tracks_application_focus(
     canvas.close()
 
 
-def test_project_version_sources_are_synchronized_on_0_8_0() -> None:
-    expected_version = "0.8.0"
+def test_project_version_sources_are_synchronized_on_0_9_0() -> None:
+    expected_version = "0.9.0"
     project_metadata = tomllib.loads(
         (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )

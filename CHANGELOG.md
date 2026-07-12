@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.0 - 2026-07-12
+## 0.9.0 - 2026-07-12
 
 - Added transactional batch upserts and automated 10,000-track acceptance coverage
   for import, search, rescan, ordering, multi-row moves and every schema upgrade.
@@ -43,6 +43,8 @@
   unsupported files with direct retry, skip and playlist-removal actions.
 - Prevented missing files from crashing session restore and retained decoder
   failure details in the visible playback state.
+## 0.8.0 - 2026-07-12
+
 - Reduced visualizer CPU usage with cached FFT and vignette data, pixel-bounded
   waveforms and selective antialiasing that retains smooth foreground contours.
 - Kept the visualizer completely inactive until playback starts, renders at 60 FPS

@@ -51,31 +51,13 @@ Die wichtigsten zusätzlichen Vorschläge nutzen bereits vorhandene Vorarbeit: D
 Datenbankschema kennt Favoriten, Bewertungen, Wiedergabeverlauf und Queue-Einträge,
 während Favoriten- und Einstellungsbuttons in der Oberfläche schon vorgesehen sind.
 
-## 0.8.x – Aktuellen Funktionsumfang stabilisieren
-
-Ziel: Die Funktionen aus 0.7 und 0.8 bilden eine belastbare Basis für die letzte
-Entwicklungsphase.
-
-### Stabilität und Technik
-
-Abnahme:
-
-- Keine bekannten Fehler mit Datenverlust, Absturz oder dauerhaft blockierter
-  Wiedergabe.
-- Ein mehrstündiger manueller Wiedergabetest mit Titelwechseln, Seek, Shuffle,
-  Repeat, Equalizer, Visualizer und Skinwechsel läuft ohne Absturz.
-
-## 0.9.0 – Bibliothek und Wiedergabelisten alltagstauglich machen
-
-Ziel: Auch größere lokale Musiksammlungen lassen sich schnell und nachvollziehbar
-verwalten.
-
 ## 0.9.1 – Wiedergabe und Windows-Integration abrunden
 
 Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorhersehbar.
 
 ### Featureliste
 
+- **MUSS - QOL:** gängige tastatur shortcuts einbauen.
 - **MUSS – Einstellungsdialog:** Den vorhandenen Button aktivieren und mindestens
   Audioausgabe, Sitzungswiederherstellung, Verhalten bei Titelende, Oberfläche,
   Visualizer-Leistung und Benachrichtigungen konfigurierbar machen.
