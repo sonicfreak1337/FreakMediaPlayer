@@ -61,6 +61,9 @@ class PlaybackService:
     def play(self) -> PlaybackState:
         return self._checkpoint_after(self._controller.play())
 
+    def retry(self) -> PlaybackState:
+        return self._checkpoint_after(self._controller.retry())
+
     def pause(self) -> PlaybackState:
         return self._checkpoint_after(self._controller.pause())
 

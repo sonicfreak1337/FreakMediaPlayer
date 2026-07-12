@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from freak_media_player.core.ports import AudioBackend, AudioSourceResolver
@@ -10,6 +11,7 @@ from freak_media_player.models.playback import PlaybackState, PlaybackStatus, Re
 from freak_media_player.player.queue import PlaybackQueue
 
 MIN_POSITION_MS = 0
+LOGGER = logging.getLogger(__name__)
 
 
 class PlaybackController:
@@ -28,7 +30,13 @@ class PlaybackController:
 
     @property
     def state(self) -> PlaybackState:
-        return self._snapshot()
+        backend_status = self._audio_backend.status()
+        if backend_status == PlaybackStatus.ERROR:
+            return self._snapshot(status=PlaybackStatus.ERROR)
+        return self._snapshot(
+            status=self._state.status,
+            error_message=self._state.error_message,
+        )
 
     def current_playlist_index(self) -> int | None:
         if self._state.current_track is None:
@@ -41,11 +49,20 @@ class PlaybackController:
     def restore(self, track: Track, position_ms: int) -> PlaybackState:
         """Load a previous session without automatically starting playback."""
         self._queue.select_track(track.id)
-        source = self._source_resolver.resolve_audio_source(track)
-        self._audio_backend.load(source)
-        self._loaded_track_id = track.id
-        self._audio_backend.seek(max(MIN_POSITION_MS, position_ms))
-        self._state = self._snapshot(status=PlaybackStatus.PAUSED, track=track)
+        try:
+            source = self._source_resolver.resolve_audio_source(track)
+            self._audio_backend.load(source)
+            self._loaded_track_id = track.id
+            self._audio_backend.seek(max(MIN_POSITION_MS, position_ms))
+            self._state = self._snapshot(status=PlaybackStatus.PAUSED, track=track)
+        except Exception as error:
+            LOGGER.exception("Could not restore track %s", track.id)
+            self._loaded_track_id = None
+            self._state = self._snapshot(
+                status=PlaybackStatus.ERROR,
+                track=track,
+                error_message=self._friendly_error(error),
+            )
         return self.state
 
     def play_now(self, track: Track) -> PlaybackState:
@@ -77,13 +94,14 @@ class PlaybackController:
         if track is None:
             return self._snapshot()
 
-        if self._loaded_track_id != track.id:
-            source = self._source_resolver.resolve_audio_source(track)
-            self._audio_backend.load(source)
-            self._loaded_track_id = track.id
-        self._audio_backend.play()
-        self._state = self._snapshot(status=PlaybackStatus.PLAYING, track=track)
-        return self.state
+        return self._start_track(track)
+
+    def retry(self) -> PlaybackState:
+        track = self._state.current_track
+        if track is None:
+            return self.state
+        self._loaded_track_id = None
+        return self._start_track(track)
 
     def next_track(self) -> PlaybackState:
         track = self._queue.next()
@@ -169,11 +187,21 @@ class PlaybackController:
         return self._audio_backend.volume()
 
     def _start_track(self, track: Track) -> PlaybackState:
-        source = self._source_resolver.resolve_audio_source(track)
-        self._audio_backend.load(source)
-        self._loaded_track_id = track.id
-        self._audio_backend.play()
-        self._state = self._snapshot(status=PlaybackStatus.PLAYING, track=track)
+        try:
+            if self._loaded_track_id != track.id:
+                source = self._source_resolver.resolve_audio_source(track)
+                self._audio_backend.load(source)
+                self._loaded_track_id = track.id
+            self._audio_backend.play()
+            self._state = self._snapshot(status=PlaybackStatus.PLAYING, track=track)
+        except Exception as error:
+            LOGGER.exception("Could not start track %s", track.id)
+            self._loaded_track_id = None
+            self._state = self._snapshot(
+                status=PlaybackStatus.ERROR,
+                track=track,
+                error_message=self._friendly_error(error),
+            )
         return self.state
 
     def _handle_finished(self) -> None:
@@ -191,9 +219,11 @@ class PlaybackController:
         track: Track | None = None,
         repeat_mode: RepeatMode | None = None,
         shuffle_enabled: bool | None = None,
+        error_message: str | None = None,
     ) -> PlaybackState:
+        resolved_status = status or self._audio_backend.status()
         return PlaybackState(
-            status=status or self._audio_backend.status(),
+            status=resolved_status,
             current_track=track or self._state.current_track,
             position=self._position(),
             repeat_mode=repeat_mode or self._state.repeat_mode,
@@ -202,6 +232,13 @@ class PlaybackController:
                 if shuffle_enabled is None
                 else shuffle_enabled
             ),
+            error_message=(
+                error_message
+                if error_message is not None
+                else self._audio_backend.error_message()
+                if resolved_status == PlaybackStatus.ERROR
+                else None
+            ),
         )
 
     def _idle_state(self) -> PlaybackState:
@@ -209,6 +246,14 @@ class PlaybackController:
             repeat_mode=self._state.repeat_mode,
             shuffle_enabled=self._state.shuffle_enabled,
         )
+
+    def _friendly_error(self, error: Exception) -> str:
+        if isinstance(error, FileNotFoundError):
+            return "The audio file was not found. It may have been moved or deleted."
+        if isinstance(error, PermissionError):
+            return "The audio file cannot be read. Check its permissions."
+        detail = str(error).strip()
+        return detail or "The audio file is damaged or unsupported."
 
     def _position(self) -> timedelta:
         return timedelta(milliseconds=self._audio_backend.position_ms())

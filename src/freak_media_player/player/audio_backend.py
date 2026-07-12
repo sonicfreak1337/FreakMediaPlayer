@@ -69,6 +69,9 @@ class NullAudioBackend:
     def status(self) -> PlaybackStatus:
         return self._status
 
+    def error_message(self) -> str | None:
+        return None
+
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
 

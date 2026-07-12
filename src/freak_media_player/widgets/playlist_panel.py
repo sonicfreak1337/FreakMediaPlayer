@@ -90,6 +90,11 @@ class PlaylistPanel(QWidget):
         tracks = self._playlist_service.add_track_ids(track_ids, position)
         self._show_tracks(tracks)
 
+    def remove_current_track(self) -> None:
+        position = self._playback_service.current_playlist_index()
+        if position is not None:
+            self._show_tracks(self._playlist_service.remove_positions([position]))
+
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

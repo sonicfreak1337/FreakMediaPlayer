@@ -58,9 +58,6 @@ Entwicklungsphase.
 
 ### Featureliste
 
-- **MUSS – Fehleranzeige im Player:** Nicht auffindbare, defekte oder nicht
-  unterstützte Dateien verständlich anzeigen; Wiederholen, Überspringen und aus
-  der Wiedergabeliste entfernen direkt anbieten.
 - **MUSS – Sitzungswiederherstellung:** Letzten Titel, Position, Lautstärke,
   Equalizer, Skin, Shuffle/Repeat und die aktive Wiedergabeliste konsistent
   wiederherstellen, aber nie ungefragt automatisch abspielen.
@@ -162,6 +159,16 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
   Visualizer-Leistung und Benachrichtigungen konfigurierbar machen.
 - **MUSS – Audioausgabegerät:** Verfügbare Windows-Ausgabegeräte anzeigen, ein
   Gerät wählen und auf Wunsch dem Windows-Standardgerät folgen.
+- **MUSS – Ausgabekonfiguration:** Mono, Stereo, 5.1 und 7.1 als echte
+  Wiedergabemodi anbieten. Nur vom gewählten Gerät unterstützte Modi dürfen
+  aktivierbar sein; nicht unterstützte Konfigurationen werden verständlich erklärt
+  und fallen sicher auf Stereo beziehungsweise die letzte funktionsfähige
+  Einstellung zurück.
+- **MUSS – Mehrkanal-Wiedergabe:** Mehrkanaldateien mit korrekter Kanalzuordnung
+  ausgeben und Mono-/Stereoquellen über eine dokumentierte, pegelstabile Matrix auf
+  den gewählten Modus abbilden. Mono und Stereo müssen ebenso korrekt aus
+  Mehrkanalquellen heruntergemischt werden; Center, LFE und Surroundkanäle dürfen
+  weder vertauscht noch unkontrolliert übersteuert werden.
 - **MUSS – „Als Nächstes abspielen“:** Eine temporäre Queue vor der normalen
   Wiedergabelistenreihenfolge einführen; Einträge anzeigen, umsortieren und
   entfernen. Das vorhandene `queue_items`-Schema kann dafür genutzt werden.
@@ -187,6 +194,12 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 - Wechsel, Verlust und Wiederkehr des Audio-Ausgabegeräts robust behandeln.
 - Unterstützte Dateiformate sowie Sonderfälle bei Dauer, Seek und Metadaten mit
   echten Testdateien abdecken.
+- Decoder, DSP, Visualizer-Sample-Tap und AudioSink von der bisher festen
+  Stereoannahme lösen. Kanalzahl und Kanallayout müssen durch die gesamte Pipeline
+  erhalten oder an genau einer definierten Stelle konvertiert werden.
+- Mono, Stereo, 5.1 und 7.1 mit Kanal-Identifikationstönen und echten
+  Mehrkanal-Testdateien prüfen. Equalizer, Lautstärke, Seek, Pause und Titelwechsel
+  müssen in jedem unterstützten Modus hörbar und ohne Kanalfehler funktionieren.
 - Tastatursteuerung vervollständigen und Windows-Medientasten integrieren, sofern
   dies ohne instabile globale Hooks möglich ist.
 - Fokusführung, Tooltips, Skalierung und Kontrast für 100 %, 125 %, 150 % und 200 %
@@ -197,6 +210,11 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 Abnahme:
 
 - Audio-Gerätewechsel und Decoderfehler führen nicht zum Anwendungsabsturz.
+- Mono und Stereo funktionieren auf jedem unterstützten Ausgabegerät; 5.1 und 7.1
+  werden auf geeigneter Hardware mit korrekter Windows-Kanalkonfiguration und
+  eindeutigem Lautsprechertest nachgewiesen.
+- Ein Wechsel des Ausgabemodus startet den Audiopfad kontrolliert neu, behält den
+  aktuellen Titel und setzt die Wiedergabe nahe der vorherigen Position fort.
 - Die wichtigsten Bedienabläufe funktionieren vollständig mit Maus und Tastatur.
 - Ein definierter Format- und Windows-Smoke-Test ist reproduzierbar bestanden.
 
@@ -262,7 +280,8 @@ Player offiziell als stabil veröffentlichen.
 - Bibliothek durchsuchen, filtern, sortieren und fehlende Dateien reparieren
 - aktive Queue sowie mehrere persistente Wiedergabelisten verwalten
 - Favoriten und – sofern das SOLL-Gate erfüllt ist – Bewertungen und Verlauf nutzen
-- Wiedergabe mit Seek, Lautstärke, Shuffle, Repeat und wählbarer Audioausgabe
+- Wiedergabe mit Seek, Lautstärke, Shuffle, Repeat, wählbarem Ausgabegerät und
+  funktionierenden Mono-, Stereo-, 5.1- und 7.1-Ausgabemodi
 - parametrischen Equalizer, Visualizer, Skins und modulares Layout verwenden
 - Sitzung, Layout und Einstellungen sicher wiederherstellen
 - lokale Daten sichern, wiederherstellen und diagnostizieren

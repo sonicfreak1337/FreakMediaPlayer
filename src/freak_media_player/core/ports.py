@@ -47,6 +47,9 @@ class AudioBackend(Protocol):
     def status(self) -> PlaybackStatus:
         ...
 
+    def error_message(self) -> str | None:
+        ...
+
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         ...
 

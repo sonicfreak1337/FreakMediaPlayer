@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QApplication
 
+from freak_media_player.models.playback import PlaybackState, PlaybackStatus
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
@@ -74,3 +75,31 @@ def test_mute_button_uses_a_distinct_muted_icon() -> None:
     assert player_bar._volume_button.text() == "Muted"
     assert player_bar._volume_button.toolTip() == "Restore volume"
     assert player_bar._volume_button.icon().cacheKey() != volume_icon
+
+
+def test_playback_error_shows_message_and_direct_actions() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=ProviderRegistry(),
+        )
+    )
+    player_bar = PlayerBar(service)
+    player_bar._refresh_timer.stop()
+    service._controller._state = PlaybackState(
+        status=PlaybackStatus.ERROR,
+        error_message="The audio file is damaged or unsupported.",
+    )
+
+    player_bar.refresh()
+    app.processEvents()
+
+    assert player_bar._error_panel.isHidden() is False
+    assert "damaged or unsupported" in player_bar._error_label.text()
+    labels = {
+        button.text()
+        for button in player_bar._error_panel.findChildren(type(player_bar._play_pause_button))
+    }
+    assert labels == {"Retry", "Skip", "Remove"}

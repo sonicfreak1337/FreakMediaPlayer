@@ -59,12 +59,19 @@ class QtAudioBackend:
         return self._equalizer_preset
 
     def status(self) -> PlaybackStatus:
+        if self._player.error() != QMediaPlayer.Error.NoError:
+            return PlaybackStatus.ERROR
         state = self._player.playbackState()
         if state == QMediaPlayer.PlaybackState.PlayingState:
             return PlaybackStatus.PLAYING
         if state == QMediaPlayer.PlaybackState.PausedState:
             return PlaybackStatus.PAUSED
         return PlaybackStatus.STOPPED
+
+    def error_message(self) -> str | None:
+        if self._player.error() == QMediaPlayer.Error.NoError:
+            return None
+        return self._player.errorString() or "The audio file could not be played."
 
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback

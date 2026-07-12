@@ -6,7 +6,7 @@ import math
 import time
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QHideEvent, QPainter, QShowEvent
 from PySide6.QtWidgets import (
     QFrame,
@@ -64,12 +64,16 @@ class MiniSpectrum(QWidget):
 
 
 class PlayerBar(QWidget):
+    remove_current_requested = Signal()
+
     def __init__(self, playback_service: PlaybackService) -> None:
         super().__init__()
         self._playback_service = playback_service
         self._title_label = QLabel("Nothing playing")
         self._artist_label = QLabel("Queue is empty")
         self._album_label = QLabel("Import music into the Local Library")
+        self._error_panel = QWidget()
+        self._error_label = QLabel()
         self._position_label = QLabel("0:00")
         self._duration_label = QLabel("0:00")
         self._seek_slider = SeekSlider()
@@ -121,6 +125,7 @@ class PlayerBar(QWidget):
         info.addWidget(self._title_label)
         info.addWidget(self._artist_label)
         info.addWidget(self._album_label)
+        self._build_error_panel(info)
         timeline = QHBoxLayout()
         timeline.setSpacing(10)
         self._position_label.setObjectName("playerTime")
@@ -229,6 +234,24 @@ class PlayerBar(QWidget):
         side.addStretch(1)
         layout.addLayout(side, 2)
 
+    def _build_error_panel(self, layout: QVBoxLayout) -> None:
+        self._error_panel.setObjectName("playbackErrorPanel")
+        error_layout = QHBoxLayout(self._error_panel)
+        error_layout.setContentsMargins(0, 2, 0, 2)
+        error_layout.setSpacing(6)
+        self._error_label.setObjectName("playbackErrorText")
+        self._error_label.setWordWrap(True)
+        error_layout.addWidget(self._error_label, 1)
+        for text, tooltip, handler in (
+            ("Retry", "Try to play this file again", self._retry),
+            ("Skip", "Skip this file", self._next_track),
+            ("Remove", "Remove this file from the playlist", self.remove_current_requested.emit),
+        ):
+            button = self._text_button(text, tooltip, handler, "playbackErrorButton")
+            error_layout.addWidget(button)
+        self._error_panel.hide()
+        layout.addWidget(self._error_panel)
+
     def set_module_menu(self, menu: QMenu) -> None:
         """Attach the main module visibility menu to the mockup utility button."""
         self._modules_button.setMenu(menu)
@@ -307,6 +330,7 @@ class PlayerBar(QWidget):
     def refresh(self) -> None:
         self._playback_service.checkpoint()
         state = self._playback_service.state
+        self._update_error_panel(state.status, state.error_message)
         self._update_play_pause_button(state.status)
         self._update_playback_modes(state.repeat_mode, state.shuffle_enabled)
         self._update_volume_controls()
@@ -350,6 +374,18 @@ class PlayerBar(QWidget):
 
     def _seek_to_slider_position(self) -> None:
         self._seek(self._seek_slider.value())
+
+    def _retry(self) -> None:
+        self._playback_service.retry()
+        self.refresh()
+
+    def _update_error_panel(
+        self, status: PlaybackStatus, error_message: str | None
+    ) -> None:
+        visible = status == PlaybackStatus.ERROR
+        if visible:
+            self._error_label.setText(error_message or "The audio file could not be played.")
+        self._error_panel.setVisible(visible)
 
     def _seek(self, position_ms: int) -> None:
         self._playback_service.seek(position_ms)

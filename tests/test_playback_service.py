@@ -20,6 +20,11 @@ class FakeSourceResolver:
         return AudioSource(uri=f"file:///{track.id}.mp3")
 
 
+class MissingFileBackend(NullAudioBackend):
+    def load(self, source: AudioSource) -> None:
+        raise FileNotFoundError(source.uri)
+
+
 def test_enqueue_and_play_replaces_current_track() -> None:
     controller = PlaybackController(
         queue=PlaybackQueue([make_track("old")]),
@@ -265,3 +270,51 @@ def test_shuffle_mode_survives_stop_and_is_cleared_when_disabled() -> None:
     assert service.toggle_shuffle().shuffle_enabled is True
     assert service.stop().shuffle_enabled is True
     assert service.toggle_shuffle().shuffle_enabled is False
+
+
+def test_missing_file_becomes_actionable_playback_error() -> None:
+    track = make_track("missing")
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue([track]),
+            audio_backend=MissingFileBackend(),
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+
+    state = service.play()
+
+    assert state.status == PlaybackStatus.ERROR
+    assert state.current_track == track
+    assert state.error_message is not None
+    assert "not found" in state.error_message
+
+
+def test_retry_and_skip_are_available_after_load_error() -> None:
+    first = make_track("missing")
+    second = make_track("next")
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue([first, second]),
+            audio_backend=MissingFileBackend(),
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    service.play()
+
+    assert service.retry().status == PlaybackStatus.ERROR
+    assert service.next_track().current_track == second
+
+
+def test_missing_session_file_does_not_break_restore() -> None:
+    track = make_track("missing")
+    controller = PlaybackController(
+        queue=PlaybackQueue([track]),
+        audio_backend=MissingFileBackend(),
+        source_resolver=FakeSourceResolver(),
+    )
+
+    state = controller.restore(track, 12_000)
+
+    assert state.status == PlaybackStatus.ERROR
+    assert state.current_track == track

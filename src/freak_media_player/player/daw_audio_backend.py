@@ -70,6 +70,7 @@ class DawAudioBackend(QObject):
         self._decode_finished = False
         self._finished_callback: Callable[[], None] | None = None
         self._status = PlaybackStatus.STOPPED
+        self._error_message: str | None = None
         self._duration_ms = 0
         self._base_position_ms = 0
         self._volume = 1.0
@@ -78,6 +79,7 @@ class DawAudioBackend(QObject):
         self._pump_timer.timeout.connect(self._pump_output)
 
     def load(self, source: AudioSource) -> None:
+        self._error_message = None
         path = self._path_from_source(source)
         stream_info = self._decoder.probe(path)
         self._source_path = path
@@ -163,6 +165,9 @@ class DawAudioBackend(QObject):
     def status(self) -> PlaybackStatus:
         return self._status
 
+    def error_message(self) -> str | None:
+        return self._error_message
+
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
 
@@ -238,6 +243,7 @@ class DawAudioBackend(QObject):
             self._decode_finished = True
         elif isinstance(message, DecodeFailed):
             self._status = PlaybackStatus.ERROR
+            self._error_message = message.message
             self._set_sample_playback_active(False)
             self._reset_output()
         return True

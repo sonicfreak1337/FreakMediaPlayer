@@ -30,3 +30,4 @@ class PlaybackState:
     position: timedelta = timedelta()
     repeat_mode: RepeatMode = RepeatMode.OFF
     shuffle_enabled: bool = False
+    error_message: str | None = None

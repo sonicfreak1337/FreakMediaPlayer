@@ -174,6 +174,7 @@ class MainWindow(QMainWindow):
             show_title=False,
         )
         library_panel.tracks_add_requested.connect(playlist_panel.add_track_ids)
+        player_panel.remove_current_requested.connect(playlist_panel.remove_current_track)
 
         player_dock = self.add_module(
             "Player", player_panel, "playerModule", closable=False
