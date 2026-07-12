@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Expanded stability coverage for empty and changed playlists, stale sessions,
+  repeated decoder restarts and clean worker-thread shutdown.
 - Added concise transient status-bar feedback for imports, playback errors,
   library changes, playlist persistence and saved equalizer changes.
 - Added explanatory first-run empty states to the library and playlist with the

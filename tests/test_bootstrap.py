@@ -101,3 +101,49 @@ def test_bootstrap_restores_playlist_shuffle_and_repeat(tmp_path: Path) -> None:
             assert second.playback_service.position_ms() == 4_321
         finally:
             second.database.connection.close()
+
+
+def test_bootstrap_handles_empty_playlist_without_restored_track(tmp_path: Path) -> None:
+    with patch.dict("os.environ", {"LOCALAPPDATA": str(tmp_path)}):
+        first = build_app_context(audio_backend=NullAudioBackend())
+        first.settings_service.save_playback_session("deleted-track", 9_999)
+        first.database.connection.close()
+
+        second = build_app_context(audio_backend=NullAudioBackend())
+        try:
+            assert second.playlist_service.list_tracks() == []
+            assert second.playback_service.state.current_track is None
+            assert second.playback_service.state.status == PlaybackStatus.STOPPED
+        finally:
+            second.database.connection.close()
+
+
+def test_bootstrap_restores_library_track_after_playlist_changed(tmp_path: Path) -> None:
+    audio_path = tmp_path / "removed-from-playlist.mp3"
+    audio_path.touch()
+    track = Track(
+        id="removed-from-playlist",
+        provider_identity=ProviderIdentity(
+            provider_id="local-files", item_id=str(audio_path)
+        ),
+        title="Removed From Playlist",
+        artist=Artist(name="Test Artist"),
+    )
+    with patch.dict("os.environ", {"LOCALAPPDATA": str(tmp_path)}):
+        first = build_app_context(audio_backend=NullAudioBackend())
+        first.database.tracks.save(track)
+        first.playlist_service.add_track_ids([track.id])
+        first.playback_service.play_playlist([track], 0)
+        first.playback_service.seek(7_654)
+        first.playlist_service.clear()
+        first.database.connection.close()
+
+        second = build_app_context(audio_backend=NullAudioBackend())
+        try:
+            assert second.playlist_service.list_tracks() == []
+            assert second.playback_service.state.current_track == track
+            assert second.playback_service.state.status == PlaybackStatus.PAUSED
+            assert second.playback_service.current_playlist_index() is None
+            assert second.playback_service.position_ms() == 7_654
+        finally:
+            second.database.connection.close()

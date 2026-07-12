@@ -56,24 +56,10 @@ während Favoriten- und Einstellungsbuttons in der Oberfläche schon vorgesehen 
 Ziel: Die Funktionen aus 0.7 und 0.8 bilden eine belastbare Basis für die letzte
 Entwicklungsphase.
 
-### Featureliste
-
-
 ### Stabilität und Technik
-
-- Regressionen bei Play/Pause, Seek, Titelende, Shuffle und Repeat beseitigen.
-- Start, Beenden und Wiederherstellen der Sitzung auch bei leerer oder veränderter
-  Wiedergabeliste absichern.
-- Abgedockte, geschlossene und wiederhergestellte Module mit beiden eingebauten
-  Skins testen.
-- Defekte, nicht unterstützte oder während der Wiedergabe entfernte Dateien mit
-  einer verständlichen Meldung behandeln, ohne die Anwendung zu blockieren.
-- Nebenläufigkeit der Decoder-Pipeline, Speichergrenzen und sauberes Beenden der
-  Worker-Threads durch Stresstests absichern.
 
 Abnahme:
 
-- Die vollständige automatisierte Testsuite ist grün.
 - Keine bekannten Fehler mit Datenverlust, Absturz oder dauerhaft blockierter
   Wiedergabe.
 - Ein mehrstündiger manueller Wiedergabetest mit Titelwechseln, Seek, Shuffle,
