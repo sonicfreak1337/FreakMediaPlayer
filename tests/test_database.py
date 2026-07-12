@@ -123,6 +123,24 @@ def test_track_repository_deletes_track() -> None:
     assert repository.delete("track-1") is False
 
 
+def test_track_repository_persists_favorites() -> None:
+    repository = SQLiteTrackRepository(make_connection())
+    repository.save(
+        Track(
+            id="track-1",
+            provider_identity=ProviderIdentity(provider_id="local", item_id="file-1"),
+            title="Song",
+            artist=Artist(name="Artist"),
+        )
+    )
+
+    repository.set_favorite("track-1", True)
+    assert repository.list_favorite_ids() == {"track-1"}
+
+    repository.set_favorite("track-1", False)
+    assert repository.list_favorite_ids() == set()
+
+
 def test_playlist_repository_preserves_track_order() -> None:
     connection = make_connection()
     tracks = SQLiteTrackRepository(connection)

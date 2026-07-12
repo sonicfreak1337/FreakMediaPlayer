@@ -11,6 +11,7 @@ from freak_media_player.widgets.local_tracks_panel import LocalTracksPanel
 class FakeLocalLibraryService:
     def __init__(self) -> None:
         self.tracks: list[Track] = []
+        self.favorite_ids: set[str] = set()
 
     def list_tracks(self) -> list[Track]:
         return self.tracks
@@ -18,6 +19,9 @@ class FakeLocalLibraryService:
     def import_paths(self, _paths: list[Path]) -> list[Track]:
         self.tracks = [make_track()]
         return self.tracks
+
+    def list_favorite_track_ids(self) -> set[str]:
+        return self.favorite_ids
 
 
 def make_track() -> Track:
@@ -94,3 +98,35 @@ def test_library_search_filters_immediately_and_can_be_cleared() -> None:
     app.processEvents()
 
     assert panel._table.rowCount() == 2
+
+
+def test_library_filters_combine_and_reset_with_search() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = FakeLocalLibraryService()
+    first = make_track()
+    second = Track(
+        id="track-2",
+        provider_identity=ProviderIdentity(provider_id="test", item_id="missing.flac"),
+        title="Favorite Doom",
+        artist=Artist(name="Other Artist"),
+        genre="Doom",
+    )
+    service.tracks = [first, second]
+    service.favorite_ids = {second.id}
+    panel = LocalTracksPanel("Local Library", cast(LocalLibraryService, service))
+
+    panel._genre_filter.setCurrentIndex(panel._genre_filter.findData("Doom"))
+    panel._favorite_filter.setCurrentIndex(panel._favorite_filter.findData(True))
+    panel._search.setText("favorite")
+    app.processEvents()
+
+    assert panel._table.rowCount() == 1
+    assert panel._table.item(0, 0).text() == "Favorite Doom"
+
+    panel._reset_filters()
+    app.processEvents()
+
+    assert panel._table.rowCount() == 2
+    assert panel._search.text() == ""
+    assert panel._genre_filter.currentData() is None
+    assert panel._favorite_filter.currentData() is None

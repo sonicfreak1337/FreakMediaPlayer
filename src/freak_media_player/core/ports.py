@@ -67,6 +67,12 @@ class TrackRepository(Protocol):
     def list_all(self) -> list[Track]:
         ...
 
+    def list_favorite_ids(self) -> set[str]:
+        ...
+
+    def set_favorite(self, track_id: str, favorite: bool) -> None:
+        ...
+
 
 class PlaylistRepository(Protocol):
     def ensure(self, playlist_id: str, name: str) -> None:

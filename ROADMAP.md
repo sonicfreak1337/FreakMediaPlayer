@@ -72,8 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **MUSS – Filter:** Kombinierbare Filter für Interpret, Album, Genre, Jahr,
-  Favoriten und Dateistatus; Filter mit einem Klick zurücksetzen.
 - **MUSS – Verwaltete Musikordner:** Ordner als Bibliotheksquellen hinzufügen,
   entfernen und gezielt neu einlesen können.
 - **MUSS – Hintergrundimport:** Fortschritt, Abbruch und Ergebnisübersicht für
@@ -85,10 +83,6 @@ verwalten.
   leeren und löschen; Änderungen bleiben sofort persistent.
 - **SOLL – Favoriten:** Den bereits sichtbaren Herz-Button aktivieren und Favoriten
   in Bibliothek und Wiedergabeliste darstellen und filtern.
-- **SOLL – Bewertungen:** Null bis fünf Sterne speichern, in der Bibliothek
-  anzeigen und zum Sortieren beziehungsweise Filtern verwenden.
-- **SOLL – Wiedergabeverlauf:** Zuletzt und häufig gespielte Titel anzeigen; Verlauf
-  einzeln oder vollständig löschen können.
 - **SOLL – M3U/M3U8:** Wiedergabelisten mit lokalen Pfaden importieren und
   exportieren; relative und absolute Pfade korrekt behandeln.
 - **SOLL – Metadaten bearbeiten:** Titel, Interpret, Album, Jahr, Genre sowie

@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added combinable library filters for artist, album, genre, year, favorites and
+  live local-file status with a one-click search-and-filter reset.
 - Added an instant imported-library search for title, artist, album, genre, year
   and filename, including multi-term matching and a clear no-results state.
 - Expanded stability coverage for empty and changed playlists, stale sessions,

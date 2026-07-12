@@ -48,6 +48,12 @@ class LocalLibraryService:
     def remove_track(self, track_id: str) -> bool:
         return self._track_repository.delete(track_id)
 
+    def list_favorite_track_ids(self) -> set[str]:
+        return self._track_repository.list_favorite_ids()
+
+    def set_favorite(self, track_id: str, favorite: bool) -> None:
+        self._track_repository.set_favorite(track_id, favorite)
+
     def refresh_metadata(self) -> int:
         refreshed_count = 0
         for track in self._track_repository.list_all():

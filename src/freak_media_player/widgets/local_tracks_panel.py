@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -23,7 +24,13 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.models.media import Track
 from freak_media_player.services.local_library_service import LocalLibraryService
-from freak_media_player.services.search_service import SearchService
+from freak_media_player.services.search_service import (
+    FILE_STATUS_AVAILABLE,
+    FILE_STATUS_MISSING,
+    FILE_STATUS_UNREADABLE,
+    LibraryFilters,
+    SearchService,
+)
 from freak_media_player.ui.assets import set_themed_icon
 from freak_media_player.widgets.track_table import TRACK_ID_ROLE, TrackTableWidget
 
@@ -53,6 +60,12 @@ class LocalTracksPanel(QWidget):
         self._search_service = search_service or SearchService(())
         self._all_tracks: list[Track] = []
         self._search = QLineEdit()
+        self._artist_filter = QComboBox()
+        self._album_filter = QComboBox()
+        self._genre_filter = QComboBox()
+        self._year_filter = QComboBox()
+        self._favorite_filter = QComboBox()
+        self._status_filter = QComboBox()
         self._table = TrackTableWidget()
         self._content_stack = QStackedWidget()
         self._empty_state = QLabel(
@@ -69,12 +82,24 @@ class LocalTracksPanel(QWidget):
 
     def refresh(self) -> None:
         self._all_tracks = self._local_library_service.list_tracks()
+        self._refresh_filter_options()
         self._apply_search()
 
     def _apply_search(self) -> None:
-        tracks = self._search_service.search_library(
-            self._all_tracks, self._search.text()
+        favorite_ids = self._local_library_service.list_favorite_track_ids()
+        filtered = self._search_service.filter_library(
+            self._all_tracks,
+            LibraryFilters(
+                artist=self._string_filter(self._artist_filter),
+                album=self._string_filter(self._album_filter),
+                genre=self._string_filter(self._genre_filter),
+                year=self._year_filter.currentData(),
+                favorite=self._favorite_filter.currentData(),
+                file_status=self._status_filter.currentData(),
+            ),
+            favorite_ids,
         )
+        tracks = self._search_service.search_library(filtered, self._search.text())
         sort_column = self._table.horizontalHeader().sortIndicatorSection()
         sort_order = self._table.horizontalHeader().sortIndicatorOrder()
         self._table.setSortingEnabled(False)
@@ -189,6 +214,7 @@ class LocalTracksPanel(QWidget):
 
         if self._show_title:
             layout.addLayout(header)
+        layout.addWidget(self._build_filter_bar())
         self._configure_empty_state()
         self._content_stack.addWidget(self._table)
         self._content_stack.addWidget(self._empty_state)
@@ -197,6 +223,111 @@ class LocalTracksPanel(QWidget):
         self._summary_label.setContentsMargins(12, 5, 12, 5)
         self._summary_label.setFixedHeight(34)
         layout.addWidget(self._summary_label)
+
+    def _build_filter_bar(self) -> QWidget:
+        bar = QWidget()
+        bar.setObjectName("libraryFilterBar")
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(6)
+        for combo, label in (
+            (self._artist_filter, "All artists"),
+            (self._album_filter, "All albums"),
+            (self._genre_filter, "All genres"),
+            (self._year_filter, "All years"),
+        ):
+            combo.addItem(label, None)
+            combo.setMinimumWidth(105)
+            combo.currentIndexChanged.connect(self._apply_search)
+            layout.addWidget(combo)
+        self._favorite_filter.addItem("All favorites", None)
+        self._favorite_filter.addItem("Favorites", True)
+        self._favorite_filter.addItem("Not favorites", False)
+        self._status_filter.addItem("All file states", None)
+        self._status_filter.addItem("Available", FILE_STATUS_AVAILABLE)
+        self._status_filter.addItem("Missing", FILE_STATUS_MISSING)
+        self._status_filter.addItem("Unreadable", FILE_STATUS_UNREADABLE)
+        for combo in (self._favorite_filter, self._status_filter):
+            combo.currentIndexChanged.connect(self._apply_search)
+            layout.addWidget(combo)
+        reset = QToolButton()
+        reset.setText("Reset filters")
+        reset.setToolTip("Clear search and all library filters")
+        reset.clicked.connect(self._reset_filters)
+        layout.addWidget(reset)
+        layout.addStretch(1)
+        return bar
+
+    def _refresh_filter_options(self) -> None:
+        artists = sorted(
+            {track.artist.name for track in self._all_tracks}, key=str.casefold
+        )
+        albums = sorted(
+            {track.album.title for track in self._all_tracks if track.album},
+            key=str.casefold,
+        )
+        genres = sorted(
+            {track.genre for track in self._all_tracks if track.genre},
+            key=str.casefold,
+        )
+        years = sorted(
+            {
+                track.album.release_year
+                for track in self._all_tracks
+                if track.album and track.album.release_year is not None
+            },
+            reverse=True,
+        )
+        self._set_filter_options(
+            self._artist_filter,
+            artists,
+            "All artists",
+        )
+        self._set_filter_options(
+            self._album_filter,
+            albums,
+            "All albums",
+        )
+        self._set_filter_options(
+            self._genre_filter,
+            genres,
+            "All genres",
+        )
+        self._set_filter_options(
+            self._year_filter,
+            years,
+            "All years",
+        )
+
+    def _set_filter_options(
+        self, combo: QComboBox, values: Sequence[object], all_label: str
+    ) -> None:
+        selected = combo.currentData()
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem(all_label, None)
+        for value in values:
+            combo.addItem(str(value), value)
+        index = combo.findData(selected)
+        combo.setCurrentIndex(max(0, index))
+        combo.blockSignals(False)
+
+    def _reset_filters(self) -> None:
+        self._search.clear()
+        for combo in (
+            self._artist_filter,
+            self._album_filter,
+            self._genre_filter,
+            self._year_filter,
+            self._favorite_filter,
+            self._status_filter,
+        ):
+            combo.setCurrentIndex(0)
+        self._apply_search()
+
+    def _string_filter(self, combo: QComboBox) -> str | None:
+        value = combo.currentData()
+        return value if isinstance(value, str) else None
 
     def _configure_empty_state(self) -> None:
         self._empty_state.setObjectName("panelEmptyState")

@@ -1,5 +1,10 @@
 from freak_media_player.models.media import Album, Artist, ProviderIdentity, Track
-from freak_media_player.services.search_service import SearchService
+from freak_media_player.services.search_service import (
+    FILE_STATUS_AVAILABLE,
+    FILE_STATUS_MISSING,
+    LibraryFilters,
+    SearchService,
+)
 
 
 def make_track(
@@ -53,3 +58,35 @@ def test_empty_library_search_returns_complete_catalog() -> None:
     tracks = [make_track("1", title="One", artist="Artist")]
 
     assert SearchService(()).search_library(tracks, "   ") == tracks
+
+
+def test_library_filters_are_combined(tmp_path) -> None:
+    available = tmp_path / "available.mp3"
+    available.touch()
+    first = make_track(
+        "1",
+        title="One",
+        artist="Artist",
+        album="Album",
+        year=2024,
+        genre="Metal",
+        filename=str(available),
+    )
+    second = make_track(
+        "2", title="Two", artist="Other", genre="Doom", filename="missing.mp3"
+    )
+    service = SearchService(())
+
+    assert service.filter_library(
+        [first, second],
+        LibraryFilters(
+            artist="Artist",
+            album="Album",
+            genre="Metal",
+            year=2024,
+            favorite=True,
+            file_status=FILE_STATUS_AVAILABLE,
+        ),
+        {first.id},
+    ) == [first]
+    assert service.file_status(second) == FILE_STATUS_MISSING

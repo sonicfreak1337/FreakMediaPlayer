@@ -395,6 +395,10 @@ def freaky_stylesheet() -> str:
             color: {TEXT_SECONDARY};
             font-size: 13px;
         }}
+        #libraryFilterBar {{
+            background: {PANEL_BACKGROUND};
+            border-bottom: 1px solid {PANEL_BORDER};
+        }}
         #panelSummary {{
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #071126, stop:1 #030919);

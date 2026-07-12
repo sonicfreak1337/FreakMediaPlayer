@@ -2,11 +2,27 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
 from freak_media_player.models.media import Track
 from freak_media_player.providers.base import MediaProvider, SearchQuery
+
+FILE_STATUS_AVAILABLE = "available"
+FILE_STATUS_MISSING = "missing"
+FILE_STATUS_UNREADABLE = "unreadable"
+
+
+@dataclass(frozen=True)
+class LibraryFilters:
+    artist: str | None = None
+    album: str | None = None
+    genre: str | None = None
+    year: int | None = None
+    favorite: bool | None = None
+    file_status: str | None = None
 
 
 class SearchService:
@@ -32,6 +48,47 @@ class SearchService:
             for track in catalog
             if all(term in self._searchable_text(track) for term in terms)
         ]
+
+    def filter_library(
+        self,
+        tracks: Iterable[Track],
+        filters: LibraryFilters,
+        favorite_ids: set[str] | None = None,
+    ) -> list[Track]:
+        favorites = favorite_ids or set()
+        return [
+            track
+            for track in tracks
+            if (filters.artist is None or track.artist.name == filters.artist)
+            and (
+                filters.album is None
+                or (track.album is not None and track.album.title == filters.album)
+            )
+            and (filters.genre is None or track.genre == filters.genre)
+            and (
+                filters.year is None
+                or (
+                    track.album is not None
+                    and track.album.release_year == filters.year
+                )
+            )
+            and (
+                filters.favorite is None
+                or (track.id in favorites) is filters.favorite
+            )
+            and (
+                filters.file_status is None
+                or self.file_status(track) == filters.file_status
+            )
+        ]
+
+    def file_status(self, track: Track) -> str:
+        path = Path(track.provider_identity.item_id)
+        if not path.is_file():
+            return FILE_STATUS_MISSING
+        if not os.access(path, os.R_OK):
+            return FILE_STATUS_UNREADABLE
+        return FILE_STATUS_AVAILABLE
 
     def _searchable_text(self, track: Track) -> str:
         album = track.album

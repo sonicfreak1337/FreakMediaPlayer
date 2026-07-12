@@ -123,6 +123,24 @@ class SQLiteTrackRepository:
         ).fetchall()
         return [_track_from_row(row) for row in rows]
 
+    def list_favorite_ids(self) -> set[str]:
+        rows = self._connection.execute(
+            "SELECT track_id FROM favorite_tracks"
+        ).fetchall()
+        return {str(row["track_id"]) for row in rows}
+
+    def set_favorite(self, track_id: str, favorite: bool) -> None:
+        if favorite:
+            self._connection.execute(
+                "INSERT OR IGNORE INTO favorite_tracks (track_id) VALUES (?)",
+                (track_id,),
+            )
+        else:
+            self._connection.execute(
+                "DELETE FROM favorite_tracks WHERE track_id = ?", (track_id,)
+            )
+        self._connection.commit()
+
 
 class SQLitePlaylistRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
