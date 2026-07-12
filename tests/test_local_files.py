@@ -285,3 +285,21 @@ def test_update_track_metadata_validates_and_stores_database_override(
         pass
     else:
         raise AssertionError("Expected empty title to be rejected")
+
+
+def test_disk_delete_removes_file_and_library_track_only_after_success(
+    tmp_path: Path,
+) -> None:
+    audio = tmp_path / "delete-me.mp3"
+    write_audio_file(audio)
+    repository = SQLiteTrackRepository(make_connection())
+    service = LocalLibraryService(LocalFileProvider(), repository)
+    track = service.import_file(audio)
+
+    result = service.delete_tracks_from_disk([track.id])
+
+    assert result.deleted_files == 1
+    assert result.removed_tracks == 1
+    assert result.errors == ()
+    assert audio.exists() is False
+    assert repository.get_by_id(track.id) is None

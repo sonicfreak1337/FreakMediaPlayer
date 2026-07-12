@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from freak_media_player.core.ports import TrackRepository
@@ -14,6 +14,13 @@ from freak_media_player.providers.local_files import (
     LocalFileProvider,
 )
 from freak_media_player.services.settings_service import SettingsService
+
+
+@dataclass(frozen=True)
+class DeleteTracksResult:
+    deleted_files: int
+    removed_tracks: int
+    errors: tuple[str, ...]
 
 
 class LocalLibraryService:
@@ -43,8 +50,7 @@ class LocalLibraryService:
 
     def import_folder(self, path: Path) -> list[Track]:
         tracks = self._provider.scan(path)
-        for track in tracks:
-            self._track_repository.save(track)
+        self._track_repository.save_many(tracks)
         return tracks
 
     def discover_audio_files(self, paths: Iterable[Path]) -> list[Path]:
@@ -70,6 +76,9 @@ class LocalLibraryService:
         is_new = self._track_repository.get_by_id(track.id) is None
         self._track_repository.save(track)
         return is_new
+
+    def save_imported_tracks(self, tracks: list[Track]) -> tuple[int, int]:
+        return self._track_repository.save_many(tracks)
 
     def register_music_folder(self, path: Path) -> Path:
         folder = path.resolve()
@@ -125,6 +134,26 @@ class LocalLibraryService:
 
     def remove_track(self, track_id: str) -> bool:
         return self._track_repository.delete(track_id)
+
+    def delete_tracks_from_disk(self, track_ids: Iterable[str]) -> DeleteTracksResult:
+        deleted_files = 0
+        removed_tracks = 0
+        errors: list[str] = []
+        for track_id in track_ids:
+            track = self._track_repository.get_by_id(track_id)
+            if track is None:
+                continue
+            path = Path(track.provider_identity.item_id)
+            try:
+                if path.exists():
+                    path.unlink()
+                    deleted_files += 1
+            except OSError as error:
+                errors.append(f"{path.name}: {error}")
+                continue
+            if self._track_repository.delete(track_id):
+                removed_tracks += 1
+        return DeleteTracksResult(deleted_files, removed_tracks, tuple(errors))
 
     def list_favorite_track_ids(self) -> set[str]:
         return self._track_repository.list_favorite_ids()
@@ -200,16 +229,16 @@ class LocalLibraryService:
         return cleaned or None
 
     def refresh_metadata(self) -> int:
-        refreshed_count = 0
+        refreshed: list[Track] = []
         for track in self._track_repository.list_all():
             if track.provider_identity.provider_id != LOCAL_FILE_PROVIDER_ID:
                 continue
             path = Path(track.provider_identity.item_id)
             if not path.is_file() or not self._provider.is_supported_file(path):
                 continue
-            self._track_repository.save(self._provider.track_from_path(path))
-            refreshed_count += 1
-        return refreshed_count
+            refreshed.append(self._provider.track_from_path(path))
+        self._track_repository.save_many(refreshed)
+        return len(refreshed)
 
     def supported_extensions(self) -> tuple[str, ...]:
         return tuple(sorted(SUPPORTED_AUDIO_EXTENSIONS))

@@ -9,6 +9,35 @@ from datetime import timedelta
 from freak_media_player.models.media import Album, Artist, ProviderIdentity, Track
 from freak_media_player.models.playlist import NamedPlaylist
 
+TRACK_UPSERT_SQL = """
+    INSERT INTO tracks (
+        id, provider_id, provider_track_id, title, artist, album,
+        duration_seconds, album_artist, release_year, genre, track_number,
+        disc_number, added_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET
+        provider_id = excluded.provider_id,
+        provider_track_id = excluded.provider_track_id,
+        title = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.title ELSE excluded.title END,
+        artist = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.artist ELSE excluded.artist END,
+        album = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.album ELSE excluded.album END,
+        duration_seconds = excluded.duration_seconds,
+        album_artist = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.album_artist ELSE excluded.album_artist END,
+        release_year = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.release_year ELSE excluded.release_year END,
+        genre = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.genre ELSE excluded.genre END,
+        track_number = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.track_number ELSE excluded.track_number END,
+        disc_number = CASE WHEN tracks.metadata_overridden = 1
+            THEN tracks.disc_number ELSE excluded.disc_number END
+"""
+
 
 class SQLiteSettingsRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
@@ -40,61 +69,22 @@ class SQLiteTrackRepository:
         self._connection = connection
 
     def save(self, track: Track) -> None:
-        self._connection.execute(
-            """
-            INSERT INTO tracks (
-                id,
-                provider_id,
-                provider_track_id,
-                title,
-                artist,
-                album,
-                duration_seconds,
-                album_artist,
-                release_year,
-                genre,
-                track_number,
-                disc_number,
-                added_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(id) DO UPDATE SET
-                provider_id = excluded.provider_id,
-                provider_track_id = excluded.provider_track_id,
-                title = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.title ELSE excluded.title END,
-                artist = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.artist ELSE excluded.artist END,
-                album = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.album ELSE excluded.album END,
-                duration_seconds = excluded.duration_seconds,
-                album_artist = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.album_artist ELSE excluded.album_artist END,
-                release_year = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.release_year ELSE excluded.release_year END,
-                genre = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.genre ELSE excluded.genre END,
-                track_number = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.track_number ELSE excluded.track_number END,
-                disc_number = CASE WHEN tracks.metadata_overridden = 1
-                    THEN tracks.disc_number ELSE excluded.disc_number END
-            """,
-            (
-                track.id,
-                track.provider_identity.provider_id,
-                track.provider_identity.item_id,
-                track.title,
-                track.artist.name,
-                track.album.title if track.album else None,
-                int(track.duration.total_seconds()) if track.duration else None,
-                track.album.artist.name if track.album and track.album.artist else None,
-                track.album.release_year if track.album else None,
-                track.genre,
-                track.track_number,
-                track.disc_number,
-            ),
-        )
+        self._connection.execute(TRACK_UPSERT_SQL, _track_values(track))
         self._connection.commit()
+
+    def save_many(self, tracks: Sequence[Track]) -> tuple[int, int]:
+        unique = {track.id: track for track in tracks}
+        existing = {
+            str(row["id"])
+            for row in self._connection.execute("SELECT id FROM tracks").fetchall()
+        }
+        with self._connection:
+            self._connection.executemany(
+                TRACK_UPSERT_SQL,
+                (_track_values(track) for track in unique.values()),
+            )
+        added = sum(track_id not in existing for track_id in unique)
+        return added, len(unique) - added
 
     def get_by_id(self, track_id: str) -> Track | None:
         row = self._connection.execute(
@@ -362,4 +352,21 @@ def _track_from_row(row: sqlite3.Row) -> Track:
         disc_number=(
             int(row["disc_number"]) if row["disc_number"] is not None else None
         ),
+    )
+
+
+def _track_values(track: Track) -> tuple[object, ...]:
+    return (
+        track.id,
+        track.provider_identity.provider_id,
+        track.provider_identity.item_id,
+        track.title,
+        track.artist.name,
+        track.album.title if track.album else None,
+        int(track.duration.total_seconds()) if track.duration else None,
+        track.album.artist.name if track.album and track.album.artist else None,
+        track.album.release_year if track.album else None,
+        track.genre,
+        track.track_number,
+        track.disc_number,
     )

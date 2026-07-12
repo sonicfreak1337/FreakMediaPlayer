@@ -59,6 +59,9 @@ class TrackRepository(Protocol):
     def save(self, track: Track) -> None:
         ...
 
+    def save_many(self, tracks: Sequence[Track]) -> tuple[int, int]:
+        ...
+
     def get_by_id(self, track_id: str) -> Track | None:
         ...
 

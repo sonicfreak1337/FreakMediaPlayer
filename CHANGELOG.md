@@ -2,6 +2,10 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added transactional batch upserts and automated 10,000-track acceptance coverage
+  for import, search, rescan, ordering, multi-row moves and every schema upgrade.
+- Clarified playlist removal, library-only removal and irreversible disk deletion,
+  with a separate confirmation-gated file deletion workflow and result report.
 - Added grouped artist/album/genre browsing alongside the fast table plus dynamic
   Favorites and Recently Added library views.
 - Added safe database-only editing for title, artist, album, year, genre and

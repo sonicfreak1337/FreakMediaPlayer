@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMenu,
+    QMessageBox,
     QProgressBar,
     QStackedWidget,
     QStyle,
@@ -62,6 +63,7 @@ class LocalTracksPanel(QWidget):
     tracks_add_requested = Signal(object)
     track_relocated = Signal(object)
     track_metadata_changed = Signal(object)
+    tracks_removed = Signal()
     status_message = Signal(str)
 
     def __init__(
@@ -94,6 +96,7 @@ class LocalTracksPanel(QWidget):
         self._import_added = 0
         self._import_updated = 0
         self._last_import_result: ImportScanResult | None = None
+        self._pending_import_tracks: list[Track] = []
         self._table = TrackTableWidget()
         self._content_stack = QStackedWidget()
         self._empty_state = QLabel(
@@ -218,7 +221,7 @@ class LocalTracksPanel(QWidget):
             ),
             self._build_button(
                 QStyle.StandardPixmap.SP_TrashIcon,
-                "Remove selected",
+                "Remove selected from library (keep files on disk)",
                 self._remove_selected_track,
             ),
             self._build_button(
@@ -230,6 +233,11 @@ class LocalTracksPanel(QWidget):
                 QStyle.StandardPixmap.SP_FileDialogDetailedView,
                 "Edit selected track metadata",
                 self._edit_selected_metadata,
+            ),
+            self._build_button(
+                QStyle.StandardPixmap.SP_DialogDiscardButton,
+                "Delete selected audio files from disk…",
+                self._delete_selected_from_disk,
             ),
         ]
         folder_button = buttons[2]
@@ -490,6 +498,7 @@ class LocalTracksPanel(QWidget):
             QStyle.StandardPixmap.SP_TrashIcon: "−",
             QStyle.StandardPixmap.SP_DialogOpenButton: "↻",
             QStyle.StandardPixmap.SP_FileDialogDetailedView: "✎",
+            QStyle.StandardPixmap.SP_DialogDiscardButton: "×",
         }
         button.setText(symbols.get(icon, "+"))
         icon_files = {
@@ -562,6 +571,7 @@ class LocalTracksPanel(QWidget):
         self._import_added = 0
         self._import_updated = 0
         self._last_import_result = None
+        self._pending_import_tracks = []
         self._import_progress.setRange(0, 1)
         self._import_progress.setValue(0)
         self._import_progress.show()
@@ -585,10 +595,7 @@ class LocalTracksPanel(QWidget):
     def _store_background_track(self, track: object) -> None:
         if not isinstance(track, Track):
             return
-        if self._local_library_service.save_imported_track(track):
-            self._import_added += 1
-        else:
-            self._import_updated += 1
+        self._pending_import_tracks.append(track)
 
     def _update_import_progress(self, processed: int, total: int) -> None:
         self._import_progress.setRange(0, max(1, total))
@@ -598,6 +605,12 @@ class LocalTracksPanel(QWidget):
     def _finish_background_import(self, result: object) -> None:
         if not isinstance(result, ImportScanResult):
             return
+        self._import_added, self._import_updated = (
+            self._local_library_service.save_imported_tracks(
+                self._pending_import_tracks
+            )
+        )
+        self._pending_import_tracks = []
         self._last_import_result = result
         self._cancel_import_button.hide()
         self._import_progress.hide()
@@ -728,10 +741,34 @@ class LocalTracksPanel(QWidget):
             removed = self._local_library_service.remove_track(track_id) or removed
         if removed:
             self.refresh()
+            self.tracks_removed.emit()
             self.status_message.emit(
                 f"Removed {len(track_ids)} track{'s' if len(track_ids) != 1 else ''} "
-                "from the library."
+                "from the library; files were kept."
             )
+
+    def _delete_selected_from_disk(self) -> None:
+        track_ids = self._selected_track_ids()
+        if not track_ids:
+            return
+        answer = QMessageBox.warning(
+            self,
+            "Permanently delete audio files",
+            f"Permanently delete {len(track_ids)} selected audio "
+            f"file{'s' if len(track_ids) != 1 else ''} from disk?\n\n"
+            "This cannot be undone. Playlist entries will also be removed.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        result = self._local_library_service.delete_tracks_from_disk(track_ids)
+        self.refresh()
+        self.tracks_removed.emit()
+        self.status_message.emit(
+            f"Deleted {result.deleted_files} files and removed "
+            f"{result.removed_tracks} library tracks; {len(result.errors)} failed."
+        )
 
     def _selected_track_ids(self) -> list[str]:
         track_ids_by_row: dict[int, str] = {}

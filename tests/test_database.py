@@ -1,7 +1,9 @@
 import sqlite3
 from datetime import timedelta
 
-from freak_media_player.database.migrations import MigrationRunner
+import pytest
+
+from freak_media_player.database.migrations import INITIAL_MIGRATIONS, MigrationRunner
 from freak_media_player.database.repositories import (
     SQLitePlaylistRepository,
     SQLiteSettingsRepository,
@@ -33,6 +35,26 @@ def test_migrations_create_core_tables() -> None:
     assert "playlists" in table_names
     assert "queue_items" in table_names
     assert "play_history" in table_names
+
+
+@pytest.mark.parametrize("starting_version", range(len(INITIAL_MIGRATIONS) + 1))
+def test_database_upgrades_from_every_published_schema(starting_version: int) -> None:
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    MigrationRunner(INITIAL_MIGRATIONS[:starting_version]).run(connection)
+
+    MigrationRunner().run(connection)
+
+    versions = {
+        int(row["version"])
+        for row in connection.execute("SELECT version FROM schema_migrations")
+    }
+    columns = {
+        str(row["name"])
+        for row in connection.execute("PRAGMA table_info(tracks)").fetchall()
+    }
+    assert versions == {migration.version for migration in INITIAL_MIGRATIONS}
+    assert {"metadata_overridden", "added_at"} <= columns
 
 
 def test_settings_repository_round_trips_values() -> None:
@@ -229,6 +251,25 @@ def test_track_repository_lists_recently_added_ids() -> None:
         )
 
     assert repository.list_recently_added_ids() == ["second", "first"]
+
+
+def test_track_repository_batch_upsert_reports_added_and_updated() -> None:
+    repository = SQLiteTrackRepository(make_connection())
+    first = Track(
+        id="first",
+        provider_identity=ProviderIdentity(provider_id="local", item_id="first.mp3"),
+        title="First",
+        artist=Artist(name="Artist"),
+    )
+    second = Track(
+        id="second",
+        provider_identity=ProviderIdentity(provider_id="local", item_id="second.mp3"),
+        title="Second",
+        artist=Artist(name="Artist"),
+    )
+
+    assert repository.save_many([first, second]) == (2, 0)
+    assert repository.save_many([first, second]) == (0, 2)
 
 
 def test_playlist_repository_preserves_track_order() -> None:

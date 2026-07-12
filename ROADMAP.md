@@ -70,27 +70,6 @@ Abnahme:
 Ziel: Auch größere lokale Musiksammlungen lassen sich schnell und nachvollziehbar
 verwalten.
 
-### Featureliste
-
-
-### Stabilität und Technik
-
-- Metadaten und Dateistatus beim erneuten Einlesen aktualisieren, ohne manuelle
-  Bibliothekskorrekturen unbemerkt zu überschreiben.
-- Sortierung, Mehrfachauswahl und Drag-and-drop mit großen Bibliotheken testen und
-  bei Bedarf optimieren.
-- Löschaktionen eindeutig zwischen „aus Wiedergabeliste entfernen“, „aus Bibliothek
-  entfernen“ und „Datei vom Datenträger löschen“ unterscheiden. Letzteres gehört
-  nur mit zusätzlicher Bestätigung in den Umfang.
-
-Abnahme:
-
-- Import, erneutes Einlesen und Suche bleiben bei mindestens 10.000
-  Bibliothekseinträgen bedienbar.
-- Ein erneuter Scan erzeugt keine Duplikate und verliert keine manuell gepflegte
-  Wiedergabelistenreihenfolge.
-- Datenbank-Upgrades von allen bisher veröffentlichten Schemaständen sind getestet.
-
 ## 0.9.1 – Wiedergabe und Windows-Integration abrunden
 
 Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorhersehbar.

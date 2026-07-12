@@ -35,6 +35,16 @@ class FakeLocalLibraryService:
         self.tracks.append(track)
         return is_new
 
+    def save_imported_tracks(self, tracks: list[Track]) -> tuple[int, int]:
+        added = 0
+        updated = 0
+        for track in tracks:
+            if self.save_imported_track(track):
+                added += 1
+            else:
+                updated += 1
+        return added, updated
+
     def list_favorite_track_ids(self) -> set[str]:
         return self.favorite_ids
 
