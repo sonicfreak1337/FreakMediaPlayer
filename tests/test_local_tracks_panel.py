@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import cast
 
@@ -20,6 +21,18 @@ class FakeLocalLibraryService:
     def import_paths(self, _paths: list[Path]) -> list[Track]:
         self.tracks = [make_track()]
         return self.tracks
+
+    def discover_audio_files(self, paths: list[Path]) -> list[Path]:
+        return paths
+
+    def read_track(self, _path: Path) -> Track:
+        return make_track()
+
+    def save_imported_track(self, track: Track) -> bool:
+        is_new = not any(item.id == track.id for item in self.tracks)
+        self.tracks = [item for item in self.tracks if item.id != track.id]
+        self.tracks.append(track)
+        return is_new
 
     def list_favorite_track_ids(self) -> set[str]:
         return self.favorite_ids
@@ -67,7 +80,7 @@ def test_library_empty_state_explains_all_import_paths() -> None:
 
 
 def test_library_import_emits_concise_status_message() -> None:
-    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
     service = FakeLocalLibraryService()
     panel = LocalTracksPanel(
         "Local Library",
@@ -78,7 +91,13 @@ def test_library_import_emits_concise_status_message() -> None:
 
     panel._import_paths([Path("track.mp3")])
 
-    assert messages == ["Imported 1 track."]
+    deadline = time.monotonic() + 2.0
+    while panel._import_thread is not None and time.monotonic() < deadline:
+        app.processEvents()
+
+    assert panel._last_import_result is not None
+    assert messages[0] == "Import started in the background."
+    assert messages[-1] == "Import finished: 1 added, 0 updated, 0 failed."
 
 
 def test_library_search_filters_immediately_and_can_be_cleared() -> None:

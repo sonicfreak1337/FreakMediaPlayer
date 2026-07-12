@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Moved file discovery and metadata extraction into a cancellable background
+  importer with live progress and an added/updated/failed result summary.
 - Added persistent managed music folders with add, remove-source and targeted
   rescan actions directly from the library folder menu.
 - Added combinable library filters for artist, album, genre, year, favorites and

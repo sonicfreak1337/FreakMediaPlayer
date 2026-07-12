@@ -59,6 +59,10 @@ class LocalFileProvider:
     def scan(self, root: Path) -> list[Track]:
         return [self.track_from_path(path) for path in self._iter_audio_files((Path(root),))]
 
+    def iter_audio_files(self, root: Path) -> Iterable[Path]:
+        """Yield supported files below one root in deterministic order."""
+        return self._iter_audio_files((Path(root),))
+
     def resolve_audio_source(self, track: Track) -> AudioSource:
         self._validate_track(track)
         path = Path(track.provider_identity.item_id)

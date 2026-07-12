@@ -5,8 +5,14 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QKeySequence, QShortcut
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import (
+    QCloseEvent,
+    QDragEnterEvent,
+    QDropEvent,
+    QKeySequence,
+    QShortcut,
+)
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -14,6 +20,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMenu,
+    QProgressBar,
     QStackedWidget,
     QStyle,
     QTableWidget,
@@ -24,6 +31,10 @@ from PySide6.QtWidgets import (
 )
 
 from freak_media_player.models.media import Track
+from freak_media_player.services.library_import_worker import (
+    ImportScanResult,
+    LibraryImportWorker,
+)
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.search_service import (
     FILE_STATUS_AVAILABLE,
@@ -67,6 +78,13 @@ class LocalTracksPanel(QWidget):
         self._year_filter = QComboBox()
         self._favorite_filter = QComboBox()
         self._status_filter = QComboBox()
+        self._import_progress = QProgressBar()
+        self._cancel_import_button = QToolButton()
+        self._import_thread: QThread | None = None
+        self._import_worker: LibraryImportWorker | None = None
+        self._import_added = 0
+        self._import_updated = 0
+        self._last_import_result: ImportScanResult | None = None
         self._table = TrackTableWidget()
         self._content_stack = QStackedWidget()
         self._empty_state = QLabel(
@@ -142,6 +160,13 @@ class LocalTracksPanel(QWidget):
         if paths:
             self._import_paths(paths)
             event.acceptProposedAction()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self._cancel_import()
+        if self._import_thread is not None:
+            self._import_thread.quit()
+            self._import_thread.wait(2_000)
+        super().closeEvent(event)
 
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
@@ -261,6 +286,15 @@ class LocalTracksPanel(QWidget):
         reset.setToolTip("Clear search and all library filters")
         reset.clicked.connect(self._reset_filters)
         layout.addWidget(reset)
+        self._import_progress.setObjectName("libraryImportProgress")
+        self._import_progress.setTextVisible(True)
+        self._import_progress.setMinimumWidth(150)
+        self._import_progress.hide()
+        layout.addWidget(self._import_progress)
+        self._cancel_import_button.setText("Cancel import")
+        self._cancel_import_button.clicked.connect(self._cancel_import)
+        self._cancel_import_button.hide()
+        layout.addWidget(self._cancel_import_button)
         layout.addStretch(1)
         return bar
 
@@ -385,12 +419,8 @@ class LocalTracksPanel(QWidget):
     def _select_folder(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Import folder", str(Path.home()))
         if folder:
-            imported = self._local_library_service.add_music_folder(Path(folder))
-            self.refresh()
-            self.status_message.emit(
-                f"Music folder added — indexed {len(imported)} "
-                f"track{'s' if len(imported) != 1 else ''}."
-            )
+            managed = self._local_library_service.register_music_folder(Path(folder))
+            self._start_background_import([managed])
 
     def _rebuild_folder_menu(self) -> None:
         self._folder_menu.clear()
@@ -413,12 +443,7 @@ class LocalTracksPanel(QWidget):
             )
 
     def _rescan_music_folder(self, folder: Path) -> None:
-        imported = self._local_library_service.rescan_music_folder(folder)
-        self.refresh()
-        self.status_message.emit(
-            f"Music folder rescanned — indexed {len(imported)} "
-            f"track{'s' if len(imported) != 1 else ''}."
-        )
+        self._start_background_import([folder])
 
     def _remove_music_folder(self, folder: Path) -> None:
         if self._local_library_service.remove_music_folder(folder):
@@ -427,14 +452,70 @@ class LocalTracksPanel(QWidget):
             )
 
     def _import_paths(self, paths: list[Path]) -> None:
-        imported = self._local_library_service.import_paths(paths)
-        if imported:
-            self.refresh()
-            self.status_message.emit(
-                f"Imported {len(imported)} track{'s' if len(imported) != 1 else ''}."
-            )
+        self._start_background_import(paths)
+
+    def _start_background_import(self, paths: list[Path]) -> None:
+        if self._import_thread is not None and self._import_thread.isRunning():
+            self.status_message.emit("An import is already running.")
+            return
+        self._import_added = 0
+        self._import_updated = 0
+        self._last_import_result = None
+        self._import_progress.setRange(0, 1)
+        self._import_progress.setValue(0)
+        self._import_progress.show()
+        self._cancel_import_button.show()
+        thread = QThread(self)
+        worker = LibraryImportWorker(self._local_library_service, paths)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.track_ready.connect(self._store_background_track)
+        worker.progress.connect(self._update_import_progress)
+        worker.finished.connect(self._finish_background_import)
+        worker.finished.connect(lambda _result: thread.quit())
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._clear_import_thread)
+        self._import_thread = thread
+        self._import_worker = worker
+        thread.start()
+        self.status_message.emit("Import started in the background.")
+
+    def _store_background_track(self, track: object) -> None:
+        if not isinstance(track, Track):
+            return
+        if self._local_library_service.save_imported_track(track):
+            self._import_added += 1
         else:
-            self.status_message.emit("No new supported audio files were found.")
+            self._import_updated += 1
+
+    def _update_import_progress(self, processed: int, total: int) -> None:
+        self._import_progress.setRange(0, max(1, total))
+        self._import_progress.setValue(processed)
+        self._import_progress.setFormat(f"Importing {processed}/{total}")
+
+    def _finish_background_import(self, result: object) -> None:
+        if not isinstance(result, ImportScanResult):
+            return
+        self._last_import_result = result
+        self._cancel_import_button.hide()
+        self._import_progress.hide()
+        self.refresh()
+        outcome = "cancelled" if result.cancelled else "finished"
+        self.status_message.emit(
+            f"Import {outcome}: {self._import_added} added, "
+            f"{self._import_updated} updated, {len(result.errors)} failed."
+        )
+
+    def _cancel_import(self) -> None:
+        if self._import_worker is not None:
+            self._import_worker.cancel()
+            self._cancel_import_button.setEnabled(False)
+
+    def _clear_import_thread(self) -> None:
+        self._import_thread = None
+        self._import_worker = None
+        self._cancel_import_button.setEnabled(True)
 
     def _set_row(self, row: int, track: Track) -> None:
         title = QTableWidgetItem(track.title)

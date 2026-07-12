@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 
 from freak_media_player.core.ports import TrackRepository
@@ -45,12 +46,31 @@ class LocalLibraryService:
             self._track_repository.save(track)
         return tracks
 
-    def list_music_folders(self) -> list[Path]:
-        if self._settings_service is None:
-            return []
-        return self._settings_service.load_music_folders()
+    def discover_audio_files(self, paths: Iterable[Path]) -> list[Path]:
+        discovered: dict[str, Path] = {}
+        for path in paths:
+            if path.is_dir():
+                candidates = self._provider.iter_audio_files(path)
+            elif self._provider.is_supported_file(path):
+                candidates = (path,)
+            else:
+                candidates = ()
+            for candidate in candidates:
+                resolved = candidate.resolve()
+                discovered.setdefault(str(resolved).casefold(), resolved)
+        return list(discovered.values())
 
-    def add_music_folder(self, path: Path) -> list[Track]:
+    def read_track(self, path: Path) -> Track:
+        """Read one track without touching SQLite; safe for import workers."""
+        return self._provider.track_from_path(path)
+
+    def save_imported_track(self, track: Track) -> bool:
+        """Persist an imported track and report whether it was newly added."""
+        is_new = self._track_repository.get_by_id(track.id) is None
+        self._track_repository.save(track)
+        return is_new
+
+    def register_music_folder(self, path: Path) -> Path:
         folder = path.resolve()
         if not folder.is_dir():
             raise NotADirectoryError(folder)
@@ -59,6 +79,15 @@ class LocalLibraryService:
             folders.append(folder)
             if self._settings_service is not None:
                 self._settings_service.save_music_folders(folders)
+        return folder
+
+    def list_music_folders(self) -> list[Path]:
+        if self._settings_service is None:
+            return []
+        return self._settings_service.load_music_folders()
+
+    def add_music_folder(self, path: Path) -> list[Track]:
+        folder = self.register_music_folder(path)
         return self.import_folder(folder)
 
     def remove_music_folder(self, path: Path) -> bool:
