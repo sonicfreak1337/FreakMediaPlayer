@@ -33,7 +33,8 @@ to verify physical channel wiring before multichannel playback.
 
 The Equalizer provides presets and editable parametric bands. The Visualizer has
 Eco, Balanced and Smooth performance levels and runs only during playback. Docks
-can be moved, detached, hidden and restored from Module. Custom skins live in the
+are position-locked to prevent accidental dragging; they can still be detached with
+the explicit `↗` button, hidden and restored from Module. Custom skins live in the
 data folder's `skins` directory and can be reloaded from the title bar.
 
 ## Settings, backup and maintenance

@@ -2,6 +2,8 @@
 
 ## 1.0.0 - 2026-07-13
 
+- Locked every module against drag-and-drop repositioning while retaining explicit
+  detach/dock controls.
 - Declared the offline local-player feature set stable after the complete library,
   playlist, playback, multichannel, DSP, Visualizer, settings and migration gate.
 - Finalized reproducible installed-folder and portable Windows distributions,

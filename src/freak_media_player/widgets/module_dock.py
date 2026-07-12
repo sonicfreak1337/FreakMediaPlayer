@@ -1,4 +1,4 @@
-"""Custom dock chrome for movable, desktop-detachable player modules."""
+"""Custom dock chrome for position-locked, desktop-detachable modules."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ MODULE_ICONS = {
 
 
 class ModuleTitleBar(QWidget):
-    """Styled title bar that keeps native dock dragging and adds clear actions."""
+    """Styled title bar with explicit actions and no native dock dragging."""
 
     def __init__(
         self,
@@ -84,17 +84,15 @@ class ModuleTitleBar(QWidget):
         self._dock.setFloating(not self._dock.isFloating())
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        # QDockWidget needs the unhandled event for native drag-to-float behavior.
-        event.ignore()
+        event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        event.ignore()
+        event.accept()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        event.ignore()
+        event.accept()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        self._toggle_floating()
         event.accept()
 
 

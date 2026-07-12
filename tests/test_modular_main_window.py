@@ -9,7 +9,7 @@ from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.ui.main_window import MainWindow
 
 
-def test_main_window_registers_movable_visibility_modules(tmp_path, monkeypatch) -> None:
+def test_main_window_registers_position_locked_visibility_modules(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
     context = build_app_context(audio_backend=NullAudioBackend())
@@ -28,7 +28,7 @@ def test_main_window_registers_movable_visibility_modules(tmp_path, monkeypatch)
 
     player = window.module("playerModule")
     assert player is not None
-    assert player.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
+    assert not player.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
     assert player.features() & QDockWidget.DockWidgetFeature.DockWidgetFloatable
     assert not player.features() & QDockWidget.DockWidgetFeature.DockWidgetClosable
     player.close()
@@ -43,7 +43,7 @@ def test_main_window_registers_movable_visibility_modules(tmp_path, monkeypatch)
     ):
         dock = window.module(object_name)
         assert dock is not None
-        assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
+        assert not dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
         assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetFloatable
         assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetClosable
         assert title in module_actions

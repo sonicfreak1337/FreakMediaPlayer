@@ -19,8 +19,8 @@ Current version: `1.0.0`
 - Mark favorites from the Player and see them in library and playlist tables
 - Detect missing or unreadable files, relocate moved tracks and safely edit
   database-only metadata without modifying audio files
-- Desktop-detachable dock modules for Library, Playlist, Equalizer, Player, and
-  Visualizer (use the title-bar undock button or double-click the title bar)
+- Position-locked, desktop-detachable modules for Library, Playlist, Equalizer,
+  Player and Visualizer (use the explicit title-bar undock button)
 - Close and restore optional modules through the `Module` menu; Player stays open
 - Drag and drop from the library into a chosen playlist position
 - Manual playlist ordering through drag and drop or move controls
@@ -74,9 +74,10 @@ See `docs/ARCHITECTURE.md` for the architecture plan.
 
 Version `0.7.0` introduces the fully redesigned mockup-driven interface. Player,
 Library, Playlist, Equalizer and Visualizer use a consistent dock module chrome.
-Use the `↗` control or drag a module title to detach it into its own desktop
-window; double-clicking its title docks it again. Optional modules can be closed
-and restored from the `Module` button in the Player. The Player remains available.
+Use the `↗` control to detach or dock a module. Module positions cannot be changed
+by dragging or double-clicking, avoiding accidental layout edits. Optional modules
+can be closed and restored from the `Module` button in the Player. The Player
+remains available.
 
 ## Skins
 

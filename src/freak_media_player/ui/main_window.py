@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
         area: Qt.DockWidgetArea = Qt.DockWidgetArea.TopDockWidgetArea,
         header_controls: Iterable[QWidget] = (),
     ) -> QDockWidget:
-        """Register a movable module that can become a desktop window."""
+        """Register a position-locked module that can become a desktop window."""
         dock = ModuleDockWidget(
             title,
             self,
@@ -135,10 +135,7 @@ class MainWindow(QMainWindow):
         )
         dock.setObjectName(object_name)
         dock.setAllowedAreas(Qt.DockWidgetArea.AllDockWidgetAreas)
-        features = (
-            QDockWidget.DockWidgetFeature.DockWidgetMovable
-            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
-        )
+        features = QDockWidget.DockWidgetFeature.DockWidgetFloatable
         if closable:
             features |= QDockWidget.DockWidgetFeature.DockWidgetClosable
         dock.setFeatures(features)
