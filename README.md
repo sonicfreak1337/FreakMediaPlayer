@@ -32,8 +32,6 @@ Current version: `0.9.0`
 - Non-repeating playlist shuffle with previous/next history
 - Repeat All and Repeat One playback modes
 - Automatic playback of the next playlist title
-- Visible temporary Up Next queue with reorder and remove controls before normal
-  playlist playback resumes
 - Automatic bounded skip over unreadable Up Next and playlist entries, including
   asynchronous decoder failures
 - Highlighted currently playing playlist row

@@ -88,6 +88,7 @@ class LocalTracksPanel(QWidget):
         self._status_filter = QComboBox()
         self._smart_list = QComboBox()
         self._group_button = QToolButton()
+        self._library_actions = QToolButton()
         self._group_submenus: list[QMenu] = []
         self._import_progress = QProgressBar()
         self._cancel_import_button = QToolButton()
@@ -223,27 +224,31 @@ class LocalTracksPanel(QWidget):
                 "Import folder",
                 self._select_folder,
             ),
-            self._build_button(
-                QStyle.StandardPixmap.SP_TrashIcon,
-                "Remove selected from library (keep files on disk)",
-                self._remove_selected_track,
-            ),
-            self._build_button(
-                QStyle.StandardPixmap.SP_DialogOpenButton,
-                "Relocate selected missing file",
-                self._relocate_selected_track,
-            ),
-            self._build_button(
-                QStyle.StandardPixmap.SP_FileDialogDetailedView,
-                "Edit selected track metadata",
-                self._edit_selected_metadata,
-            ),
-            self._build_button(
-                QStyle.StandardPixmap.SP_DialogDiscardButton,
-                "Delete selected audio files from disk…",
-                self._delete_selected_from_disk,
-            ),
         ]
+        self._library_actions.setText("⋯")
+        self._library_actions.setObjectName("libraryActionsButton")
+        self._library_actions.setToolTip("More library actions")
+        self._library_actions.setCursor(Qt.CursorShape.PointingHandCursor)
+        actions_menu = QMenu(self._library_actions)
+        actions_menu.addAction(
+            "Edit selected metadata…", self._edit_selected_metadata
+        )
+        actions_menu.addAction(
+            "Relocate selected missing file…", self._relocate_selected_track
+        )
+        actions_menu.addSeparator()
+        actions_menu.addAction(
+            "Remove selected from library", self._remove_selected_track
+        )
+        actions_menu.addAction(
+            "Delete selected audio files from disk…",
+            self._delete_selected_from_disk,
+        )
+        self._library_actions.setMenu(actions_menu)
+        self._library_actions.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup
+        )
+        buttons.append(self._library_actions)
         folder_button = buttons[2]
         self._folder_menu = QMenu(folder_button)
         self._folder_menu.aboutToShow.connect(self._rebuild_folder_menu)

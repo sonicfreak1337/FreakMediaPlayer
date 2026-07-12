@@ -223,6 +223,22 @@ def test_managed_folder_menu_exposes_rescan_and_remove() -> None:
     ]
 
 
+def test_library_keeps_rare_actions_in_single_overflow_menu() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    panel = LocalTracksPanel(
+        "Local Library", cast(LocalLibraryService, FakeLocalLibraryService())
+    )
+
+    assert len(panel.header_controls) == 5  # Search plus four primary controls.
+    assert [action.text() for action in panel._library_actions.menu().actions()] == [
+        "Edit selected metadata…",
+        "Relocate selected missing file…",
+        "",
+        "Remove selected from library",
+        "Delete selected audio files from disk…",
+    ]
+
+
 def test_library_marks_missing_file_status() -> None:
     QApplication.instance() or QApplication(["", "-platform", "offscreen"])
     service = FakeLocalLibraryService()
