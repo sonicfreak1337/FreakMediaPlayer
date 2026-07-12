@@ -204,6 +204,31 @@ def test_playlist_reorder_updates_the_next_track_without_interrupting_playback()
     assert state.current_track.id == "3"
 
 
+def test_playlist_sync_reloads_current_track_after_source_relocation() -> None:
+    service = PlaybackService(
+        controller=PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    original = make_track("1")
+    relocated = Track(
+        id=original.id,
+        provider_identity=ProviderIdentity(
+            provider_id="test", item_id="relocated.mp3"
+        ),
+        title=original.title,
+        artist=original.artist,
+    )
+    service.play_playlist([original], 0)
+
+    state = service.sync_playlist([relocated])
+
+    assert state.current_track == relocated
+    assert service._controller._loaded_track_id is None
+
+
 def test_finished_last_playlist_track_stops_playback() -> None:
     backend = NullAudioBackend()
     service = PlaybackService(

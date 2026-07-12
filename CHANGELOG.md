@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added visible Available/Missing/Unreadable library status, a unique source-path
+  constraint and manual file relocation that preserves track IDs and playlists.
 - Moved file discovery and metadata extraction into a cancellable background
   importer with live progress and an added/updated/failed result summary.
 - Added persistent managed music folders with add, remove-source and targeted

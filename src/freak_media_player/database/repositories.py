@@ -102,6 +102,20 @@ class SQLiteTrackRepository:
             return None
         return _track_from_row(row)
 
+    def get_by_provider_item(self, provider_id: str, item_id: str) -> Track | None:
+        row = self._connection.execute(
+            """
+            SELECT
+                id, provider_id, provider_track_id, title, artist, album,
+                duration_seconds, album_artist, release_year, genre,
+                track_number, disc_number
+            FROM tracks
+            WHERE provider_id = ? AND provider_track_id = ?
+            """,
+            (provider_id, item_id),
+        ).fetchone()
+        return _track_from_row(row) if row is not None else None
+
     def delete(self, track_id: str) -> bool:
         cursor = self._connection.execute(
             "DELETE FROM tracks WHERE id = ?",
@@ -139,6 +153,15 @@ class SQLiteTrackRepository:
             self._connection.execute(
                 "DELETE FROM favorite_tracks WHERE track_id = ?", (track_id,)
             )
+        self._connection.commit()
+
+    def update_provider_item(self, track_id: str, item_id: str) -> None:
+        cursor = self._connection.execute(
+            "UPDATE tracks SET provider_track_id = ? WHERE id = ?",
+            (item_id, track_id),
+        )
+        if cursor.rowcount != 1:
+            raise KeyError(track_id)
         self._connection.commit()
 
 

@@ -197,6 +197,7 @@ class MainWindow(QMainWindow):
             show_title=False,
         )
         library_panel.tracks_add_requested.connect(playlist_panel.add_track_ids)
+        library_panel.track_relocated.connect(lambda _track: playlist_panel.refresh())
         player_panel.remove_current_requested.connect(playlist_panel.remove_current_track)
         for panel in (player_panel, library_panel, playlist_panel, equalizer_panel):
             panel.status_message.connect(self.show_status_message)

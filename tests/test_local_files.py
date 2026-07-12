@@ -5,6 +5,7 @@ from freak_media_player.database.repositories import (
     SQLiteSettingsRepository,
     SQLiteTrackRepository,
 )
+from freak_media_player.models.media import Artist, ProviderIdentity, Track
 from freak_media_player.providers.base import SearchQuery
 from freak_media_player.providers.local_files import LOCAL_FILE_PROVIDER_ID, LocalFileProvider
 from freak_media_player.providers.local_metadata import (
@@ -212,3 +213,29 @@ def test_managed_music_folders_add_rescan_and_remove_source(tmp_path: Path) -> N
     assert service.list_music_folders() == []
     assert removed is True
     assert [track.title for track in service.list_tracks()] == ["One", "Two"]
+
+
+def test_relocate_track_preserves_id_and_manually_stored_metadata(tmp_path: Path) -> None:
+    old_path = tmp_path / "missing.mp3"
+    new_path = tmp_path / "moved.mp3"
+    write_audio_file(new_path)
+    repository = SQLiteTrackRepository(make_connection())
+    original = Track(
+        id="stable-id",
+        provider_identity=ProviderIdentity(
+            provider_id=LOCAL_FILE_PROVIDER_ID, item_id=str(old_path)
+        ),
+        title="Manual Title",
+        artist=Artist(name="Manual Artist"),
+        genre="Manual Genre",
+    )
+    repository.save(original)
+    service = LocalLibraryService(LocalFileProvider(), repository)
+
+    relocated = service.relocate_track(original.id, new_path)
+
+    assert relocated.id == original.id
+    assert relocated.title == "Manual Title"
+    assert relocated.artist.name == "Manual Artist"
+    assert relocated.genre == "Manual Genre"
+    assert Path(relocated.provider_identity.item_id) == new_path.resolve()

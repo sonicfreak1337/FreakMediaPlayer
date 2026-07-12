@@ -49,6 +49,26 @@ class FakeLocalLibraryService:
         self.music_folders.remove(path)
         return True
 
+    def get_track(self, track_id: str) -> Track | None:
+        return next((track for track in self.tracks if track.id == track_id), None)
+
+    def relocate_track(self, track_id: str, path: Path) -> Track:
+        track = self.get_track(track_id)
+        if track is None:
+            raise KeyError(track_id)
+        relocated = Track(
+            id=track.id,
+            provider_identity=ProviderIdentity(
+                provider_id=track.provider_identity.provider_id,
+                item_id=str(path),
+            ),
+            title=track.title,
+            artist=track.artist,
+            genre=track.genre,
+        )
+        self.tracks = [relocated if item.id == track_id else item for item in self.tracks]
+        return relocated
+
 
 def make_track() -> Track:
     return Track(
@@ -180,3 +200,13 @@ def test_managed_folder_menu_exposes_rescan_and_remove() -> None:
         "Rescan",
         "Remove source",
     ]
+
+
+def test_library_marks_missing_file_status() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = FakeLocalLibraryService()
+    service.tracks = [make_track()]
+    panel = LocalTracksPanel("Local Library", cast(LocalLibraryService, service))
+
+    assert panel._table.item(0, 5).text() == "Missing"
+    assert panel._table.item(0, 5).toolTip() == "track.mp3"

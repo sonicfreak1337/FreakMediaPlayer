@@ -113,6 +113,13 @@ INITIAL_MIGRATIONS: tuple[Migration, ...] = (
         ALTER TABLE tracks ADD COLUMN disc_number INTEGER;
         """,
     ),
+    Migration(
+        version=4,
+        sql="""
+        CREATE UNIQUE INDEX IF NOT EXISTS tracks_provider_item_unique
+        ON tracks(provider_id, provider_track_id);
+        """,
+    ),
 )
 
 

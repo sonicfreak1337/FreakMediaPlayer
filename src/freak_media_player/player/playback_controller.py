@@ -87,6 +87,22 @@ class PlaybackController:
             track.id == current_track.id for track in tracks
         ):
             return self.stop()
+        replacement = next(
+            (
+                track
+                for track in tracks
+                if current_track is not None and track.id == current_track.id
+            ),
+            None,
+        )
+        if (
+            current_track is not None
+            and replacement is not None
+            and replacement != current_track
+        ):
+            if replacement.provider_identity != current_track.provider_identity:
+                self._loaded_track_id = None
+            self._state = self._snapshot(track=replacement)
         return self.state
 
     def play(self) -> PlaybackState:

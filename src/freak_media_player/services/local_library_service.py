@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import replace
 from pathlib import Path
 
 from freak_media_player.core.ports import TrackRepository
@@ -119,6 +120,9 @@ class LocalLibraryService:
     def list_tracks(self) -> list[Track]:
         return self._track_repository.list_all()
 
+    def get_track(self, track_id: str) -> Track | None:
+        return self._track_repository.get_by_id(track_id)
+
     def remove_track(self, track_id: str) -> bool:
         return self._track_repository.delete(track_id)
 
@@ -127,6 +131,24 @@ class LocalLibraryService:
 
     def set_favorite(self, track_id: str, favorite: bool) -> None:
         self._track_repository.set_favorite(track_id, favorite)
+
+    def relocate_track(self, track_id: str, new_path: Path) -> Track:
+        track = self._track_repository.get_by_id(track_id)
+        if track is None:
+            raise KeyError(track_id)
+        resolved = new_path.resolve()
+        if not self._provider.is_supported_file(resolved):
+            raise ValueError(f"Unsupported or missing audio file: {resolved}")
+        duplicate = self._track_repository.get_by_provider_item(
+            track.provider_identity.provider_id, str(resolved)
+        )
+        if duplicate is not None and duplicate.id != track_id:
+            raise ValueError("That file is already assigned to another library track.")
+        self._track_repository.update_provider_item(track_id, str(resolved))
+        return replace(
+            track,
+            provider_identity=replace(track.provider_identity, item_id=str(resolved)),
+        )
 
     def refresh_metadata(self) -> int:
         refreshed_count = 0

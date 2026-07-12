@@ -61,6 +61,9 @@ class TrackRepository(Protocol):
     def get_by_id(self, track_id: str) -> Track | None:
         ...
 
+    def get_by_provider_item(self, provider_id: str, item_id: str) -> Track | None:
+        ...
+
     def delete(self, track_id: str) -> bool:
         ...
 
@@ -71,6 +74,9 @@ class TrackRepository(Protocol):
         ...
 
     def set_favorite(self, track_id: str, favorite: bool) -> None:
+        ...
+
+    def update_provider_item(self, track_id: str, item_id: str) -> None:
         ...
 
 

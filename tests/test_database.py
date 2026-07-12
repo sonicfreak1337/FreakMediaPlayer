@@ -141,6 +141,33 @@ def test_track_repository_persists_favorites() -> None:
     assert repository.list_favorite_ids() == set()
 
 
+def test_track_repository_updates_source_and_enforces_unique_provider_item() -> None:
+    repository = SQLiteTrackRepository(make_connection())
+    first = Track(
+        id="track-1",
+        provider_identity=ProviderIdentity(provider_id="local", item_id="old.mp3"),
+        title="Song",
+        artist=Artist(name="Artist"),
+    )
+    repository.save(first)
+
+    repository.update_provider_item(first.id, "new.mp3")
+
+    assert repository.get_by_provider_item("local", "new.mp3") is not None
+    duplicate = Track(
+        id="track-2",
+        provider_identity=ProviderIdentity(provider_id="local", item_id="new.mp3"),
+        title="Duplicate",
+        artist=Artist(name="Artist"),
+    )
+    try:
+        repository.save(duplicate)
+    except sqlite3.IntegrityError:
+        pass
+    else:
+        raise AssertionError("Expected duplicate provider item to be rejected")
+
+
 def test_playlist_repository_preserves_track_order() -> None:
     connection = make_connection()
     tracks = SQLiteTrackRepository(connection)

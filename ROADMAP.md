@@ -72,9 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **MUSS – Duplikat- und Dateistatus:** Doppelte Titel vermeiden sowie fehlende,
-  verschobene oder unlesbare Dateien markieren; einen neuen Speicherort manuell
-  zuordnen können.
 - **MUSS – Benannte Wiedergabelisten:** Erstellen, öffnen, duplizieren, umbenennen,
   leeren und löschen; Änderungen bleiben sofort persistent.
 - **SOLL – Favoriten:** Den bereits sichtbaren Herz-Button aktivieren und Favoriten

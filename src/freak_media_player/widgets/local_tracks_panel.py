@@ -51,11 +51,13 @@ ARTIST_COLUMN = 1
 ALBUM_COLUMN = 2
 YEAR_COLUMN = 3
 LENGTH_COLUMN = 4
-SOURCE_COLUMN = 5
+STATUS_COLUMN = 5
+SOURCE_COLUMN = 6
 
 
 class LocalTracksPanel(QWidget):
     tracks_add_requested = Signal(object)
+    track_relocated = Signal(object)
     status_message = Signal(str)
 
     def __init__(
@@ -201,6 +203,11 @@ class LocalTracksPanel(QWidget):
                 "Remove selected",
                 self._remove_selected_track,
             ),
+            self._build_button(
+                QStyle.StandardPixmap.SP_DialogOpenButton,
+                "Relocate selected missing file",
+                self._relocate_selected_track,
+            ),
         ]
         folder_button = buttons[2]
         self._folder_menu = QMenu(folder_button)
@@ -220,9 +227,9 @@ class LocalTracksPanel(QWidget):
             for button in buttons:
                 header.addWidget(button)
 
-        self._table.setColumnCount(6)
+        self._table.setColumnCount(7)
         self._table.setHorizontalHeaderLabels(
-            ["Title", "Artist", "Album", "Year", "Length", "Source"]
+            ["Title", "Artist", "Album", "Year", "Length", "Status", "Source"]
         )
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -239,6 +246,7 @@ class LocalTracksPanel(QWidget):
         self._table.setColumnWidth(ALBUM_COLUMN, 150)
         self._table.setColumnWidth(YEAR_COLUMN, 52)
         self._table.setColumnWidth(LENGTH_COLUMN, 60)
+        self._table.setColumnWidth(STATUS_COLUMN, 86)
         self._table.setColumnHidden(SOURCE_COLUMN, True)
         self._table.sortItems(TITLE_COLUMN, Qt.SortOrder.AscendingOrder)
         self._table.itemDoubleClicked.connect(self._add_item_to_playlist)
@@ -390,6 +398,7 @@ class LocalTracksPanel(QWidget):
             QStyle.StandardPixmap.SP_FileIcon: "+",
             QStyle.StandardPixmap.SP_DirIcon: "▣+",
             QStyle.StandardPixmap.SP_TrashIcon: "−",
+            QStyle.StandardPixmap.SP_DialogOpenButton: "↻",
         }
         button.setText(symbols.get(icon, "+"))
         icon_files = {
@@ -397,6 +406,7 @@ class LocalTracksPanel(QWidget):
             QStyle.StandardPixmap.SP_FileIcon: "plus_icon.png",
             QStyle.StandardPixmap.SP_DirIcon: "folder_add_icon.png",
             QStyle.StandardPixmap.SP_TrashIcon: "minus_icon.png",
+            QStyle.StandardPixmap.SP_DialogOpenButton: "folder_add_icon.png",
         }
         icon_file = icon_files.get(icon)
         if icon_file is not None:
@@ -528,6 +538,9 @@ class LocalTracksPanel(QWidget):
             else ""
         )
         source = QTableWidgetItem(track.provider_identity.item_id)
+        file_status = self._search_service.file_status(track)
+        status = QTableWidgetItem(file_status.title())
+        status.setToolTip(track.provider_identity.item_id)
         length = QTableWidgetItem(
             self._format_duration(int(track.duration.total_seconds()))
             if track.duration is not None
@@ -538,7 +551,36 @@ class LocalTracksPanel(QWidget):
         self._table.setItem(row, ALBUM_COLUMN, album)
         self._table.setItem(row, YEAR_COLUMN, year)
         self._table.setItem(row, LENGTH_COLUMN, length)
+        self._table.setItem(row, STATUS_COLUMN, status)
         self._table.setItem(row, SOURCE_COLUMN, source)
+
+    def _relocate_selected_track(self) -> None:
+        track_ids = self._selected_track_ids()
+        if len(track_ids) != 1:
+            self.status_message.emit("Select exactly one library track to relocate.")
+            return
+        track = self._local_library_service.get_track(track_ids[0])
+        if track is None:
+            return
+        filters = "Audio files (" + " ".join(f"*{ext}" for ext in self._extensions()) + ")"
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Choose the new audio file location",
+            str(Path(track.provider_identity.item_id).parent),
+            filters,
+        )
+        if not selected:
+            return
+        try:
+            relocated = self._local_library_service.relocate_track(
+                track.id, Path(selected)
+            )
+        except (OSError, ValueError) as error:
+            self.status_message.emit(f"Could not relocate track: {error}")
+            return
+        self.refresh()
+        self.track_relocated.emit(relocated)
+        self.status_message.emit("Track file location updated.")
 
     def _add_item_to_playlist(self, item: QTableWidgetItem) -> None:
         title_item = self._table.item(item.row(), 0)
