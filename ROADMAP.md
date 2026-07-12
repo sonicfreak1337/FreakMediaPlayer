@@ -58,9 +58,6 @@ Entwicklungsphase.
 
 ### Featureliste
 
-- **SOLL – Layout zurücksetzen:** Einen sichtbaren Befehl anbieten, der das
-  Standardlayout wiederherstellt, falls ein Modul außerhalb des sichtbaren
-  Bildschirmbereichs liegt.
 - **SOLL – Aussagekräftige Leerzustände:** Bibliothek und Wiedergabeliste erklären
   beim ersten Start direkt, wie Dateien importiert beziehungsweise hinzugefügt
   werden.

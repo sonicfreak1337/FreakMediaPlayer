@@ -1,8 +1,9 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDockWidget, QWidget
 
+from freak_media_player.app.application import _reset_window_layout
 from freak_media_player.app.bootstrap import build_app_context
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.ui.main_window import MainWindow
@@ -139,5 +140,51 @@ def test_window_layout_restores_core_and_plugin_modules(tmp_path, monkeypatch) -
 
     first.close()
     second.close()
+    app.processEvents()
+    context.database.connection.close()
+
+
+def test_reset_layout_action_restores_and_persists_startup_layout(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    context = build_app_context(audio_backend=NullAudioBackend())
+    window = MainWindow(
+        playback_service=context.playback_service,
+        local_library_service=context.local_library_service,
+        playlist_service=context.playlist_service,
+        equalizer_service=context.equalizer_service,
+    )
+    plugin = window.add_module("Test Plugin", QWidget(), "testPluginDock")
+    window.show()
+    app.processEvents()
+    default_layout = window.capture_layout()
+    window.layout_reset_requested.connect(
+        lambda: _reset_window_layout(
+            window, context.settings_service, default_layout
+        )
+    )
+    library = window.module("localLibraryModule")
+    equalizer = window.module("equalizerModule")
+    assert library is not None
+    assert equalizer is not None
+    library.hide()
+    equalizer.setFloating(True)
+    plugin.hide()
+    app.processEvents()
+
+    action = window.findChild(QAction, "resetLayoutAction")
+    assert action is not None
+    assert action.text() == "Reset Layout"
+    action.trigger()
+    app.processEvents()
+
+    assert library.isVisible() is True
+    assert equalizer.isFloating() is False
+    assert plugin.isVisible() is True
+    assert context.settings_service.load_window_layout() == window.capture_layout()
+
+    window.close()
     app.processEvents()
     context.database.connection.close()

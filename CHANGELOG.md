@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added a visible `Reset Layout` command to the Module menu that restores and
+  immediately persists the complete startup layout, including plugin modules.
 - Persisted and restored the main-window geometry plus every core and plugin
   module's size, position, visibility and docked or floating state.
 - Completed session restoration for volume, equalizer, skin, active playlist,

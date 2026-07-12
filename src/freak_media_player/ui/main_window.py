@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QByteArray, Qt
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtCore import QByteArray, Qt, Signal
+from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QDockWidget,
     QLabel,
@@ -45,6 +45,8 @@ LAYOUT_STATE_VERSION = 1
 class MainWindow(QMainWindow):
     """Frameless branded shell composed from real QDockWidget modules."""
 
+    layout_reset_requested = Signal()
+
     def __init__(
         self,
         playback_service: PlaybackService,
@@ -81,6 +83,7 @@ class MainWindow(QMainWindow):
         )
         self.setMenuWidget(AppTitleBar(self, skin_manager))
         self._build_layout()
+        self._add_layout_reset_action()
         self._configure_shortcuts()
 
     @property
@@ -244,6 +247,14 @@ class MainWindow(QMainWindow):
         status_bar.addPermanentWidget(QLabel(f"Freak Media Player {__version__}"))
         status_bar.addPermanentWidget(QSizeGrip(self))
         self.setStatusBar(status_bar)
+
+    def _add_layout_reset_action(self) -> None:
+        self._module_menu.addSeparator()
+        action = QAction("Reset Layout", self)
+        action.setObjectName("resetLayoutAction")
+        action.setToolTip("Restore the default position and visibility of all modules")
+        action.triggered.connect(self.layout_reset_requested.emit)
+        self._module_menu.addAction(action)
 
     def _configure_shortcuts(self) -> None:
         self._play_pause_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
