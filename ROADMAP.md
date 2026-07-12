@@ -58,9 +58,6 @@ Entwicklungsphase.
 
 ### Featureliste
 
-- **MUSS – Sitzungswiederherstellung:** Letzten Titel, Position, Lautstärke,
-  Equalizer, Skin, Shuffle/Repeat und die aktive Wiedergabeliste konsistent
-  wiederherstellen, aber nie ungefragt automatisch abspielen.
 - **MUSS – Layout-Wiederherstellung:** Position, Größe, Sichtbarkeit und Dock-Zustand
   aller Module über Neustarts hinweg speichern.
 - **SOLL – Layout zurücksetzen:** Einen sichtbaren Befehl anbieten, der das

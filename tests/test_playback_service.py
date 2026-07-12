@@ -272,6 +272,28 @@ def test_shuffle_mode_survives_stop_and_is_cleared_when_disabled() -> None:
     assert service.toggle_shuffle().shuffle_enabled is False
 
 
+def test_playback_modes_notify_persistence_immediately() -> None:
+    saved_modes: list[tuple[RepeatMode, bool]] = []
+    service = PlaybackService(
+        controller=PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=FakeSourceResolver(),
+        ),
+        playback_modes_changed=lambda repeat, shuffle: saved_modes.append(
+            (repeat, shuffle)
+        ),
+    )
+
+    service.toggle_shuffle()
+    service.set_repeat_mode(RepeatMode.ONE)
+
+    assert saved_modes == [
+        (RepeatMode.OFF, True),
+        (RepeatMode.ONE, True),
+    ]
+
+
 def test_missing_file_becomes_actionable_playback_error() -> None:
     track = make_track("missing")
     service = PlaybackService(

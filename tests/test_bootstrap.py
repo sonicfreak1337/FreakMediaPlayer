@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from freak_media_player.app.bootstrap import build_app_context
 from freak_media_player.models.media import Artist, ProviderIdentity, Track
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import PlaybackStatus, RepeatMode
 from freak_media_player.player.audio_backend import NullAudioBackend
 
 
@@ -64,5 +64,40 @@ def test_bootstrap_restores_last_track_paused_at_saved_timestamp(tmp_path: Path)
             assert second.playback_service.state.status == PlaybackStatus.PAUSED
             assert second.playback_service.state.current_track == track
             assert second.playback_service.position_ms() == 87_654
+        finally:
+            second.database.connection.close()
+
+
+def test_bootstrap_restores_playlist_shuffle_and_repeat(tmp_path: Path) -> None:
+    audio_path = tmp_path / "session.mp3"
+    audio_path.touch()
+    track = Track(
+        id="session-track",
+        provider_identity=ProviderIdentity(
+            provider_id="local-files",
+            item_id=str(audio_path),
+        ),
+        title="Session Track",
+        artist=Artist(name="Test Artist"),
+    )
+    with patch.dict("os.environ", {"LOCALAPPDATA": str(tmp_path)}):
+        first = build_app_context(audio_backend=NullAudioBackend())
+        first.database.tracks.save(track)
+        first.playlist_service.add_track_ids([track.id])
+        first.playback_service.sync_playlist(first.playlist_service.list_tracks())
+        first.playback_service.play_playlist([track], 0)
+        first.playback_service.seek(4_321)
+        first.playback_service.set_shuffle_enabled(True)
+        first.playback_service.set_repeat_mode(RepeatMode.ONE)
+        first.database.connection.close()
+
+        second = build_app_context(audio_backend=NullAudioBackend())
+        try:
+            assert second.playlist_service.list_tracks() == [track]
+            assert second.playback_service.state.current_track == track
+            assert second.playback_service.state.status == PlaybackStatus.PAUSED
+            assert second.playback_service.state.shuffle_enabled is True
+            assert second.playback_service.state.repeat_mode == RepeatMode.ONE
+            assert second.playback_service.position_ms() == 4_321
         finally:
             second.database.connection.close()

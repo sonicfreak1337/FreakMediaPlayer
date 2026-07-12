@@ -18,10 +18,12 @@ class PlaybackService:
         controller: PlaybackController,
         volume_changed: Callable[[float], None] | None = None,
         session_changed: Callable[[str, int], None] | None = None,
+        playback_modes_changed: Callable[[RepeatMode, bool], None] | None = None,
     ) -> None:
         self._controller = controller
         self._volume_changed = volume_changed
         self._session_changed = session_changed
+        self._playback_modes_changed = playback_modes_changed
         self._last_checkpoint_at = 0.0
 
     @property
@@ -47,16 +49,20 @@ class PlaybackService:
         return self._controller.current_playlist_index()
 
     def toggle_shuffle(self) -> PlaybackState:
-        return self._controller.toggle_shuffle()
+        return self._notify_playback_modes(self._controller.toggle_shuffle())
 
     def set_shuffle_enabled(self, enabled: bool) -> PlaybackState:
-        return self._controller.set_shuffle_enabled(enabled)
+        return self._notify_playback_modes(
+            self._controller.set_shuffle_enabled(enabled)
+        )
 
     def cycle_repeat_mode(self) -> PlaybackState:
-        return self._controller.cycle_repeat_mode()
+        return self._notify_playback_modes(self._controller.cycle_repeat_mode())
 
     def set_repeat_mode(self, repeat_mode: RepeatMode) -> PlaybackState:
-        return self._controller.set_repeat_mode(repeat_mode)
+        return self._notify_playback_modes(
+            self._controller.set_repeat_mode(repeat_mode)
+        )
 
     def play(self) -> PlaybackState:
         return self._checkpoint_after(self._controller.play())
@@ -110,4 +116,9 @@ class PlaybackService:
 
     def _checkpoint_after(self, state: PlaybackState) -> PlaybackState:
         self.checkpoint(force=True)
+        return state
+
+    def _notify_playback_modes(self, state: PlaybackState) -> PlaybackState:
+        if self._playback_modes_changed is not None:
+            self._playback_modes_changed(state.repeat_mode, state.shuffle_enabled)
         return state

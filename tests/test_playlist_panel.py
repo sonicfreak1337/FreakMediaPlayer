@@ -1,7 +1,7 @@
 from typing import cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QKeySequence
 from PySide6.QtWidgets import QApplication
 
 from freak_media_player.models.media import Artist, ProviderIdentity, Track
@@ -18,6 +18,13 @@ class FakePlaylistService:
         self._tracks = tracks
 
     def list_tracks(self) -> list[Track]:
+        return self._tracks
+
+    def remove_positions(self, positions: list[int]) -> list[Track]:
+        selected = set(positions)
+        self._tracks = [
+            track for index, track in enumerate(self._tracks) if index not in selected
+        ]
         return self._tracks
 
 
@@ -65,3 +72,23 @@ def test_playlist_highlight_follows_playing_index() -> None:
     assert panel._table.item(1, 0).background().style() == Qt.BrushStyle.NoBrush
     assert panel._table.item(1, 0).icon().isNull() is True
     assert panel._table.item(1, 0).data(PLAYING_ROLE) is False
+
+
+def test_delete_key_removes_selected_playlist_rows() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    playlist_service = FakePlaylistService(
+        [make_track("1"), make_track("2"), make_track("3")]
+    )
+    panel = PlaylistPanel(
+        playlist_service=cast(PlaylistService, playlist_service),
+        playback_service=cast(PlaybackService, FakePlaybackService(None)),
+    )
+    panel._highlight_timer.stop()
+    panel._table.selectRow(1)
+
+    panel._delete_shortcut.activated.emit()
+    app.processEvents()
+
+    assert [track.id for track in playlist_service.list_tracks()] == ["1", "3"]
+    assert panel._table.rowCount() == 2
+    assert panel._delete_shortcut.key() == QKeySequence(Qt.Key.Key_Delete)

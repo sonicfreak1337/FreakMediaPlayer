@@ -62,7 +62,12 @@ class PlaylistPanel(QWidget):
         self._table = PlaylistTrackTable()
         self._summary_label = QLabel()
         self._header_controls: list[QWidget] = []
-        self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
+        self._delete_shortcut = QShortcut(
+            QKeySequence(Qt.Key.Key_Delete), self._table
+        )
+        self._delete_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
         self._highlight_timer = QTimer(self)
         self._build_layout()
         self._connect_interactions()

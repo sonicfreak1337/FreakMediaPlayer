@@ -2,6 +2,7 @@ from pathlib import Path
 
 from freak_media_player.config.settings import AppSettings
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerBand, EqualizerPreset
+from freak_media_player.models.playback import RepeatMode
 from freak_media_player.services.settings_service import SettingsService
 
 
@@ -87,3 +88,22 @@ def test_settings_service_round_trips_last_track_and_position() -> None:
     service.save_playback_session("track-42", 123_456)
 
     assert service.load_playback_session() == ("track-42", 123_456)
+
+
+def test_settings_service_round_trips_shuffle_and_repeat_modes() -> None:
+    repository = InMemorySettingsRepository()
+    service = SettingsService(repository=repository)
+
+    service.save_playback_modes(RepeatMode.ONE, True)
+
+    assert service.load_playback_modes() == (RepeatMode.ONE, True)
+
+
+def test_settings_service_repairs_invalid_playback_modes() -> None:
+    repository = InMemorySettingsRepository()
+    repository.values["player.playback_modes"] = (
+        '{"repeat_mode":"invalid","shuffle_enabled":"yes"}'
+    )
+    service = SettingsService(repository=repository)
+
+    assert service.load_playback_modes() == (RepeatMode.OFF, False)

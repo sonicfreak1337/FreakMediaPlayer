@@ -75,6 +75,9 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         audio_backend=selected_audio_backend,
         source_resolver=provider_registry,
     )
+    repeat_mode, shuffle_enabled = settings_service.load_playback_modes()
+    controller.set_repeat_mode(repeat_mode)
+    controller.set_shuffle_enabled(shuffle_enabled)
     saved_session = settings_service.load_playback_session()
     if saved_session is not None:
         track_id, position_ms = saved_session
@@ -84,6 +87,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         controller=controller,
         volume_changed=settings_service.save_playback_volume,
         session_changed=settings_service.save_playback_session,
+        playback_modes_changed=settings_service.save_playback_modes,
     )
     equalizer_service = EqualizerService(
         audio_backend=selected_audio_backend,

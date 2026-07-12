@@ -18,6 +18,7 @@ from freak_media_player.models.equalizer import (
     clamp_preamp,
     clamp_q,
 )
+from freak_media_player.models.playback import RepeatMode
 
 SETTINGS_VERSION_KEY = "settings.version"
 DATABASE_PATH_KEY = "settings.database_path"
@@ -26,6 +27,7 @@ NOTIFICATIONS_KEY = "settings.enable_notifications"
 PLAYBACK_VOLUME_KEY = "player.volume"
 EQUALIZER_PRESET_KEY = "equalizer.current_preset"
 PLAYBACK_SESSION_KEY = "player.last_session"
+PLAYBACK_MODES_KEY = "player.playback_modes"
 
 
 class SettingsService:
@@ -113,6 +115,32 @@ class SettingsService:
         data = {"track_id": track_id, "position_ms": max(0, position_ms)}
         self._repository.set(
             PLAYBACK_SESSION_KEY,
+            json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+        )
+
+    def load_playback_modes(self) -> tuple[RepeatMode, bool]:
+        raw_modes = self._repository.get(PLAYBACK_MODES_KEY)
+        if raw_modes is None:
+            return RepeatMode.OFF, False
+        try:
+            data = json.loads(raw_modes)
+            repeat_mode = RepeatMode(str(data["repeat_mode"]))
+            shuffle_enabled = data["shuffle_enabled"]
+            if not isinstance(shuffle_enabled, bool):
+                raise TypeError("shuffle_enabled must be a boolean")
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return RepeatMode.OFF, False
+        return repeat_mode, shuffle_enabled
+
+    def save_playback_modes(
+        self, repeat_mode: RepeatMode, shuffle_enabled: bool
+    ) -> None:
+        data = {
+            "repeat_mode": repeat_mode.value,
+            "shuffle_enabled": bool(shuffle_enabled),
+        }
+        self._repository.set(
+            PLAYBACK_MODES_KEY,
             json.dumps(data, ensure_ascii=False, separators=(",", ":")),
         )
 

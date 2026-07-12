@@ -2,6 +2,9 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Completed session restoration for volume, equalizer, skin, active playlist,
+  paused track position, Shuffle and Repeat without automatic playback.
+- Added explicit Delete-key removal for selected active-playlist rows.
 - Added an in-player playback error panel for missing, unreadable, damaged or
   unsupported files with direct retry, skip and playlist-removal actions.
 - Prevented missing files from crashing session restore and retained decoder
