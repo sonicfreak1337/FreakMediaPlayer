@@ -17,6 +17,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
+    QStackedWidget,
     QStyle,
     QTableWidget,
     QTableWidgetItem,
@@ -60,6 +61,11 @@ class PlaylistPanel(QWidget):
         self._tracks: list[Track] = []
         self._playing_row: int | None = None
         self._table = PlaylistTrackTable()
+        self._content_stack = QStackedWidget()
+        self._empty_state = QLabel(
+            "Your playlist is empty.\nSelect tracks in the Local Library and use "
+            "the add button, double-click a track, or drag it here."
+        )
         self._summary_label = QLabel()
         self._header_controls: list[QWidget] = []
         self._delete_shortcut = QShortcut(
@@ -157,11 +163,20 @@ class PlaylistPanel(QWidget):
 
         if self._show_title:
             layout.addLayout(header)
-        layout.addWidget(self._table, 1)
+        self._configure_empty_state()
+        self._content_stack.addWidget(self._table)
+        self._content_stack.addWidget(self._empty_state)
+        layout.addWidget(self._content_stack, 1)
         self._summary_label.setObjectName("panelSummary")
         self._summary_label.setContentsMargins(12, 5, 12, 5)
         self._summary_label.setFixedHeight(34)
         layout.addWidget(self._summary_label)
+
+    def _configure_empty_state(self) -> None:
+        self._empty_state.setObjectName("panelEmptyState")
+        self._empty_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_state.setWordWrap(True)
+        self._empty_state.setContentsMargins(36, 24, 36, 24)
 
     def _connect_interactions(self) -> None:
         self._delete_shortcut.activated.connect(self._remove_selected)
@@ -217,6 +232,9 @@ class PlaylistPanel(QWidget):
         )
         self._summary_label.setText(
             f"{len(tracks)} tracks, {self._format_duration(total_seconds)} total duration"
+        )
+        self._content_stack.setCurrentWidget(
+            self._table if tracks else self._empty_state
         )
 
     def _set_row(self, row: int, track: Track) -> None:

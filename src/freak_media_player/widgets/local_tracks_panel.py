@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QStackedWidget,
     QStyle,
     QTableWidget,
     QTableWidgetItem,
@@ -46,6 +47,11 @@ class LocalTracksPanel(QWidget):
         self._show_title = show_title
         self._local_library_service = local_library_service
         self._table = TrackTableWidget()
+        self._content_stack = QStackedWidget()
+        self._empty_state = QLabel(
+            "Your library is empty.\nImport audio files with +, add a folder with "
+            "the folder button, or drag files here."
+        )
         self._summary_label = QLabel()
         self._header_controls: list[QWidget] = []
         self._delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._table)
@@ -72,6 +78,9 @@ class LocalTracksPanel(QWidget):
         )
         self._summary_label.setText(
             f"{len(tracks)} tracks, {self._format_duration(total_seconds)} total duration"
+        )
+        self._content_stack.setCurrentWidget(
+            self._table if tracks else self._empty_state
         )
 
     @property
@@ -153,11 +162,23 @@ class LocalTracksPanel(QWidget):
 
         if self._show_title:
             layout.addLayout(header)
-        layout.addWidget(self._table, 1)
+        self._configure_empty_state()
+        self._content_stack.addWidget(self._table)
+        self._content_stack.addWidget(self._empty_state)
+        layout.addWidget(self._content_stack, 1)
         self._summary_label.setObjectName("panelSummary")
         self._summary_label.setContentsMargins(12, 5, 12, 5)
         self._summary_label.setFixedHeight(34)
         layout.addWidget(self._summary_label)
+
+    def _configure_empty_state(self) -> None:
+        self._empty_state.setObjectName("panelEmptyState")
+        self._empty_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_state.setWordWrap(True)
+        self._empty_state.setContentsMargins(36, 24, 36, 24)
+        self._empty_state.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
 
     def _build_button(
         self,

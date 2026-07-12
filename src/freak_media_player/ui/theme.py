@@ -389,6 +389,12 @@ def freaky_stylesheet() -> str:
         #panelSubtitle, #dockEmptyText {{
             color: {TEXT_SECONDARY};
         }}
+        #panelEmptyState {{
+            background: {PANEL_SUNKEN};
+            border: 1px dashed {PANEL_BORDER};
+            color: {TEXT_SECONDARY};
+            font-size: 13px;
+        }}
         #panelSummary {{
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #071126, stop:1 #030919);

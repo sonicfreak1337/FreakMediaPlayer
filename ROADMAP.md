@@ -58,9 +58,6 @@ Entwicklungsphase.
 
 ### Featureliste
 
-- **SOLL – Aussagekräftige Leerzustände:** Bibliothek und Wiedergabeliste erklären
-  beim ersten Start direkt, wie Dateien importiert beziehungsweise hinzugefügt
-  werden.
 - **SOLL – Statusmeldungen:** Import, Wiedergabefehler und gespeicherte Änderungen
   kurz und eindeutig in der Statusleiste melden.
 

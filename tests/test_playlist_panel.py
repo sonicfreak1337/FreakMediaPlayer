@@ -92,3 +92,23 @@ def test_delete_key_removes_selected_playlist_rows() -> None:
     assert [track.id for track in playlist_service.list_tracks()] == ["1", "3"]
     assert panel._table.rowCount() == 2
     assert panel._delete_shortcut.key() == QKeySequence(Qt.Key.Key_Delete)
+
+
+def test_playlist_empty_state_explains_how_to_add_tracks() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    playlist_service = FakePlaylistService([])
+    panel = PlaylistPanel(
+        playlist_service=cast(PlaylistService, playlist_service),
+        playback_service=cast(PlaybackService, FakePlaybackService(None)),
+    )
+    panel._highlight_timer.stop()
+
+    assert panel._content_stack.currentWidget() is panel._empty_state
+    assert "Local Library" in panel._empty_state.text()
+    assert "drag" in panel._empty_state.text()
+
+    playlist_service._tracks = [make_track("1")]
+    panel.refresh()
+    app.processEvents()
+
+    assert panel._content_stack.currentWidget() is panel._table
