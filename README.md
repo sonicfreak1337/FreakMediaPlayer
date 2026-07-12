@@ -28,6 +28,7 @@ Current version: `0.9.0`
 - Selectable Windows audio device and Mono, Stereo, 5.1 or 7.1 PCM output through
   Qt AudioSink when supported by the device
 - Play, pause, stop, previous, next, seek, volume, and mute controls
+- Hook-free Qt handling for Windows play/pause, stop, previous and next media keys
 - Non-repeating playlist shuffle with previous/next history
 - Repeat All and Repeat One playback modes
 - Automatic playback of the next playlist title

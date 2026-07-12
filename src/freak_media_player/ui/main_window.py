@@ -337,6 +337,25 @@ class MainWindow(QMainWindow):
             shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
             shortcut.activated.connect(handler)
             self._shortcuts.append(shortcut)
+        media_shortcuts = (
+            (
+                QKeySequence(Qt.Key.Key_MediaTogglePlayPause),
+                self._playback_service.toggle_play_pause,
+            ),
+            (QKeySequence(Qt.Key.Key_MediaPlay), self._playback_service.play),
+            (QKeySequence(Qt.Key.Key_MediaPause), self._playback_service.pause),
+            (QKeySequence(Qt.Key.Key_MediaStop), self._playback_service.stop),
+            (QKeySequence(Qt.Key.Key_MediaNext), self._playback_service.next_track),
+            (
+                QKeySequence(Qt.Key.Key_MediaPrevious),
+                self._playback_service.previous_track,
+            ),
+        )
+        for sequence, handler in media_shortcuts:
+            shortcut = QShortcut(sequence, self)
+            shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+            shortcut.activated.connect(handler)
+            self._shortcuts.append(shortcut)
 
     def _focus_library_search(self) -> None:
         dock = self.module("localLibraryModule")

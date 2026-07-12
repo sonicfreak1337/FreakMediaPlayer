@@ -105,6 +105,15 @@ def test_space_toggles_play_pause_from_main_window(tmp_path, monkeypatch) -> Non
         "Ctrl+2",
         "Ctrl+3",
     } <= shortcut_keys
+    media_keys = {
+        QKeySequence(Qt.Key.Key_MediaTogglePlayPause),
+        QKeySequence(Qt.Key.Key_MediaPlay),
+        QKeySequence(Qt.Key.Key_MediaPause),
+        QKeySequence(Qt.Key.Key_MediaStop),
+        QKeySequence(Qt.Key.Key_MediaNext),
+        QKeySequence(Qt.Key.Key_MediaPrevious),
+    }
+    assert media_keys <= {shortcut.key() for shortcut in shortcuts}
     window.close()
     context.database.connection.close()
 

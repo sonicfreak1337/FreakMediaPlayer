@@ -57,8 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **SOLL – Windows-Medientasten:** Play/Pause, Vor und Zurück unterstützen, sofern
-  dies ohne instabile globale Tastatur-Hooks möglich ist.
 - **SOLL – Benachrichtigung bei Titelwechsel:** Optional Titel, Interpret und Cover
   als native Windows-Benachrichtigung anzeigen.
 - **SOLL – Cover-Auswahl:** Ein abweichendes lokales Cover pro Album oder Titel
