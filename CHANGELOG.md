@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added grouped artist/album/genre browsing alongside the fast table plus dynamic
+  Favorites and Recently Added library views.
 - Added safe database-only editing for title, artist, album, year, genre and
   track/disc numbers, with manual overrides protected from metadata rescans.
 - Added M3U/M3U8 import and export with UTF-8, relative and absolute local paths,

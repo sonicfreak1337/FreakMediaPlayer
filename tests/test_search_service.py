@@ -90,3 +90,6 @@ def test_library_filters_are_combined(tmp_path) -> None:
         {first.id},
     ) == [first]
     assert service.file_status(second) == FILE_STATUS_MISSING
+    assert service.filter_library(
+        [first, second], LibraryFilters(track_ids=frozenset({second.id}))
+    ) == [second]

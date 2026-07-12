@@ -23,6 +23,7 @@ class LibraryFilters:
     year: int | None = None
     favorite: bool | None = None
     file_status: str | None = None
+    track_ids: frozenset[str] | None = None
 
 
 class SearchService:
@@ -80,6 +81,7 @@ class SearchService:
                 filters.file_status is None
                 or self.file_status(track) == filters.file_status
             )
+            and (filters.track_ids is None or track.id in filters.track_ids)
         ]
 
     def file_status(self, track: Track) -> str:

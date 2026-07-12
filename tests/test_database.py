@@ -214,6 +214,23 @@ def test_manual_metadata_survives_scanner_upsert() -> None:
     assert loaded.duration == timedelta(seconds=20)
 
 
+def test_track_repository_lists_recently_added_ids() -> None:
+    repository = SQLiteTrackRepository(make_connection())
+    for track_id in ("first", "second"):
+        repository.save(
+            Track(
+                id=track_id,
+                provider_identity=ProviderIdentity(
+                    provider_id="local", item_id=f"{track_id}.mp3"
+                ),
+                title=track_id,
+                artist=Artist(name="Artist"),
+            )
+        )
+
+    assert repository.list_recently_added_ids() == ["second", "first"]
+
+
 def test_playlist_repository_preserves_track_order() -> None:
     connection = make_connection()
     tracks = SQLiteTrackRepository(connection)

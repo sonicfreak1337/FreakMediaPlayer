@@ -14,6 +14,7 @@ class FakeLocalLibraryService:
         self.tracks: list[Track] = []
         self.favorite_ids: set[str] = set()
         self.music_folders: list[Path] = []
+        self.recent_ids: list[str] = []
 
     def list_tracks(self) -> list[Track]:
         return self.tracks
@@ -36,6 +37,9 @@ class FakeLocalLibraryService:
 
     def list_favorite_track_ids(self) -> set[str]:
         return self.favorite_ids
+
+    def list_recently_added_track_ids(self, _limit: int = 100) -> list[str]:
+        return self.recent_ids
 
     def list_music_folders(self) -> list[Path]:
         return self.music_folders
@@ -217,3 +221,36 @@ def test_library_marks_missing_file_status() -> None:
 
     assert panel._table.item(0, 5).text() == "Missing"
     assert panel._table.item(0, 5).toolTip() == "track.mp3"
+
+
+def test_group_navigation_and_smart_lists_filter_the_table() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = FakeLocalLibraryService()
+    first = make_track()
+    second = Track(
+        id="track-2",
+        provider_identity=ProviderIdentity(provider_id="test", item_id="two.mp3"),
+        title="Two",
+        artist=Artist(name="Other Artist"),
+        genre="Doom",
+    )
+    service.tracks = [first, second]
+    service.recent_ids = [second.id]
+    panel = LocalTracksPanel("Local Library", cast(LocalLibraryService, service))
+
+    panel._smart_list.setCurrentIndex(panel._smart_list.findData("recent"))
+    app.processEvents()
+    assert panel._table.rowCount() == 1
+    assert panel._table.item(0, 0).text() == "Two"
+
+    panel._smart_list.setCurrentIndex(0)
+    panel._rebuild_group_menu()
+    artists_menu = panel._group_submenus[0]
+    other_artist = next(
+        action for action in artists_menu.actions() if action.text() == "Other Artist"
+    )
+    other_artist.trigger()
+    app.processEvents()
+
+    assert panel._table.rowCount() == 1
+    assert panel._table.item(0, 0).text() == "Two"

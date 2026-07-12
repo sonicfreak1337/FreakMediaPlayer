@@ -127,6 +127,14 @@ INITIAL_MIGRATIONS: tuple[Migration, ...] = (
         ADD COLUMN metadata_overridden INTEGER NOT NULL DEFAULT 0;
         """,
     ),
+    Migration(
+        version=6,
+        sql="""
+        ALTER TABLE tracks ADD COLUMN added_at TEXT;
+        UPDATE tracks SET added_at = CURRENT_TIMESTAMP WHERE added_at IS NULL;
+        CREATE INDEX IF NOT EXISTS tracks_added_at_index ON tracks(added_at DESC);
+        """,
+    ),
 )
 
 

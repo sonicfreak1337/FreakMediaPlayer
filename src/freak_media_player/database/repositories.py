@@ -54,9 +54,10 @@ class SQLiteTrackRepository:
                 release_year,
                 genre,
                 track_number,
-                disc_number
+                disc_number,
+                added_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET
                 provider_id = excluded.provider_id,
                 provider_track_id = excluded.provider_track_id,
@@ -212,6 +213,17 @@ class SQLiteTrackRepository:
         if cursor.rowcount != 1:
             raise KeyError(track_id)
         self._connection.commit()
+
+    def list_recently_added_ids(self, limit: int = 100) -> list[str]:
+        rows = self._connection.execute(
+            """
+            SELECT id FROM tracks
+            ORDER BY added_at DESC, rowid DESC
+            LIMIT ?
+            """,
+            (max(0, limit),),
+        ).fetchall()
+        return [str(row["id"]) for row in rows]
 
 
 class SQLitePlaylistRepository:

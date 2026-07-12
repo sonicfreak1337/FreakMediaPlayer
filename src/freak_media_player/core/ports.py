@@ -97,6 +97,9 @@ class TrackRepository(Protocol):
     ) -> None:
         ...
 
+    def list_recently_added_ids(self, limit: int = 100) -> list[str]:
+        ...
+
 
 class PlaylistRepository(Protocol):
     def ensure(self, playlist_id: str, name: str) -> None:

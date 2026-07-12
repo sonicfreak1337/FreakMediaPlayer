@@ -72,11 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **OPTIONAL – Gruppierte Navigation:** Zusätzliche Ansichten für Interpreten,
-  Alben und Genres anbieten, ohne die schnelle Tabellenansicht zu ersetzen.
-- **OPTIONAL – Intelligente Listen:** Dynamische Ansichten wie „Favoriten“,
-  „Zuletzt hinzugefügt“, „Zuletzt gespielt“ und „Am häufigsten gespielt“ aus
-  Filtern erzeugen.
 
 ### Stabilität und Technik
 

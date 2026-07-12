@@ -84,6 +84,9 @@ class LocalTracksPanel(QWidget):
         self._year_filter = QComboBox()
         self._favorite_filter = QComboBox()
         self._status_filter = QComboBox()
+        self._smart_list = QComboBox()
+        self._group_button = QToolButton()
+        self._group_submenus: list[QMenu] = []
         self._import_progress = QProgressBar()
         self._cancel_import_button = QToolButton()
         self._import_thread: QThread | None = None
@@ -113,6 +116,15 @@ class LocalTracksPanel(QWidget):
     def _apply_search(self) -> None:
         favorite_ids = self._local_library_service.list_favorite_track_ids()
         self._favorite_ids = favorite_ids
+        smart_list = self._smart_list.currentData()
+        favorite_filter = self._favorite_filter.currentData()
+        if smart_list == "favorites":
+            favorite_filter = True
+        recent_ids = (
+            frozenset(self._local_library_service.list_recently_added_track_ids())
+            if smart_list == "recent"
+            else None
+        )
         filtered = self._search_service.filter_library(
             self._all_tracks,
             LibraryFilters(
@@ -120,8 +132,9 @@ class LocalTracksPanel(QWidget):
                 album=self._string_filter(self._album_filter),
                 genre=self._string_filter(self._genre_filter),
                 year=self._year_filter.currentData(),
-                favorite=self._favorite_filter.currentData(),
+                favorite=favorite_filter,
                 file_status=self._status_filter.currentData(),
+                track_ids=recent_ids,
             ),
             favorite_ids,
         )
@@ -289,6 +302,18 @@ class LocalTracksPanel(QWidget):
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(6)
+        self._smart_list.addItem("All tracks", None)
+        self._smart_list.addItem("Favorites", "favorites")
+        self._smart_list.addItem("Recently added", "recent")
+        self._smart_list.currentIndexChanged.connect(self._apply_search)
+        layout.addWidget(self._smart_list)
+        self._group_button.setText("Browse groups")
+        self._group_button.setToolTip("Browse artists, albums and genres")
+        self._group_menu = QMenu(self._group_button)
+        self._group_menu.aboutToShow.connect(self._rebuild_group_menu)
+        self._group_button.setMenu(self._group_menu)
+        self._group_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        layout.addWidget(self._group_button)
         for combo, label in (
             (self._artist_filter, "All artists"),
             (self._album_filter, "All albums"),
@@ -389,9 +414,54 @@ class LocalTracksPanel(QWidget):
             self._year_filter,
             self._favorite_filter,
             self._status_filter,
+            self._smart_list,
         ):
             combo.setCurrentIndex(0)
         self._apply_search()
+
+    def _rebuild_group_menu(self) -> None:
+        self._group_menu.clear()
+        self._group_submenus.clear()
+        groups = (
+            (
+                "Artists",
+                self._artist_filter,
+                sorted(
+                    {track.artist.name for track in self._all_tracks},
+                    key=str.casefold,
+                ),
+            ),
+            (
+                "Albums",
+                self._album_filter,
+                sorted(
+                    {track.album.title for track in self._all_tracks if track.album},
+                    key=str.casefold,
+                ),
+            ),
+            (
+                "Genres",
+                self._genre_filter,
+                sorted(
+                    {track.genre for track in self._all_tracks if track.genre},
+                    key=str.casefold,
+                ),
+            ),
+        )
+        for title, combo, values in groups:
+            submenu = self._group_menu.addMenu(title)
+            self._group_submenus.append(submenu)
+            if not values:
+                empty = submenu.addAction("No entries")
+                empty.setEnabled(False)
+                continue
+            for value in values:
+                submenu.addAction(
+                    value,
+                    lambda _checked=False, target=combo, selected=value: (
+                        target.setCurrentIndex(target.findData(selected))
+                    ),
+                )
 
     def _string_filter(self, combo: QComboBox) -> str | None:
         value = combo.currentData()
