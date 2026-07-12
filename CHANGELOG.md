@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 - 2026-07-13
+
+- Declared the offline local-player feature set stable after the complete library,
+  playlist, playback, multichannel, DSP, Visualizer, settings and migration gate.
+- Finalized reproducible installed-folder and portable Windows distributions,
+  backup/restore, diagnostics, maintenance, user documentation and license notices.
+- Entered feature freeze; post-1.0 provider work remains explicitly out of scope.
+
 ## 0.9.2 - 2026-07-13
 
 - Added validated local backup packages for library data, playlists, favorites and

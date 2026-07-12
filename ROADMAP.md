@@ -51,45 +51,6 @@ Die wichtigsten zusätzlichen Vorschläge nutzen bereits vorhandene Vorarbeit: D
 Datenbankschema kennt Favoriten, Bewertungen, Wiedergabeverlauf und Queue-Einträge,
 während Favoriten- und Einstellungsbuttons in der Oberfläche schon vorgesehen sind.
 
-## 1.0.0 – Stabiler lokaler Player
-
-Ziel: Funktionsumfang einfrieren, letzte Release-Blocker beheben und den lokalen
-Player offiziell als stabil veröffentlichen.
-
-### Ausgelieferter Funktionsumfang
-
-- lokale Dateien und verwaltete Musikordner importieren und neu einlesen
-- Bibliothek durchsuchen, filtern, sortieren und fehlende Dateien reparieren
-- aktive Queue sowie mehrere persistente Wiedergabelisten verwalten
-- Favoriten und – sofern das SOLL-Gate erfüllt ist – Bewertungen und Verlauf nutzen
-- Wiedergabe mit Seek, Lautstärke, Shuffle, Repeat, wählbarem Ausgabegerät und
-  funktionierenden Mono-, Stereo-, 5.1- und 7.1-Ausgabemodi
-- parametrischen Equalizer, Visualizer, Skins und modulares Layout verwenden
-- Sitzung, Layout und Einstellungen sicher wiederherstellen
-- lokale Daten sichern, wiederherstellen und diagnostizieren
-- als dokumentiertes Windows-Release installieren oder bewusst portabel starten
-
-### Release-Freeze
-
-- Ab 1.0-RC nur noch Fehlerkorrekturen, Dokumentation und notwendige
-  Kompatibilitätsanpassungen aufnehmen.
-- Vollständige Regression über Bibliothek, Wiedergabelisten, Decoder, Audioausgabe,
-  Equalizer, Visualizer, Skins, Sitzungswiederherstellung und Migrationen ausführen.
-- Release-Artefakt, Prüfsumme, Changelog, Lizenzhinweise und bekannte
-  Einschränkungen veröffentlichen.
-- Eine Rückkehr zur vorherigen Version darf Benutzerdaten nicht stillschweigend
-  beschädigen; unvermeidbare Einschränkungen müssen vor dem Upgrade sichtbar sein.
-
-1.0 gilt als fertig, wenn:
-
-- lokale Musik ohne Netzwerkverbindung importiert, organisiert und zuverlässig
-  wiedergegeben werden kann,
-- Bibliothek, Wiedergabelisten und Einstellungen Neustarts und Upgrades ohne
-  Datenverlust überstehen,
-- keine bekannten reproduzierbaren Abstürze oder Wiedergabe-Blocker offen sind,
-- automatisierte Tests sowie der definierte manuelle Release-Test bestanden sind,
-- Build, Installation, Bedienung, Datenablage und Fehlerdiagnose dokumentiert sind.
-
 ## Nach 1.0
 
 Erst nach dem stabilen 1.0-Release wird die vorhandene Provider-Architektur für

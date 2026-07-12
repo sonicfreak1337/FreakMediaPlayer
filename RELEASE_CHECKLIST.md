@@ -1,8 +1,7 @@
 # Release Checklist
 
-Last automated Windows artifact smoke test: **passed for 0.9.2 on 2026-07-13**.
-Built EXE SHA-256:
-`7CDDEF1B2E252B19D970F6FC1605DE3FCBB2923D42F1564154A382F3416F5F65`.
+Final 1.0.0 Windows artifact smoke test: **passed on 2026-07-13**. The executable
+hash is recorded in `SHA256SUMS.txt`.
 
 ## Automated gate
 

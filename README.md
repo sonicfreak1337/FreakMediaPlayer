@@ -3,7 +3,7 @@
 A modular Winamp-inspired desktop music player focused on local playback through
 version 1.0, with a provider-based architecture for external sources after 1.0.
 
-Current version: `0.9.2`
+Current version: `1.0.0`
 
 ## Current Features
 
