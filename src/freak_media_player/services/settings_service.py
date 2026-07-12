@@ -30,6 +30,7 @@ EQUALIZER_PRESET_KEY = "equalizer.current_preset"
 PLAYBACK_SESSION_KEY = "player.last_session"
 PLAYBACK_MODES_KEY = "player.playback_modes"
 WINDOW_LAYOUT_KEY = "window.layout"
+MUSIC_FOLDERS_KEY = "library.music_folders"
 
 
 class SettingsService:
@@ -173,6 +174,34 @@ class SettingsService:
         self._repository.set(
             WINDOW_LAYOUT_KEY,
             json.dumps(data, ensure_ascii=True, separators=(",", ":")),
+        )
+
+    def load_music_folders(self) -> list[Path]:
+        raw_folders = self._repository.get(MUSIC_FOLDERS_KEY)
+        if raw_folders is None:
+            return []
+        try:
+            values = json.loads(raw_folders)
+            if not isinstance(values, list) or not all(
+                isinstance(value, str) and value.strip() for value in values
+            ):
+                raise TypeError("music folders must be a list of paths")
+        except (TypeError, json.JSONDecodeError):
+            return []
+        unique: dict[str, Path] = {}
+        for value in values:
+            path = Path(value)
+            unique.setdefault(str(path).casefold(), path)
+        return list(unique.values())
+
+    def save_music_folders(self, folders: list[Path]) -> None:
+        self._repository.set(
+            MUSIC_FOLDERS_KEY,
+            json.dumps(
+                [str(folder) for folder in folders],
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ),
         )
 
     def load_equalizer_preset(self, default: EqualizerPreset) -> EqualizerPreset:

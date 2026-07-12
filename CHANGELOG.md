@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added persistent managed music folders with add, remove-source and targeted
+  rescan actions directly from the library folder menu.
 - Added combinable library filters for artist, album, genre, year, favorites and
   live local-file status with a one-click search-and-filter reset.
 - Added an instant imported-library search for title, artist, album, genre, year

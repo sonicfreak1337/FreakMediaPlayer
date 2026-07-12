@@ -1,7 +1,10 @@
 from pathlib import Path
 
 from freak_media_player.database.migrations import MigrationRunner
-from freak_media_player.database.repositories import SQLiteTrackRepository
+from freak_media_player.database.repositories import (
+    SQLiteSettingsRepository,
+    SQLiteTrackRepository,
+)
 from freak_media_player.providers.base import SearchQuery
 from freak_media_player.providers.local_files import LOCAL_FILE_PROVIDER_ID, LocalFileProvider
 from freak_media_player.providers.local_metadata import (
@@ -10,6 +13,7 @@ from freak_media_player.providers.local_metadata import (
 )
 from freak_media_player.providers.registry import ProviderNotFoundError, ProviderRegistry
 from freak_media_player.services.local_library_service import LocalLibraryService
+from freak_media_player.services.settings_service import SettingsService
 from tests.test_database import make_connection
 
 
@@ -188,3 +192,23 @@ def test_local_library_service_refreshes_existing_metadata(tmp_path: Path) -> No
     assert refreshed_track is not None
     assert refreshed_track.title == "Tagged Song"
     assert refreshed_track.artist.name == "Tagged Artist"
+
+
+def test_managed_music_folders_add_rescan_and_remove_source(tmp_path: Path) -> None:
+    music = tmp_path / "Music"
+    write_audio_file(music / "One.mp3")
+    connection = make_connection()
+    repository = SQLiteTrackRepository(connection)
+    settings = SettingsService(SQLiteSettingsRepository(connection))
+    service = LocalLibraryService(LocalFileProvider(), repository, settings)
+
+    imported = service.add_music_folder(music)
+    write_audio_file(music / "Two.flac")
+    rescanned = service.rescan_music_folder(music)
+    removed = service.remove_music_folder(music)
+
+    assert [track.title for track in imported] == ["One"]
+    assert [track.title for track in rescanned] == ["One", "Two"]
+    assert service.list_music_folders() == []
+    assert removed is True
+    assert [track.title for track in service.list_tracks()] == ["One", "Two"]

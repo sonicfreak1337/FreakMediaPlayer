@@ -72,8 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **MUSS – Verwaltete Musikordner:** Ordner als Bibliotheksquellen hinzufügen,
-  entfernen und gezielt neu einlesen können.
 - **MUSS – Hintergrundimport:** Fortschritt, Abbruch und Ergebnisübersicht für
   große Importe anzeigen, ohne Wiedergabe oder Oberfläche zu blockieren.
 - **MUSS – Duplikat- und Dateistatus:** Doppelte Titel vermeiden sowie fehlende,

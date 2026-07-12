@@ -11,6 +11,7 @@ from freak_media_player.providers.local_files import (
     SUPPORTED_AUDIO_EXTENSIONS,
     LocalFileProvider,
 )
+from freak_media_player.services.settings_service import SettingsService
 
 
 class LocalLibraryService:
@@ -18,9 +19,11 @@ class LocalLibraryService:
         self,
         provider: LocalFileProvider,
         track_repository: TrackRepository,
+        settings_service: SettingsService | None = None,
     ) -> None:
         self._provider = provider
         self._track_repository = track_repository
+        self._settings_service = settings_service
 
     def import_file(self, path: Path) -> Track:
         track = self._provider.track_from_path(path)
@@ -41,6 +44,48 @@ class LocalLibraryService:
         for track in tracks:
             self._track_repository.save(track)
         return tracks
+
+    def list_music_folders(self) -> list[Path]:
+        if self._settings_service is None:
+            return []
+        return self._settings_service.load_music_folders()
+
+    def add_music_folder(self, path: Path) -> list[Track]:
+        folder = path.resolve()
+        if not folder.is_dir():
+            raise NotADirectoryError(folder)
+        folders = self.list_music_folders()
+        if str(folder).casefold() not in {str(item).casefold() for item in folders}:
+            folders.append(folder)
+            if self._settings_service is not None:
+                self._settings_service.save_music_folders(folders)
+        return self.import_folder(folder)
+
+    def remove_music_folder(self, path: Path) -> bool:
+        target = str(path.resolve()).casefold()
+        folders = self.list_music_folders()
+        remaining = [
+            folder for folder in folders if str(folder.resolve()).casefold() != target
+        ]
+        if len(remaining) == len(folders):
+            return False
+        if self._settings_service is not None:
+            self._settings_service.save_music_folders(remaining)
+        return True
+
+    def rescan_music_folder(self, path: Path) -> list[Track]:
+        target = str(path.resolve()).casefold()
+        folder = next(
+            (
+                item
+                for item in self.list_music_folders()
+                if str(item.resolve()).casefold() == target
+            ),
+            None,
+        )
+        if folder is None:
+            raise ValueError(f"Not a managed music folder: {path}")
+        return self.import_folder(folder)
 
     def list_tracks(self) -> list[Track]:
         return self._track_repository.list_all()

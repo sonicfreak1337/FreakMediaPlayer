@@ -128,3 +128,14 @@ def test_settings_service_ignores_invalid_window_layout() -> None:
     service = SettingsService(repository=repository)
 
     assert service.load_window_layout() is None
+
+
+def test_settings_service_round_trips_unique_music_folders(tmp_path: Path) -> None:
+    repository = InMemorySettingsRepository()
+    service = SettingsService(repository=repository)
+    first = tmp_path / "Music"
+    second = tmp_path / "Other"
+
+    service.save_music_folders([first, second, first])
+
+    assert service.load_music_folders() == [first, second]

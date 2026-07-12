@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QStackedWidget,
     QStyle,
     QTableWidget,
@@ -176,6 +177,11 @@ class LocalTracksPanel(QWidget):
                 self._remove_selected_track,
             ),
         ]
+        folder_button = buttons[2]
+        self._folder_menu = QMenu(folder_button)
+        self._folder_menu.aboutToShow.connect(self._rebuild_folder_menu)
+        folder_button.setMenu(self._folder_menu)
+        folder_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self._search.setObjectName("librarySearch")
         self._search.setPlaceholderText(
             "Search title, artist, album, genre, year or filename"
@@ -379,7 +385,46 @@ class LocalTracksPanel(QWidget):
     def _select_folder(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Import folder", str(Path.home()))
         if folder:
-            self._import_paths([Path(folder)])
+            imported = self._local_library_service.add_music_folder(Path(folder))
+            self.refresh()
+            self.status_message.emit(
+                f"Music folder added — indexed {len(imported)} "
+                f"track{'s' if len(imported) != 1 else ''}."
+            )
+
+    def _rebuild_folder_menu(self) -> None:
+        self._folder_menu.clear()
+        self._folder_menu.addAction("Add music folder…", self._select_folder)
+        folders = self._local_library_service.list_music_folders()
+        if not folders:
+            empty = self._folder_menu.addAction("No managed folders")
+            empty.setEnabled(False)
+            return
+        self._folder_menu.addSeparator()
+        for folder in folders:
+            submenu = self._folder_menu.addMenu(str(folder))
+            submenu.addAction(
+                "Rescan",
+                lambda _checked=False, path=folder: self._rescan_music_folder(path),
+            )
+            submenu.addAction(
+                "Remove source",
+                lambda _checked=False, path=folder: self._remove_music_folder(path),
+            )
+
+    def _rescan_music_folder(self, folder: Path) -> None:
+        imported = self._local_library_service.rescan_music_folder(folder)
+        self.refresh()
+        self.status_message.emit(
+            f"Music folder rescanned — indexed {len(imported)} "
+            f"track{'s' if len(imported) != 1 else ''}."
+        )
+
+    def _remove_music_folder(self, folder: Path) -> None:
+        if self._local_library_service.remove_music_folder(folder):
+            self.status_message.emit(
+                "Music folder source removed; imported tracks and files were kept."
+            )
 
     def _import_paths(self, paths: list[Path]) -> None:
         imported = self._local_library_service.import_paths(paths)

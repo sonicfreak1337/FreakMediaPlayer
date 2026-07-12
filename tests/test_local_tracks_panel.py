@@ -12,6 +12,7 @@ class FakeLocalLibraryService:
     def __init__(self) -> None:
         self.tracks: list[Track] = []
         self.favorite_ids: set[str] = set()
+        self.music_folders: list[Path] = []
 
     def list_tracks(self) -> list[Track]:
         return self.tracks
@@ -22,6 +23,18 @@ class FakeLocalLibraryService:
 
     def list_favorite_track_ids(self) -> set[str]:
         return self.favorite_ids
+
+    def list_music_folders(self) -> list[Path]:
+        return self.music_folders
+
+    def rescan_music_folder(self, _path: Path) -> list[Track]:
+        return self.tracks
+
+    def remove_music_folder(self, path: Path) -> bool:
+        if path not in self.music_folders:
+            return False
+        self.music_folders.remove(path)
+        return True
 
 
 def make_track() -> Track:
@@ -130,3 +143,21 @@ def test_library_filters_combine_and_reset_with_search() -> None:
     assert panel._search.text() == ""
     assert panel._genre_filter.currentData() is None
     assert panel._favorite_filter.currentData() is None
+
+
+def test_managed_folder_menu_exposes_rescan_and_remove() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = FakeLocalLibraryService()
+    service.music_folders = [Path("C:/Music")]
+    panel = LocalTracksPanel("Local Library", cast(LocalLibraryService, service))
+
+    panel._rebuild_folder_menu()
+
+    actions = panel._folder_menu.actions()
+    assert actions[0].text() == "Add music folder…"
+    submenu = next(action.menu() for action in actions if action.menu() is not None)
+    assert submenu is not None
+    assert [action.text() for action in submenu.actions()] == [
+        "Rescan",
+        "Remove source",
+    ]

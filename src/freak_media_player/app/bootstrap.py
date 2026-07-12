@@ -50,6 +50,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     local_library_service = LocalLibraryService(
         provider=local_provider,
         track_repository=database.tracks,
+        settings_service=settings_service,
     )
     indexed_version = database.settings.get(LOCAL_METADATA_INDEX_KEY)
     if indexed_version != str(LOCAL_METADATA_INDEX_VERSION):
