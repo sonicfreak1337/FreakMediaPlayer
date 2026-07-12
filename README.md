@@ -25,7 +25,8 @@ Current version: `0.9.0`
 - Manual playlist ordering through drag and drop or move controls
 - Playback for common local formats supported by the bundled FFmpeg libraries
 - Streaming local decoding through PyAV/FFmpeg with bounded memory usage
-- Native PCM output through Qt AudioSink
+- Selectable Windows audio device and Mono, Stereo, 5.1 or 7.1 PCM output through
+  Qt AudioSink when supported by the device
 - Play, pause, stop, previous, next, seek, volume, and mute controls
 - Non-repeating playlist shuffle with previous/next history
 - Repeat All and Repeat One playback modes
@@ -88,7 +89,22 @@ filter with frequency, gain and Q controls. The displayed response curve uses
 the same coefficients as the audio processor.
 
 PyAV handles local decoding, SciPy applies cascaded second-order filters, and Qt
-`QAudioSink` writes the final stereo PCM stream to the native audio device.
+`QAudioSink` writes the final configured PCM stream to the native audio device.
+
+## Audio output and channel mapping
+
+The Settings dialog lists only the Mono, Stereo, 5.1 and 7.1 configurations that
+the selected Windows device reports as supported. Changing device or speaker mode
+restarts the stream near its previous position; an unavailable saved mode safely
+falls back to Stereo.
+
+Channel conversion happens once, after PyAV has decoded the source at 48 kHz and
+before equalizer processing. Native channels keep FFmpeg's standard order. Mono is
+routed to Center for surround output and duplicated to Left/Right for Stereo.
+Stereo keeps its original Left/Right channels, adds a -6 dB Center and -6 dB rear
+feed for surround, and leaves LFE silent. Surround downmixes use Center at -3 dB,
+surround channels at -6/-9 dB and LFE at -12 dB; each output row is normalized so
+a full-scale correlated input cannot exceed full scale before DSP.
 
 ## Visualizer
 

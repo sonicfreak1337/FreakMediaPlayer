@@ -56,17 +56,28 @@ class AudioSampleBuffer:
 
     def append_pcm16_stereo(self, payload: bytes) -> None:
         """Append little-endian stereo int16 PCM, preserving partial frames."""
+        self.append_pcm16(payload, 2)
+
+    def append_pcm16(self, payload: bytes, channels: int) -> None:
+        """Append interleaved PCM and downmix all channels for visualization."""
         if not payload or not self._capture_enabled:
             return
+        if channels <= 0:
+            raise ValueError("channels must be positive")
         with self._lock:
             framed = self._remainder + payload
-            complete_size = len(framed) - (len(framed) % PCM_FRAME_BYTES)
+            frame_bytes = channels * 2
+            complete_size = len(framed) - (len(framed) % frame_bytes)
             self._remainder = framed[complete_size:]
             if complete_size == 0:
                 return
-            stereo = np.frombuffer(framed[:complete_size], dtype="<i2").reshape(-1, 2)
-            mono = np.add(stereo[:, 0], stereo[:, 1], dtype=np.float32)
-            mono *= 0.5 / INT16_SCALE
+            interleaved = np.frombuffer(framed[:complete_size], dtype="<i2").reshape(
+                -1, channels
+            )
+            mono = np.asarray(
+                np.mean(interleaved, axis=1, dtype=np.float32), dtype=np.float32
+            )
+            mono /= INT16_SCALE
             self._append_mono(mono)
             self._sequence += int(mono.size)
 

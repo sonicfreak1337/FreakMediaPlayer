@@ -1,5 +1,5 @@
 from freak_media_player.models.media import Artist, AudioSource, ProviderIdentity, Track
-from freak_media_player.models.playback import PlaybackStatus, RepeatMode
+from freak_media_player.models.playback import AudioOutputMode, PlaybackStatus, RepeatMode
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
@@ -237,6 +237,10 @@ def test_audio_output_devices_can_be_selected() -> None:
     service.set_output_device("default")
 
     assert service.selected_output_device_id() == "default"
+
+    service.set_output_mode(AudioOutputMode.SURROUND_5_1)
+
+    assert service.output_mode() == AudioOutputMode.SURROUND_5_1
 
 
 def test_playlist_reorder_updates_the_next_track_without_interrupting_playback() -> None:

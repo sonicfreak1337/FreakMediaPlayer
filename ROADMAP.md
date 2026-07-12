@@ -57,16 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **MUSS – Ausgabekonfiguration:** Mono, Stereo, 5.1 und 7.1 als echte
-  Wiedergabemodi anbieten. Nur vom gewählten Gerät unterstützte Modi dürfen
-  aktivierbar sein; nicht unterstützte Konfigurationen werden verständlich erklärt
-  und fallen sicher auf Stereo beziehungsweise die letzte funktionsfähige
-  Einstellung zurück.
-- **MUSS – Mehrkanal-Wiedergabe:** Mehrkanaldateien mit korrekter Kanalzuordnung
-  ausgeben und Mono-/Stereoquellen über eine dokumentierte, pegelstabile Matrix auf
-  den gewählten Modus abbilden. Mono und Stereo müssen ebenso korrekt aus
-  Mehrkanalquellen heruntergemischt werden; Center, LFE und Surroundkanäle dürfen
-  weder vertauscht noch unkontrolliert übersteuert werden.
 - **MUSS – „Als Nächstes abspielen“:** Eine temporäre Queue vor der normalen
   Wiedergabelistenreihenfolge einführen; Einträge anzeigen, umsortieren und
   entfernen. Das vorhandene `queue_items`-Schema kann dafür genutzt werden.

@@ -8,6 +8,7 @@ from freak_media_player.config.paths import AppPathResolver, AppPaths
 from freak_media_player.config.settings import AppSettings
 from freak_media_player.core.ports import AudioBackend
 from freak_media_player.database.session import DatabaseSession, DatabaseSessionFactory
+from freak_media_player.models.playback import AudioOutputMode
 from freak_media_player.player.audio_backend import create_desktop_audio_backend
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.playback_controller import PlaybackController
@@ -72,9 +73,15 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     selected_audio_backend = audio_backend or create_desktop_audio_backend(audio_samples)
     try:
         selected_audio_backend.set_output_device(player_preferences.audio_device_id)
+        selected_audio_backend.set_output_mode(
+            AudioOutputMode(player_preferences.audio_output_mode)
+        )
     except ValueError:
-        player_preferences = replace(player_preferences, audio_device_id=None)
+        player_preferences = replace(
+            player_preferences, audio_device_id=None, audio_output_mode="stereo"
+        )
         selected_audio_backend.set_output_device(None)
+        selected_audio_backend.set_output_mode(AudioOutputMode.STEREO)
         settings_service.save_player_preferences(player_preferences)
     selected_audio_backend.set_volume(settings_service.load_playback_volume())
     selected_audio_backend.set_equalizer_preset(

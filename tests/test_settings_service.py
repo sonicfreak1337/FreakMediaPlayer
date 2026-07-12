@@ -160,6 +160,7 @@ def test_settings_service_round_trips_player_preferences() -> None:
         visualizer_quality="eco",
         enable_notifications=False,
         audio_device_id="speakers-42",
+        audio_output_mode="7.1",
     )
 
     service.save_player_preferences(preferences)

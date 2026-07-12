@@ -17,7 +17,11 @@ from PySide6.QtMultimedia import (
 
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
-from freak_media_player.models.playback import AudioOutputDevice, PlaybackStatus
+from freak_media_player.models.playback import (
+    AudioOutputDevice,
+    AudioOutputMode,
+    PlaybackStatus,
+)
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.decode_worker import AudioDecodeWorker
 from freak_media_player.player.dsp.parametric_equalizer import (
@@ -29,11 +33,7 @@ from freak_media_player.player.pipeline_messages import (
     PcmChunk,
     PipelineMessage,
 )
-from freak_media_player.player.streaming_decoder import (
-    OUTPUT_CHANNELS,
-    OUTPUT_SAMPLE_RATE,
-    PyAVStreamingDecoder,
-)
+from freak_media_player.player.streaming_decoder import OUTPUT_SAMPLE_RATE, PyAVStreamingDecoder
 
 MIN_VOLUME = 0.0
 MAX_VOLUME = 1.0
@@ -73,6 +73,7 @@ class DawAudioBackend(QObject):
         self._status = PlaybackStatus.STOPPED
         self._error_message: str | None = None
         self._output_device_id: str | None = None
+        self._output_mode = AudioOutputMode.STEREO
         self._duration_ms = 0
         self._base_position_ms = 0
         self._volume = 1.0
@@ -177,6 +178,7 @@ class DawAudioBackend(QObject):
                 self._device_id(device),
                 device.description(),
                 self._device_id(device) == default_id,
+                self._supported_modes(device),
             )
             for device in QMediaDevices.audioOutputs()
         ]
@@ -194,6 +196,41 @@ class DawAudioBackend(QObject):
         position_ms = self.position_ms()
         previous_status = self._status
         self._output_device_id = device_id
+        supported_modes = self._supported_modes(self._selected_output_device())
+        if self._output_mode not in supported_modes:
+            fallback = (
+                AudioOutputMode.STEREO
+                if AudioOutputMode.STEREO in supported_modes
+                else next(iter(supported_modes), None)
+            )
+            if fallback is None:
+                raise ValueError("The selected audio device supports no PCM output mode.")
+            self._output_mode = fallback
+            self._decoder.set_output_layout(fallback.av_layout)
+        if self._source_path is None:
+            return
+        if previous_status == PlaybackStatus.PLAYING:
+            self._restart_pipeline(position_ms, start_output=True)
+            self._status = PlaybackStatus.PLAYING
+            self._pump_timer.start()
+        elif previous_status == PlaybackStatus.PAUSED:
+            self._prepare_pipeline(position_ms)
+            self._status = PlaybackStatus.PAUSED
+
+    def output_mode(self) -> AudioOutputMode:
+        return self._output_mode
+
+    def set_output_mode(self, mode: AudioOutputMode) -> None:
+        if mode not in self._supported_modes(self._selected_output_device()):
+            raise ValueError(
+                f"{mode.value} output is not supported by the selected audio device."
+            )
+        if mode == self._output_mode:
+            return
+        position_ms = self.position_ms()
+        previous_status = self._status
+        self._output_mode = mode
+        self._decoder.set_output_layout(mode.av_layout)
         if self._source_path is None:
             return
         if previous_status == PlaybackStatus.PLAYING:
@@ -254,7 +291,9 @@ class DawAudioBackend(QObject):
             if written <= 0:
                 break
             if self._audio_samples is not None:
-                self._audio_samples.append_pcm16_stereo(outgoing[:written])
+                self._audio_samples.append_pcm16(
+                    outgoing[:written], self._output_mode.channels
+                )
             self._pending_audio = self._pending_audio[written:]
             bytes_free -= written
 
@@ -298,7 +337,8 @@ class DawAudioBackend(QObject):
     def _create_sink(self) -> None:
         audio_format = QAudioFormat()
         audio_format.setSampleRate(OUTPUT_SAMPLE_RATE)
-        audio_format.setChannelCount(OUTPUT_CHANNELS)
+        audio_format.setChannelCount(self._output_mode.channels)
+        audio_format.setChannelConfig(self._channel_config(self._output_mode))
         audio_format.setSampleFormat(QAudioFormat.SampleFormat.Int16)
         self._sink = self._sink_factory(audio_format)
         self._sink.setVolume(self._volume)
@@ -306,7 +346,9 @@ class DawAudioBackend(QObject):
     def _default_sink_factory(self, audio_format: QAudioFormat) -> QAudioSink:
         output = self._selected_output_device()
         if not output.isFormatSupported(audio_format):
-            raise RuntimeError("Default audio device does not support 48 kHz stereo PCM.")
+            raise RuntimeError(
+                f"Audio device does not support 48 kHz {self._output_mode.value} PCM."
+            )
         return QAudioSink(output, audio_format, self)
 
     def _selected_output_device(self) -> QAudioDevice:
@@ -318,6 +360,28 @@ class DawAudioBackend(QObject):
 
     def _device_id(self, device: QAudioDevice) -> str:
         return bytes(device.id().data()).hex()
+
+    def _supported_modes(self, device: QAudioDevice) -> tuple[AudioOutputMode, ...]:
+        return tuple(
+            mode for mode in AudioOutputMode if device.isFormatSupported(self._format(mode))
+        )
+
+    def _format(self, mode: AudioOutputMode) -> QAudioFormat:
+        audio_format = QAudioFormat()
+        audio_format.setSampleRate(OUTPUT_SAMPLE_RATE)
+        audio_format.setChannelCount(mode.channels)
+        audio_format.setChannelConfig(self._channel_config(mode))
+        audio_format.setSampleFormat(QAudioFormat.SampleFormat.Int16)
+        return audio_format
+
+    @staticmethod
+    def _channel_config(mode: AudioOutputMode) -> QAudioFormat.ChannelConfig:
+        return {
+            AudioOutputMode.MONO: QAudioFormat.ChannelConfig.ChannelConfigMono,
+            AudioOutputMode.STEREO: QAudioFormat.ChannelConfig.ChannelConfigStereo,
+            AudioOutputMode.SURROUND_5_1: QAudioFormat.ChannelConfig.ChannelConfigSurround5Dot1,
+            AudioOutputMode.SURROUND_7_1: QAudioFormat.ChannelConfig.ChannelConfigSurround7Dot1,
+        }[mode]
 
     def _stop_worker(self) -> None:
         self._decode_worker.stop()

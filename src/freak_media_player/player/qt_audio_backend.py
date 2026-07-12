@@ -9,7 +9,11 @@ from PySide6.QtMultimedia import QAudioDevice, QAudioOutput, QMediaDevices, QMed
 
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
-from freak_media_player.models.playback import AudioOutputDevice, PlaybackStatus
+from freak_media_player.models.playback import (
+    AudioOutputDevice,
+    AudioOutputMode,
+    PlaybackStatus,
+)
 
 MIN_VOLUME = 0.0
 MAX_VOLUME = 1.0
@@ -24,6 +28,7 @@ class QtAudioBackend:
         self._equalizer_preset = EQUALIZER_PRESETS[0]
         self._finished_callback: Callable[[], None] | None = None
         self._output_device_id: str | None = None
+        self._output_mode = AudioOutputMode.STEREO
         self._player.mediaStatusChanged.connect(self._handle_media_status_changed)
 
     def load(self, source: AudioSource) -> None:
@@ -103,6 +108,13 @@ class QtAudioBackend:
         assert device is not None
         self._audio_output.setDevice(device)
         self._output_device_id = device_id
+
+    def output_mode(self) -> AudioOutputMode:
+        return self._output_mode
+
+    def set_output_mode(self, mode: AudioOutputMode) -> None:
+        if mode != AudioOutputMode.STEREO:
+            raise ValueError("The Qt fallback backend supports Stereo output only.")
 
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback

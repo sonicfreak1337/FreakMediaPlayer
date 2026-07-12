@@ -25,6 +25,7 @@ class PlayerPreferences:
     visualizer_quality: str = "balanced"
     enable_notifications: bool = True
     audio_device_id: str | None = None
+    audio_output_mode: str = "stereo"
 
 
 class SettingsMigrationError(RuntimeError):

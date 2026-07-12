@@ -9,11 +9,32 @@ from enum import StrEnum
 from freak_media_player.models.media import Track
 
 
+class AudioOutputMode(StrEnum):
+    MONO = "mono"
+    STEREO = "stereo"
+    SURROUND_5_1 = "5.1"
+    SURROUND_7_1 = "7.1"
+
+    @property
+    def channels(self) -> int:
+        return {
+            self.MONO: 1,
+            self.STEREO: 2,
+            self.SURROUND_5_1: 6,
+            self.SURROUND_7_1: 8,
+        }[self]
+
+    @property
+    def av_layout(self) -> str:
+        return str(self)
+
+
 @dataclass(frozen=True)
 class AudioOutputDevice:
     device_id: str
     description: str
     is_default: bool = False
+    supported_modes: tuple[AudioOutputMode, ...] = (AudioOutputMode.STEREO,)
 
 
 class PlaybackStatus(StrEnum):

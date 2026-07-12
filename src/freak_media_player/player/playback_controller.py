@@ -9,6 +9,7 @@ from freak_media_player.core.ports import AudioBackend, AudioSourceResolver
 from freak_media_player.models.media import Track
 from freak_media_player.models.playback import (
     AudioOutputDevice,
+    AudioOutputMode,
     PlaybackState,
     PlaybackStatus,
     RepeatMode,
@@ -216,6 +217,14 @@ class PlaybackController:
 
     def set_output_device(self, device_id: str | None) -> PlaybackState:
         self._audio_backend.set_output_device(device_id)
+        self._state = self._snapshot()
+        return self.state
+
+    def output_mode(self) -> AudioOutputMode:
+        return self._audio_backend.output_mode()
+
+    def set_output_mode(self, mode: AudioOutputMode) -> PlaybackState:
+        self._audio_backend.set_output_mode(mode)
         self._state = self._snapshot()
         return self.state
 

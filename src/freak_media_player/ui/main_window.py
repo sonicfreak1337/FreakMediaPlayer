@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from freak_media_player import __version__
+from freak_media_player.models.playback import AudioOutputMode
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
@@ -294,6 +295,9 @@ class MainWindow(QMainWindow):
         updated = dialog.preferences()
         try:
             self._playback_service.set_output_device(updated.audio_device_id)
+            self._playback_service.set_output_mode(
+                AudioOutputMode(updated.audio_output_mode)
+            )
         except ValueError as error:
             self.show_status_message(f"Could not select audio output: {error}")
             return

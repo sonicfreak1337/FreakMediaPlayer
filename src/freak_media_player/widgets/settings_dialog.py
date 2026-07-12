@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from freak_media_player.config.settings import PlayerPreferences
-from freak_media_player.models.playback import AudioOutputDevice
+from freak_media_player.models.playback import AudioOutputDevice, AudioOutputMode
 
 
 class SettingsDialog(QDialog):
@@ -30,6 +30,8 @@ class SettingsDialog(QDialog):
         self.setModal(True)
         self.setMinimumWidth(460)
         self._audio_device = QComboBox()
+        self._audio_mode = QComboBox()
+        self._audio_devices = audio_devices
         self._restore_session = QCheckBox("Restore last track and position (paused)")
         self._continue_after_track = QCheckBox("Continue with the next playlist track")
         self._restore_layout = QCheckBox("Restore window and module layout")
@@ -47,6 +49,7 @@ class SettingsDialog(QDialog):
             visualizer_quality=str(self._visualizer_quality.currentData()),
             enable_notifications=self._notifications.isChecked(),
             audio_device_id=device_id if isinstance(device_id, str) else None,
+            audio_output_mode=str(self._audio_mode.currentData()),
         )
 
     def _build_layout(self, audio_devices: list[AudioOutputDevice]) -> None:
@@ -60,6 +63,13 @@ class SettingsDialog(QDialog):
                 f"{device.description}{suffix}", device.device_id
             )
         audio_form.addRow("Output device", self._audio_device)
+        self._audio_device.currentIndexChanged.connect(self._refresh_output_modes)
+        audio_form.addRow("Speaker configuration", self._audio_mode)
+        explanation = QLabel(
+            "Only configurations supported by the selected Windows device are shown."
+        )
+        explanation.setWordWrap(True)
+        audio_form.addRow(explanation)
         layout.addWidget(audio)
 
         playback = QGroupBox("Playback and session")
@@ -100,3 +110,33 @@ class SettingsDialog(QDialog):
         self._visualizer_quality.setCurrentIndex(max(0, quality_index))
         device_index = self._audio_device.findData(preferences.audio_device_id)
         self._audio_device.setCurrentIndex(max(0, device_index))
+        self._refresh_output_modes()
+        mode_index = self._audio_mode.findData(preferences.audio_output_mode)
+        self._audio_mode.setCurrentIndex(max(0, mode_index))
+
+    def _refresh_output_modes(self) -> None:
+        selected_id = self._audio_device.currentData()
+        device = next(
+            (
+                item
+                for item in self._audio_devices
+                if item.device_id == selected_id
+                or (selected_id is None and item.is_default)
+            ),
+            None,
+        )
+        modes = device.supported_modes if device else (AudioOutputMode.STEREO,)
+        previous = self._audio_mode.currentData()
+        self._audio_mode.clear()
+        labels = {
+            AudioOutputMode.MONO: "Mono",
+            AudioOutputMode.STEREO: "Stereo",
+            AudioOutputMode.SURROUND_5_1: "5.1 Surround",
+            AudioOutputMode.SURROUND_7_1: "7.1 Surround",
+        }
+        for mode in modes:
+            self._audio_mode.addItem(labels[mode], mode.value)
+        index = self._audio_mode.findData(previous)
+        if index < 0:
+            index = self._audio_mode.findData(AudioOutputMode.STEREO.value)
+        self._audio_mode.setCurrentIndex(max(0, index))

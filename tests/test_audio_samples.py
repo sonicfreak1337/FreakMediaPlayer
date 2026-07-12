@@ -37,3 +37,12 @@ def test_audio_sample_buffer_clear_returns_silence() -> None:
     samples.clear()
 
     np.testing.assert_array_equal(samples.snapshot(4), np.zeros(4, dtype=np.float32))
+
+
+def test_audio_sample_buffer_accepts_multichannel_pcm() -> None:
+    samples = AudioSampleBuffer(capacity=2)
+    payload = np.array([[1000, 1000, 1000, 1000, 1000, 1000]], dtype="<i2").tobytes()
+
+    samples.append_pcm16(payload, 6)
+
+    np.testing.assert_allclose(samples.snapshot(2), [0.0, 1000 / 32768])

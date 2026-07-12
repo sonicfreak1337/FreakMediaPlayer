@@ -38,6 +38,7 @@ MUSIC_FOLDERS_KEY = "library.music_folders"
 ACTIVE_PLAYLIST_KEY = "playlist.active_id"
 PLAYER_PREFERENCES_KEY = "player.preferences"
 VISUALIZER_QUALITIES = frozenset({"eco", "balanced", "smooth"})
+AUDIO_OUTPUT_MODES = frozenset({"mono", "stereo", "5.1", "7.1"})
 
 
 class SettingsService:
@@ -243,6 +244,12 @@ class SettingsService:
                     data, "enable_notifications", True
                 ),
                 audio_device_id=device_id or None,
+                audio_output_mode=(
+                    str(data.get("audio_output_mode", "stereo"))
+                    if str(data.get("audio_output_mode", "stereo"))
+                    in AUDIO_OUTPUT_MODES
+                    else "stereo"
+                ),
             )
         except (TypeError, json.JSONDecodeError):
             return PlayerPreferences()

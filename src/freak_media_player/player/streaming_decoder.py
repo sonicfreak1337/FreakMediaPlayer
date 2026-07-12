@@ -14,8 +14,8 @@ from av.audio.stream import AudioStream
 from av.container import InputContainer
 from numpy.typing import NDArray
 
-OUTPUT_CHANNELS = 2
-OUTPUT_LAYOUT = "stereo"
+from freak_media_player.player.channel_mixer import mix_channels
+
 OUTPUT_SAMPLE_FORMAT = "fltp"
 OUTPUT_SAMPLE_RATE = 48_000
 
@@ -24,10 +24,18 @@ OUTPUT_SAMPLE_RATE = 48_000
 class AudioStreamInfo:
     duration_ms: int
     sample_rate: int = OUTPUT_SAMPLE_RATE
-    channels: int = OUTPUT_CHANNELS
+    channels: int = 2
 
 
 class PyAVStreamingDecoder:
+    def __init__(self, output_layout: str = "stereo") -> None:
+        self._output_layout = output_layout
+
+    def set_output_layout(self, output_layout: str) -> None:
+        if output_layout not in {"mono", "stereo", "5.1", "7.1"}:
+            raise ValueError(f"Unsupported output layout: {output_layout}")
+        self._output_layout = output_layout
+
     def probe(self, path: Path) -> AudioStreamInfo:
         with av.open(str(path)) as container:
             stream = self._audio_stream(container)
@@ -48,25 +56,35 @@ class PyAVStreamingDecoder:
                 target_timestamp = int((start_ms / 1000.0) / float(time_base))
                 container.seek(target_timestamp, stream=stream, backward=True)
 
-            resampler = av.AudioResampler(
-                format=OUTPUT_SAMPLE_FORMAT,
-                layout=OUTPUT_LAYOUT,
-                rate=OUTPUT_SAMPLE_RATE,
-            )
+            resampler: av.AudioResampler | None = None
             for frame in container.decode(stream):
                 if stop_event.is_set():
                     return
+                if resampler is None:
+                    resampler = av.AudioResampler(
+                        format=OUTPUT_SAMPLE_FORMAT,
+                        layout=frame.layout.name,
+                        rate=OUTPUT_SAMPLE_RATE,
+                    )
                 for output_frame in resampler.resample(frame):
                     samples = self._frame_samples(output_frame, start_ms)
                     if samples.shape[1] > 0:
-                        yield samples
+                        channels = tuple(
+                            channel.name for channel in output_frame.layout.channels
+                        )
+                        yield mix_channels(samples, channels, self._output_layout)
 
+            if resampler is None:
+                return
             for output_frame in resampler.resample(None):
                 if stop_event.is_set():
                     return
                 samples = self._frame_samples(output_frame, start_ms)
                 if samples.shape[1] > 0:
-                    yield samples
+                    channels = tuple(
+                        channel.name for channel in output_frame.layout.channels
+                    )
+                    yield mix_channels(samples, channels, self._output_layout)
 
     def _audio_stream(self, container: InputContainer) -> AudioStream:
         if not container.streams.audio:

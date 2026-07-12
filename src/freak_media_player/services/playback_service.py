@@ -6,7 +6,12 @@ import time
 from collections.abc import Callable
 
 from freak_media_player.models.media import Track
-from freak_media_player.models.playback import AudioOutputDevice, PlaybackState, RepeatMode
+from freak_media_player.models.playback import (
+    AudioOutputDevice,
+    AudioOutputMode,
+    PlaybackState,
+    RepeatMode,
+)
 from freak_media_player.player.playback_controller import PlaybackController
 
 SESSION_CHECKPOINT_SECONDS = 5.0
@@ -120,6 +125,12 @@ class PlaybackService:
 
     def set_output_device(self, device_id: str | None) -> PlaybackState:
         return self._controller.set_output_device(device_id)
+
+    def output_mode(self) -> AudioOutputMode:
+        return self._controller.output_mode()
+
+    def set_output_mode(self, mode: AudioOutputMode) -> PlaybackState:
+        return self._controller.set_output_mode(mode)
 
     def set_continue_after_track(self, enabled: bool) -> None:
         self._controller.set_continue_after_track(enabled)

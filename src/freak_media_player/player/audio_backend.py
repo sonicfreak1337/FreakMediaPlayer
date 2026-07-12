@@ -8,7 +8,11 @@ from collections.abc import Callable
 from freak_media_player.core.ports import AudioBackend
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
-from freak_media_player.models.playback import AudioOutputDevice, PlaybackStatus
+from freak_media_player.models.playback import (
+    AudioOutputDevice,
+    AudioOutputMode,
+    PlaybackStatus,
+)
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 
 DEFAULT_VOLUME = 1.0
@@ -29,6 +33,7 @@ class NullAudioBackend:
         self._equalizer_preset = EQUALIZER_PRESETS[0]
         self._finished_callback: Callable[[], None] | None = None
         self._output_device_id: str | None = None
+        self._output_mode = AudioOutputMode.STEREO
 
     def load(self, source: AudioSource) -> None:
         self._source = source
@@ -74,7 +79,11 @@ class NullAudioBackend:
         return None
 
     def available_output_devices(self) -> list[AudioOutputDevice]:
-        return [AudioOutputDevice("default", "Default audio output", True)]
+        return [
+            AudioOutputDevice(
+                "default", "Default audio output", True, tuple(AudioOutputMode)
+            )
+        ]
 
     def selected_output_device_id(self) -> str | None:
         return self._output_device_id
@@ -83,6 +92,12 @@ class NullAudioBackend:
         if device_id not in {None, "default"}:
             raise ValueError(f"Unknown audio output device: {device_id}")
         self._output_device_id = device_id
+
+    def output_mode(self) -> AudioOutputMode:
+        return self._output_mode
+
+    def set_output_mode(self, mode: AudioOutputMode) -> None:
+        self._output_mode = mode
 
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback

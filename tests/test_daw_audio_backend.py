@@ -12,7 +12,7 @@ from PySide6.QtMultimedia import QAudioSink, QtAudio
 from PySide6.QtWidgets import QApplication
 
 from freak_media_player.models.media import AudioSource
-from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playback import AudioOutputMode, PlaybackStatus
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.daw_audio_backend import DawAudioBackend
 from freak_media_player.player.streaming_decoder import PyAVStreamingDecoder
@@ -83,6 +83,28 @@ def test_streaming_decoder_reads_real_audio_file(tmp_path: Path) -> None:
     assert info.duration_ms == pytest.approx(100, abs=2)
     assert chunks
     assert chunks[0].shape[0] == 2
+
+
+@pytest.mark.parametrize(
+    ("mode", "channels"),
+    [
+        (AudioOutputMode.MONO, 1),
+        (AudioOutputMode.STEREO, 2),
+        (AudioOutputMode.SURROUND_5_1, 6),
+        (AudioOutputMode.SURROUND_7_1, 8),
+    ],
+)
+def test_streaming_decoder_maps_stereo_to_selected_output_layout(
+    tmp_path: Path, mode: AudioOutputMode, channels: int
+) -> None:
+    path = tmp_path / f"tone-{mode.value}.wav"
+    write_test_wave(path)
+    decoder = PyAVStreamingDecoder(mode.av_layout)
+
+    chunks = list(decoder.decode(path, 0, threading.Event()))
+
+    assert chunks
+    assert chunks[0].shape[0] == channels
 
 
 def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:

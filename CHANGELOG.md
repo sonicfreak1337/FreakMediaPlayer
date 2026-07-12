@@ -6,6 +6,8 @@
   end-of-track behavior, layout restore, Visualizer performance and notifications.
 - Added live enumeration and selection of Windows audio output devices with an
   explicit follow-default option and safe fallback for unavailable saved devices.
+- Added device-validated Mono, Stereo, 5.1 and 7.1 output with deterministic,
+  peak-stable upmix/downmix matrices and multichannel Visualizer sample capture.
 - Added documented window-wide shortcuts for transport, volume, mute, Shuffle,
   Repeat, library search and core module visibility.
 
