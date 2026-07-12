@@ -174,6 +174,10 @@ class LocalTracksPanel(QWidget):
     def header_controls(self) -> tuple[QWidget, ...]:
         return tuple(self._header_controls)
 
+    def focus_search(self) -> None:
+        self._search.setFocus(Qt.FocusReason.ShortcutFocusReason)
+        self._search.selectAll()
+
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if self._event_has_local_paths(event):
             event.acceptProposedAction()

@@ -57,7 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **MUSS - QOL:** gängige tastatur shortcuts einbauen.
 - **MUSS – Einstellungsdialog:** Den vorhandenen Button aktivieren und mindestens
   Audioausgabe, Sitzungswiederherstellung, Verhalten bei Titelende, Oberfläche,
   Visualizer-Leistung und Benachrichtigungen konfigurierbar machen.
@@ -78,8 +77,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
   entfernen. Das vorhandene `queue_items`-Schema kann dafür genutzt werden.
 - **MUSS – Fehlerfortsetzung:** Bei einem unspielbaren Titel automatisch zum
   nächsten gültigen Queue- oder Playlist-Eintrag wechseln, ohne Endlosschleife.
-- **SOLL – Tastenkürzel:** Play/Pause, Stop, Vor, Zurück, Lautstärke, Stumm,
-  Shuffle, Repeat, Suche und Modulumschaltung dokumentiert steuerbar machen.
 - **SOLL – Windows-Medientasten:** Play/Pause, Vor und Zurück unterstützen, sofern
   dies ohne instabile globale Tastatur-Hooks möglich ist.
 - **SOLL – Benachrichtigung bei Titelwechsel:** Optional Titel, Interpret und Cover
@@ -104,8 +101,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 - Mono, Stereo, 5.1 und 7.1 mit Kanal-Identifikationstönen und echten
   Mehrkanal-Testdateien prüfen. Equalizer, Lautstärke, Seek, Pause und Titelwechsel
   müssen in jedem unterstützten Modus hörbar und ohne Kanalfehler funktionieren.
-- Tastatursteuerung vervollständigen und Windows-Medientasten integrieren, sofern
-  dies ohne instabile globale Hooks möglich ist.
 - Fokusführung, Tooltips, Skalierung und Kontrast für 100 %, 125 %, 150 % und 200 %
   DPI prüfen.
 - Leerlauf-, Wiedergabe- und Visualizer-Last auf typischer Hardware messen und

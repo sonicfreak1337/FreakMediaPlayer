@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QByteArray, Qt, Signal
@@ -66,6 +66,7 @@ class MainWindow(QMainWindow):
         self._skin_manager = skin_manager
         self._module_menu = QMenu("Module", self)
         self._module_docks: dict[str, QDockWidget] = {}
+        self._shortcuts: list[QShortcut] = []
 
         self.setObjectName("mainWindow")
         self.setWindowTitle(f"Freak Media Player {__version__}")
@@ -183,6 +184,7 @@ class MainWindow(QMainWindow):
             playback_service=self._playback_service,
             local_library_service=self._local_library_service,
         )
+        self._player_panel = player_panel
         player_panel.set_module_menu(self._module_menu)
         library_panel = LocalTracksPanel(
             "Local Library",
@@ -190,6 +192,7 @@ class MainWindow(QMainWindow):
             show_title=False,
             search_service=self._search_service,
         )
+        self._library_panel = library_panel
         playlist_panel = PlaylistPanel(
             playlist_service=self._playlist_service,
             playback_service=self._playback_service,
@@ -278,11 +281,38 @@ class MainWindow(QMainWindow):
         self._module_menu.addAction(action)
 
     def _configure_shortcuts(self) -> None:
-        self._play_pause_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
-        self._play_pause_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self._play_pause_shortcut.activated.connect(
-            self._playback_service.toggle_play_pause
+        shortcuts: tuple[tuple[QKeySequence, Callable[[], object]], ...] = (
+            (QKeySequence(Qt.Key.Key_Space), self._playback_service.toggle_play_pause),
+            (QKeySequence("Ctrl+."), self._playback_service.stop),
+            (QKeySequence("Ctrl+Right"), self._playback_service.next_track),
+            (QKeySequence("Ctrl+Left"), self._playback_service.previous_track),
+            (QKeySequence("Ctrl+Up"), lambda: self._playback_service.adjust_volume(0.05)),
+            (QKeySequence("Ctrl+Down"), lambda: self._playback_service.adjust_volume(-0.05)),
+            (QKeySequence("M"), self._playback_service.toggle_mute),
+            (QKeySequence("Ctrl+H"), self._playback_service.toggle_shuffle),
+            (QKeySequence("Ctrl+R"), self._playback_service.cycle_repeat_mode),
+            (QKeySequence(QKeySequence.StandardKey.Find), self._focus_library_search),
+            (QKeySequence("Ctrl+1"), lambda: self._toggle_module("localLibraryModule")),
+            (QKeySequence("Ctrl+2"), lambda: self._toggle_module("playlistModule")),
+            (QKeySequence("Ctrl+3"), lambda: self._toggle_module("equalizerModule")),
         )
+        for sequence, handler in shortcuts:
+            shortcut = QShortcut(sequence, self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(handler)
+            self._shortcuts.append(shortcut)
+
+    def _focus_library_search(self) -> None:
+        dock = self.module("localLibraryModule")
+        if dock is not None:
+            dock.show()
+            dock.raise_()
+        self._library_panel.focus_search()
+
+    def _toggle_module(self, object_name: str) -> None:
+        dock = self.module(object_name)
+        if dock is not None:
+            dock.setVisible(not dock.isVisible())
 
     def module(self, object_name: str) -> QDockWidget | None:
         """Return a registered module (used by plugins and tests)."""

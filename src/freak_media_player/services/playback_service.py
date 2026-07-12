@@ -25,6 +25,7 @@ class PlaybackService:
         self._session_changed = session_changed
         self._playback_modes_changed = playback_modes_changed
         self._last_checkpoint_at = 0.0
+        self._volume_before_mute = 0.5
 
     @property
     def state(self) -> PlaybackState:
@@ -100,6 +101,16 @@ class PlaybackService:
 
     def volume(self) -> float:
         return self._controller.volume()
+
+    def adjust_volume(self, delta: float) -> PlaybackState:
+        return self.set_volume(self.volume() + delta)
+
+    def toggle_mute(self) -> PlaybackState:
+        current = self.volume()
+        if current > 0:
+            self._volume_before_mute = current
+            return self.set_volume(0.0)
+        return self.set_volume(max(0.05, self._volume_before_mute))
 
     def checkpoint(self, *, force: bool = False) -> None:
         """Persist the current track and position at a bounded write frequency."""

@@ -31,7 +31,6 @@ from freak_media_player.widgets.seek_slider import SeekSlider
 
 POSITION_REFRESH_MS = 500
 VOLUME_SCALE = 100
-DEFAULT_RESTORE_VOLUME = 0.5
 
 
 class MiniSpectrum(QWidget):
@@ -108,7 +107,6 @@ class PlayerBar(QWidget):
         self._last_duration_seconds = -1
         self._mini_spectrum = MiniSpectrum()
         self._refresh_timer = QTimer(self)
-        self._volume_before_mute = 1.0
         self.setObjectName("playerPanel")
         self.setMinimumHeight(125)
         self._build_layout()
@@ -437,13 +435,8 @@ class PlayerBar(QWidget):
         self.refresh()
 
     def _toggle_mute(self) -> None:
-        current_volume = self._playback_service.volume()
-        if current_volume > 0:
-            self._volume_before_mute = current_volume
-            next_volume = 0.0
-        else:
-            next_volume = max(DEFAULT_RESTORE_VOLUME, self._volume_before_mute)
-        self._playback_service.set_volume(next_volume)
+        self._playback_service.toggle_mute()
+        next_volume = self._playback_service.volume()
         self._sync_volume_slider(next_volume)
         self._update_volume_controls()
 

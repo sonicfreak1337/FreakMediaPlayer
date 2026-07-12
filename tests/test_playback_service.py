@@ -114,6 +114,27 @@ def test_volume_control_notifies_persistence_with_bounded_backend_value() -> Non
     assert saved_volumes == [1.0]
 
 
+def test_volume_shortcuts_adjust_and_restore_muted_volume() -> None:
+    saved_volumes: list[float] = []
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=FakeSourceResolver(),
+        ),
+        volume_changed=saved_volumes.append,
+    )
+    service.set_volume(0.4)
+
+    service.adjust_volume(0.05)
+    service.toggle_mute()
+    assert service.volume() == 0.0
+    service.toggle_mute()
+
+    assert service.volume() == 0.45
+    assert saved_volumes[-3:] == [0.45, 0.0, 0.45]
+
+
 def test_playback_checkpoint_persists_track_and_timestamp() -> None:
     saved_sessions: list[tuple[str, int]] = []
     service = PlaybackService(

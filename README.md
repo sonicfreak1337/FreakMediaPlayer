@@ -140,6 +140,20 @@ If the development dependencies are installed:
 pytest
 ```
 
+## Keyboard shortcuts
+
+- `Space`: Play/Pause
+- `Ctrl+.`: Stop
+- `Ctrl+Left` / `Ctrl+Right`: Previous/Next track
+- `Ctrl+Up` / `Ctrl+Down`: Volume up/down
+- `M`: Mute/restore volume
+- `Ctrl+H`: Toggle Shuffle
+- `Ctrl+R`: Cycle Repeat Off/All/One
+- `Ctrl+F`: Show the library and focus search
+- `Ctrl+1`, `Ctrl+2`, `Ctrl+3`: Toggle Library, Playlist and Equalizer
+- `Ctrl+Shift+V`: Toggle Visualizer
+- `Delete`: Remove selected active-playlist rows
+
 ## Local Data
 
 Runtime data is stored under the current Windows user profile:

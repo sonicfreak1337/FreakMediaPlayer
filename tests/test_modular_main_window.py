@@ -89,6 +89,55 @@ def test_space_toggles_play_pause_from_main_window(tmp_path, monkeypatch) -> Non
     app.processEvents()
 
     assert calls == 1
+    shortcut_keys = {shortcut.key().toString() for shortcut in shortcuts}
+    assert {
+        "Space",
+        "Ctrl+.",
+        "Ctrl+Left",
+        "Ctrl+Right",
+        "Ctrl+Up",
+        "Ctrl+Down",
+        "M",
+        "Ctrl+H",
+        "Ctrl+R",
+        "Ctrl+F",
+        "Ctrl+1",
+        "Ctrl+2",
+        "Ctrl+3",
+    } <= shortcut_keys
+    window.close()
+    context.database.connection.close()
+
+
+def test_find_shortcut_restores_library_and_focuses_search(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    context = build_app_context(audio_backend=NullAudioBackend())
+    window = MainWindow(
+        playback_service=context.playback_service,
+        local_library_service=context.local_library_service,
+        playlist_service=context.playlist_service,
+        equalizer_service=context.equalizer_service,
+        search_service=context.search_service,
+    )
+    window.show()
+    window.activateWindow()
+    library = window.module("localLibraryModule")
+    assert library is not None
+    library.hide()
+    app.processEvents()
+    find_shortcut = next(
+        shortcut
+        for shortcut in window.findChildren(QShortcut)
+        if shortcut.key().matches(QKeySequence(QKeySequence.StandardKey.Find))
+        == QKeySequence.SequenceMatch.ExactMatch
+    )
+
+    find_shortcut.activated.emit()
+    app.processEvents()
+
+    assert library.isVisible() is True
+    assert window._library_panel._search.hasFocus() is True
     window.close()
     context.database.connection.close()
 

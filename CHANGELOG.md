@@ -2,6 +2,8 @@
 
 ## 0.9.0 - 2026-07-12
 
+- Added documented window-wide shortcuts for transport, volume, mute, Shuffle,
+  Repeat, library search and core module visibility.
 - Added transactional batch upserts and automated 10,000-track acceptance coverage
   for import, search, rescan, ordering, multi-row moves and every schema upgrade.
 - Clarified playlist removal, library-only removal and irreversible disk deletion,
