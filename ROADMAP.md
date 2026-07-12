@@ -51,37 +51,6 @@ Die wichtigsten zusätzlichen Vorschläge nutzen bereits vorhandene Vorarbeit: D
 Datenbankschema kennt Favoriten, Bewertungen, Wiedergabeverlauf und Queue-Einträge,
 während Favoriten- und Einstellungsbuttons in der Oberfläche schon vorgesehen sind.
 
-## 0.9.2 – Release Candidate vorbereiten
-
-Ziel: Aus dem Entwicklungsstand wird ein wartbares Produkt, das auf einem sauberen
-Windows-System zuverlässig installiert und diagnostiziert werden kann.
-
-### Featureliste
-
-
-### Release-Qualität und Technik
-
-- Einstellungen und Bibliotheksdaten vor riskanten Migrationen sichern und bei
-  Fehlern verständlich reagieren.
-- Reproduzierbaren Release-Build auf einem sauberen System prüfen.
-- Installations- oder portable Release-Verteilung festlegen, inklusive sauberer
-  Deinstallation beziehungsweise klar dokumentierter Datenablage.
-- Lizenzhinweise für Python-, Qt-, FFmpeg/PyAV-, NumPy- und SciPy-Bestandteile
-  vollständig mitliefern.
-- Benutzerhandbuch für Import, Playlist, Equalizer, Visualizer, Skins,
-  Tastenkürzel, Datenablage und Fehlerdiagnose fertigstellen.
-- Versionsnummern, Dateieigenschaften, Programmtitel und Changelog automatisiert
-  auf Konsistenz prüfen.
-
-Abnahme:
-
-- Release-Artefakt startet ohne installierte Python-Entwicklungsumgebung auf den
-  unterstützten Windows-Versionen.
-- Upgrade, Neuinstallation und Deinstallation wurden auf einer sauberen Umgebung
-  getestet.
-- Keine bekannten Fehler der Priorität Blocker oder Kritisch; alle übrigen
-  bekannten Einschränkungen sind dokumentiert.
-
 ## 1.0.0 – Stabiler lokaler Player
 
 Ziel: Funktionsumfang einfrieren, letzte Release-Blocker beheben und den lokalen

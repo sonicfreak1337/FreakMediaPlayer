@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.2 - Unreleased
+## 0.9.2 - 2026-07-13
 
 - Added validated local backup packages for library data, playlists, favorites and
   settings, plus integrity-checked restore with an automatic pre-restore backup.

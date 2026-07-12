@@ -119,13 +119,22 @@ def test_visualizer_only_runs_during_playback_and_tracks_application_focus(
     canvas.close()
 
 
-def test_project_version_sources_are_synchronized_on_0_9_1() -> None:
-    expected_version = "0.9.1"
+def test_project_version_sources_are_synchronized_on_0_9_2() -> None:
+    expected_version = "0.9.2"
     project_metadata = tomllib.loads(
         (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    changelog = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert project_metadata["project"]["version"] == expected_version
     assert __version__ == expected_version
     assert f"Current version: `{expected_version}`" in readme
+    assert f"## {expected_version} -" in changelog
+    for required_document in (
+        "USER_GUIDE.md",
+        "THIRD_PARTY_NOTICES.md",
+        "KNOWN_ISSUES.md",
+        "RELEASE_CHECKLIST.md",
+    ):
+        assert (PROJECT_ROOT / required_document).is_file()
