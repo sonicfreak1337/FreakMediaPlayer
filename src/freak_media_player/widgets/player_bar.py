@@ -65,6 +65,7 @@ class MiniSpectrum(QWidget):
 
 class PlayerBar(QWidget):
     remove_current_requested = Signal()
+    status_message = Signal(str)
 
     def __init__(self, playback_service: PlaybackService) -> None:
         super().__init__()
@@ -88,6 +89,7 @@ class PlayerBar(QWidget):
         self._cover_track_id: str | None = None
         self._track_display_initialized = False
         self._last_status: PlaybackStatus | None = None
+        self._last_error_message: str | None = None
         self._last_repeat_mode: RepeatMode | None = None
         self._last_shuffle_enabled: bool | None = None
         self._last_volume_percent = -1
@@ -384,7 +386,13 @@ class PlayerBar(QWidget):
     ) -> None:
         visible = status == PlaybackStatus.ERROR
         if visible:
-            self._error_label.setText(error_message or "The audio file could not be played.")
+            message = error_message or "The audio file could not be played."
+            self._error_label.setText(message)
+            if message != self._last_error_message:
+                self.status_message.emit(f"Playback error: {message}")
+                self._last_error_message = message
+        else:
+            self._last_error_message = None
         self._error_panel.setVisible(visible)
 
     def _seek(self, position_ms: int) -> None:

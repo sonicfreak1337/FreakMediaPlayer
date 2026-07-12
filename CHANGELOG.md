@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added concise transient status-bar feedback for imports, playback errors,
+  library changes, playlist persistence and saved equalizer changes.
 - Added explanatory first-run empty states to the library and playlist with the
   available import, add, double-click and drag-and-drop paths.
 - Added a visible `Reset Layout` command to the Module menu that restores and

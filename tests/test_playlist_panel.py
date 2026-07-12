@@ -85,6 +85,8 @@ def test_delete_key_removes_selected_playlist_rows() -> None:
     )
     panel._highlight_timer.stop()
     panel._table.selectRow(1)
+    messages: list[str] = []
+    panel.status_message.connect(messages.append)
 
     panel._delete_shortcut.activated.emit()
     app.processEvents()
@@ -92,6 +94,7 @@ def test_delete_key_removes_selected_playlist_rows() -> None:
     assert [track.id for track in playlist_service.list_tracks()] == ["1", "3"]
     assert panel._table.rowCount() == 2
     assert panel._delete_shortcut.key() == QKeySequence(Qt.Key.Key_Delete)
+    assert messages == ["Playlist saved — removed 1 track."]
 
 
 def test_playlist_empty_state_explains_how_to_add_tracks() -> None:

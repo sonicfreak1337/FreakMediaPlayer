@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -41,6 +41,8 @@ RESPONSE_POINT_COUNT = 180
 
 
 class EqualizerPanel(QWidget):
+    status_message = Signal(str)
+
     def __init__(
         self,
         equalizer_service: EqualizerService,
@@ -158,6 +160,7 @@ class EqualizerPanel(QWidget):
         preset_id = self._preset_combo.currentData()
         if isinstance(preset_id, str) and preset_id != CUSTOM_PRESET_ID:
             self._apply_preset(self._equalizer_service.select_preset(preset_id))
+            self.status_message.emit("Equalizer preset saved.")
 
     def _select_band(self, index: int) -> None:
         self._selected_band = index
@@ -176,6 +179,7 @@ class EqualizerPanel(QWidget):
             enabled=self._enabled.isChecked(),
         )
         self._apply_preset(preset)
+        self.status_message.emit("Equalizer changes saved.")
 
     def _edit_band_from_graph(
         self,
@@ -193,10 +197,12 @@ class EqualizerPanel(QWidget):
             enabled=current.enabled,
         )
         self._apply_preset(preset)
+        self.status_message.emit("Equalizer changes saved.")
 
     def _update_preamp(self, preamp_db: float) -> None:
         if not self._updating_controls:
             self._apply_preset(self._equalizer_service.set_preamp(preamp_db))
+            self.status_message.emit("Equalizer preamp saved.")
 
     def _apply_preset(self, preset: EqualizerPreset) -> None:
         self._updating_controls = True

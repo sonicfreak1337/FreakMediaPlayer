@@ -194,6 +194,8 @@ class MainWindow(QMainWindow):
         )
         library_panel.tracks_add_requested.connect(playlist_panel.add_track_ids)
         player_panel.remove_current_requested.connect(playlist_panel.remove_current_track)
+        for panel in (player_panel, library_panel, playlist_panel, equalizer_panel):
+            panel.status_message.connect(self.show_status_message)
 
         player_dock = self.add_module(
             "Player", player_panel, "playerModule", closable=False
@@ -247,6 +249,10 @@ class MainWindow(QMainWindow):
         status_bar.addPermanentWidget(QLabel(f"Freak Media Player {__version__}"))
         status_bar.addPermanentWidget(QSizeGrip(self))
         self.setStatusBar(status_bar)
+
+    def show_status_message(self, message: str, timeout_ms: int = 4_000) -> None:
+        """Show a concise transient result without interrupting the workflow."""
+        self.statusBar().showMessage(message, timeout_ms)
 
     def _add_layout_reset_action(self) -> None:
         self._module_menu.addSeparator()

@@ -93,6 +93,24 @@ def test_space_toggles_play_pause_from_main_window(tmp_path, monkeypatch) -> Non
     context.database.connection.close()
 
 
+def test_main_window_displays_transient_status_message(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    context = build_app_context(audio_backend=NullAudioBackend())
+    window = MainWindow(
+        playback_service=context.playback_service,
+        local_library_service=context.local_library_service,
+        playlist_service=context.playlist_service,
+        equalizer_service=context.equalizer_service,
+    )
+
+    window.show_status_message("Playlist saved.")
+
+    assert window.statusBar().currentMessage() == "Playlist saved."
+    window.close()
+    context.database.connection.close()
+
+
 def test_window_layout_restores_core_and_plugin_modules(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])

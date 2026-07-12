@@ -35,6 +35,7 @@ SOURCE_COLUMN = 5
 
 class LocalTracksPanel(QWidget):
     tracks_add_requested = Signal(object)
+    status_message = Signal(str)
 
     def __init__(
         self,
@@ -227,6 +228,11 @@ class LocalTracksPanel(QWidget):
         imported = self._local_library_service.import_paths(paths)
         if imported:
             self.refresh()
+            self.status_message.emit(
+                f"Imported {len(imported)} track{'s' if len(imported) != 1 else ''}."
+            )
+        else:
+            self.status_message.emit("No new supported audio files were found.")
 
     def _set_row(self, row: int, track: Track) -> None:
         title = QTableWidgetItem(track.title)
@@ -273,6 +279,10 @@ class LocalTracksPanel(QWidget):
             removed = self._local_library_service.remove_track(track_id) or removed
         if removed:
             self.refresh()
+            self.status_message.emit(
+                f"Removed {len(track_ids)} track{'s' if len(track_ids) != 1 else ''} "
+                "from the library."
+            )
 
     def _selected_track_ids(self) -> list[str]:
         track_ids_by_row: dict[int, str] = {}

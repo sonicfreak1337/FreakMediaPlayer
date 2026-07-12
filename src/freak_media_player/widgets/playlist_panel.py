@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -48,6 +48,8 @@ PLAYING_HIGHLIGHT_REFRESH_MS = 250
 
 
 class PlaylistPanel(QWidget):
+    status_message = Signal(str)
+
     def __init__(
         self,
         playlist_service: PlaylistService,
@@ -98,13 +100,21 @@ class PlaylistPanel(QWidget):
         track_ids: Iterable[str],
         position: int | None = None,
     ) -> None:
+        previous_count = len(self._tracks)
         tracks = self._playlist_service.add_track_ids(track_ids, position)
         self._show_tracks(tracks)
+        added_count = len(tracks) - previous_count
+        if added_count:
+            self.status_message.emit(
+                f"Playlist saved — added {added_count} "
+                f"track{'s' if added_count != 1 else ''}."
+            )
 
     def remove_current_track(self) -> None:
         position = self._playback_service.current_playlist_index()
         if position is not None:
             self._show_tracks(self._playlist_service.remove_positions([position]))
+            self.status_message.emit("Playlist saved — removed the current track.")
 
     def _build_layout(self) -> None:
         layout = QVBoxLayout(self)
@@ -272,6 +282,10 @@ class PlaylistPanel(QWidget):
         rows = self._selected_rows()
         if rows:
             self._show_tracks(self._playlist_service.remove_positions(rows))
+            self.status_message.emit(
+                f"Playlist saved — removed {len(rows)} "
+                f"track{'s' if len(rows) != 1 else ''}."
+            )
 
     def _move_selected_up(self) -> None:
         rows = self._selected_rows()
@@ -284,7 +298,10 @@ class PlaylistPanel(QWidget):
             self._move_rows(rows, rows[-1] + 2)
 
     def _move_rows(self, rows: Iterable[int], target: int) -> None:
-        self._show_tracks(self._playlist_service.move_positions(rows, target))
+        selected = list(rows)
+        self._show_tracks(self._playlist_service.move_positions(selected, target))
+        if selected:
+            self.status_message.emit("Playlist order saved.")
 
     def _selected_rows(self) -> list[int]:
         return sorted({item.row() for item in self._table.selectedItems()})

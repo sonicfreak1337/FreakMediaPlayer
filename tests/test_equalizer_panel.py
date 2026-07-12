@@ -24,3 +24,15 @@ def test_panel_initialization_preserves_restored_equalizer_preset() -> None:
     assert service.current_preset() == restored
     assert panel._preset_combo.currentData() == "metalcore"
     assert persisted_changes == []
+
+
+def test_equalizer_change_emits_saved_status() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = EqualizerService(audio_backend=NullAudioBackend())
+    panel = EqualizerPanel(equalizer_service=service)
+    messages: list[str] = []
+    panel.status_message.connect(messages.append)
+
+    panel._gain.setValue(2.5)
+
+    assert messages[-1] == "Equalizer changes saved."

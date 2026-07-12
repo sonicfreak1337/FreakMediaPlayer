@@ -58,8 +58,6 @@ Entwicklungsphase.
 
 ### Featureliste
 
-- **SOLL – Statusmeldungen:** Import, Wiedergabefehler und gespeicherte Änderungen
-  kurz und eindeutig in der Statusleiste melden.
 
 ### Stabilität und Technik
 

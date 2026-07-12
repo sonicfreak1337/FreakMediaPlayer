@@ -92,6 +92,8 @@ def test_playback_error_shows_message_and_direct_actions() -> None:
         status=PlaybackStatus.ERROR,
         error_message="The audio file is damaged or unsupported.",
     )
+    messages: list[str] = []
+    player_bar.status_message.connect(messages.append)
 
     player_bar.refresh()
     app.processEvents()
@@ -103,3 +105,6 @@ def test_playback_error_shows_message_and_direct_actions() -> None:
         for button in player_bar._error_panel.findChildren(type(player_bar._play_pause_button))
     }
     assert labels == {"Retry", "Skip", "Remove"}
+    assert messages == [
+        "Playback error: The audio file is damaged or unsupported."
+    ]
