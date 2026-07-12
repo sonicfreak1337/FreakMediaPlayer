@@ -72,10 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **SOLL – Metadaten bearbeiten:** Titel, Interpret, Album, Jahr, Genre sowie
-  Track-/Disc-Nummer in der Bibliothek korrigieren. Für 1.0 werden Änderungen
-  sicher in der Datenbank gespeichert; direktes Zurückschreiben in Audiodateien
-  bleibt zunächst optional, um Dateischäden zu vermeiden.
 - **OPTIONAL – Gruppierte Navigation:** Zusätzliche Ansichten für Interpreten,
   Alben und Genres anbieten, ohne die schnelle Tabellenansicht zu ersetzen.
 - **OPTIONAL – Intelligente Listen:** Dynamische Ansichten wie „Favoriten“,

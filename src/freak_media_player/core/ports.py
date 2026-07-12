@@ -83,6 +83,20 @@ class TrackRepository(Protocol):
     def update_provider_item(self, track_id: str, item_id: str) -> None:
         ...
 
+    def update_metadata(
+        self,
+        track_id: str,
+        *,
+        title: str,
+        artist: str,
+        album: str | None,
+        release_year: int | None,
+        genre: str | None,
+        track_number: int | None,
+        disc_number: int | None,
+    ) -> None:
+        ...
+
 
 class PlaylistRepository(Protocol):
     def ensure(self, playlist_id: str, name: str) -> None:

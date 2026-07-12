@@ -15,6 +15,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -44,6 +45,7 @@ from freak_media_player.services.search_service import (
     SearchService,
 )
 from freak_media_player.ui.assets import set_themed_icon
+from freak_media_player.widgets.metadata_editor import MetadataEditorDialog
 from freak_media_player.widgets.track_table import TRACK_ID_ROLE, TrackTableWidget
 
 TITLE_COLUMN = 0
@@ -59,6 +61,7 @@ SOURCE_COLUMN = 7
 class LocalTracksPanel(QWidget):
     tracks_add_requested = Signal(object)
     track_relocated = Signal(object)
+    track_metadata_changed = Signal(object)
     status_message = Signal(str)
 
     def __init__(
@@ -209,6 +212,11 @@ class LocalTracksPanel(QWidget):
                 QStyle.StandardPixmap.SP_DialogOpenButton,
                 "Relocate selected missing file",
                 self._relocate_selected_track,
+            ),
+            self._build_button(
+                QStyle.StandardPixmap.SP_FileDialogDetailedView,
+                "Edit selected track metadata",
+                self._edit_selected_metadata,
             ),
         ]
         folder_button = buttons[2]
@@ -411,6 +419,7 @@ class LocalTracksPanel(QWidget):
             QStyle.StandardPixmap.SP_DirIcon: "▣+",
             QStyle.StandardPixmap.SP_TrashIcon: "−",
             QStyle.StandardPixmap.SP_DialogOpenButton: "↻",
+            QStyle.StandardPixmap.SP_FileDialogDetailedView: "✎",
         }
         button.setText(symbols.get(icon, "+"))
         icon_files = {
@@ -596,6 +605,36 @@ class LocalTracksPanel(QWidget):
         self.refresh()
         self.track_relocated.emit(relocated)
         self.status_message.emit("Track file location updated.")
+
+    def _edit_selected_metadata(self) -> None:
+        track_ids = self._selected_track_ids()
+        if len(track_ids) != 1:
+            self.status_message.emit("Select exactly one library track to edit.")
+            return
+        track = self._local_library_service.get_track(track_ids[0])
+        if track is None:
+            return
+        dialog = MetadataEditorDialog(track, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        values = dialog.values()
+        try:
+            updated = self._local_library_service.update_track_metadata(
+                track.id,
+                title=values.title,
+                artist=values.artist,
+                album=values.album,
+                release_year=values.release_year,
+                genre=values.genre,
+                track_number=values.track_number,
+                disc_number=values.disc_number,
+            )
+        except ValueError as error:
+            self.status_message.emit(f"Could not save metadata: {error}")
+            return
+        self.refresh()
+        self.track_metadata_changed.emit(updated)
+        self.status_message.emit("Library metadata saved; audio file unchanged.")
 
     def _add_item_to_playlist(self, item: QTableWidgetItem) -> None:
         title_item = self._table.item(item.row(), 0)

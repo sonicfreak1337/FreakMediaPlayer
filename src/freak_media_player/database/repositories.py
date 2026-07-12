@@ -60,15 +60,23 @@ class SQLiteTrackRepository:
             ON CONFLICT(id) DO UPDATE SET
                 provider_id = excluded.provider_id,
                 provider_track_id = excluded.provider_track_id,
-                title = excluded.title,
-                artist = excluded.artist,
-                album = excluded.album,
+                title = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.title ELSE excluded.title END,
+                artist = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.artist ELSE excluded.artist END,
+                album = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.album ELSE excluded.album END,
                 duration_seconds = excluded.duration_seconds,
-                album_artist = excluded.album_artist,
-                release_year = excluded.release_year,
-                genre = excluded.genre,
-                track_number = excluded.track_number,
-                disc_number = excluded.disc_number
+                album_artist = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.album_artist ELSE excluded.album_artist END,
+                release_year = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.release_year ELSE excluded.release_year END,
+                genre = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.genre ELSE excluded.genre END,
+                track_number = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.track_number ELSE excluded.track_number END,
+                disc_number = CASE WHEN tracks.metadata_overridden = 1
+                    THEN tracks.disc_number ELSE excluded.disc_number END
             """,
             (
                 track.id,
@@ -166,6 +174,40 @@ class SQLiteTrackRepository:
         cursor = self._connection.execute(
             "UPDATE tracks SET provider_track_id = ? WHERE id = ?",
             (item_id, track_id),
+        )
+        if cursor.rowcount != 1:
+            raise KeyError(track_id)
+        self._connection.commit()
+
+    def update_metadata(
+        self,
+        track_id: str,
+        *,
+        title: str,
+        artist: str,
+        album: str | None,
+        release_year: int | None,
+        genre: str | None,
+        track_number: int | None,
+        disc_number: int | None,
+    ) -> None:
+        cursor = self._connection.execute(
+            """
+            UPDATE tracks
+            SET title = ?, artist = ?, album = ?, release_year = ?, genre = ?,
+                track_number = ?, disc_number = ?, metadata_overridden = 1
+            WHERE id = ?
+            """,
+            (
+                title,
+                artist,
+                album,
+                release_year,
+                genre,
+                track_number,
+                disc_number,
+                track_id,
+            ),
         )
         if cursor.rowcount != 1:
             raise KeyError(track_id)

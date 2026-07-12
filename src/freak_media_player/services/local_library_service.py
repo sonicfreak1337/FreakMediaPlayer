@@ -153,6 +153,49 @@ class LocalLibraryService:
             provider_identity=replace(track.provider_identity, item_id=str(resolved)),
         )
 
+    def update_track_metadata(
+        self,
+        track_id: str,
+        *,
+        title: str,
+        artist: str,
+        album: str | None,
+        release_year: int | None,
+        genre: str | None,
+        track_number: int | None,
+        disc_number: int | None,
+    ) -> Track:
+        clean_title = " ".join(title.split())
+        clean_artist = " ".join(artist.split())
+        if not clean_title or not clean_artist:
+            raise ValueError("Title and artist cannot be empty.")
+        if release_year is not None and not 1000 <= release_year <= 9999:
+            raise ValueError("Release year must use four digits.")
+        if track_number is not None and track_number < 1:
+            raise ValueError("Track number must be positive.")
+        if disc_number is not None and disc_number < 1:
+            raise ValueError("Disc number must be positive.")
+        self._track_repository.update_metadata(
+            track_id,
+            title=clean_title,
+            artist=clean_artist,
+            album=self._clean_optional(album),
+            release_year=release_year,
+            genre=self._clean_optional(genre),
+            track_number=track_number,
+            disc_number=disc_number,
+        )
+        updated = self._track_repository.get_by_id(track_id)
+        if updated is None:
+            raise KeyError(track_id)
+        return updated
+
+    def _clean_optional(self, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = " ".join(value.split())
+        return cleaned or None
+
     def refresh_metadata(self) -> int:
         refreshed_count = 0
         for track in self._track_repository.list_all():

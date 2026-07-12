@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added safe database-only editing for title, artist, album, year, genre and
+  track/disc numbers, with manual overrides protected from metadata rescans.
 - Added M3U/M3U8 import and export with UTF-8, relative and absolute local paths,
   automatic library import and skipped-entry result reporting.
 - Activated the Player heart button with immediate SQLite persistence and favorite

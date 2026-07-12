@@ -120,6 +120,13 @@ INITIAL_MIGRATIONS: tuple[Migration, ...] = (
         ON tracks(provider_id, provider_track_id);
         """,
     ),
+    Migration(
+        version=5,
+        sql="""
+        ALTER TABLE tracks
+        ADD COLUMN metadata_overridden INTEGER NOT NULL DEFAULT 0;
+        """,
+    ),
 )
 
 

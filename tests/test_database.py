@@ -170,6 +170,50 @@ def test_track_repository_updates_source_and_enforces_unique_provider_item() -> 
         raise AssertionError("Expected duplicate provider item to be rejected")
 
 
+def test_manual_metadata_survives_scanner_upsert() -> None:
+    repository = SQLiteTrackRepository(make_connection())
+    scanned = Track(
+        id="track-1",
+        provider_identity=ProviderIdentity(provider_id="local", item_id="song.mp3"),
+        title="Scanned Title",
+        artist=Artist(name="Scanned Artist"),
+        duration=timedelta(seconds=10),
+    )
+    repository.save(scanned)
+    repository.update_metadata(
+        scanned.id,
+        title="Manual Title",
+        artist="Manual Artist",
+        album="Manual Album",
+        release_year=2025,
+        genre="Manual Genre",
+        track_number=7,
+        disc_number=2,
+    )
+    repository.save(
+        Track(
+            id=scanned.id,
+            provider_identity=scanned.provider_identity,
+            title="New Scan Title",
+            artist=Artist(name="New Scan Artist"),
+            duration=timedelta(seconds=20),
+        )
+    )
+
+    loaded = repository.get_by_id(scanned.id)
+
+    assert loaded is not None
+    assert loaded.title == "Manual Title"
+    assert loaded.artist.name == "Manual Artist"
+    assert loaded.album is not None
+    assert loaded.album.title == "Manual Album"
+    assert loaded.album.release_year == 2025
+    assert loaded.genre == "Manual Genre"
+    assert loaded.track_number == 7
+    assert loaded.disc_number == 2
+    assert loaded.duration == timedelta(seconds=20)
+
+
 def test_playlist_repository_preserves_track_order() -> None:
     connection = make_connection()
     tracks = SQLiteTrackRepository(connection)

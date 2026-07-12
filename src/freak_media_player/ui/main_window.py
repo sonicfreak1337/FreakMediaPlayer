@@ -202,6 +202,9 @@ class MainWindow(QMainWindow):
         )
         library_panel.tracks_add_requested.connect(playlist_panel.add_track_ids)
         library_panel.track_relocated.connect(lambda _track: playlist_panel.refresh())
+        library_panel.track_metadata_changed.connect(
+            lambda _track: playlist_panel.refresh()
+        )
         player_panel.remove_current_requested.connect(playlist_panel.remove_current_track)
         player_panel.favorite_changed.connect(lambda _track_id, _favorite: library_panel.refresh())
         player_panel.favorite_changed.connect(lambda _track_id, _favorite: playlist_panel.refresh())

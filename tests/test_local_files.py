@@ -239,3 +239,49 @@ def test_relocate_track_preserves_id_and_manually_stored_metadata(tmp_path: Path
     assert relocated.artist.name == "Manual Artist"
     assert relocated.genre == "Manual Genre"
     assert Path(relocated.provider_identity.item_id) == new_path.resolve()
+
+
+def test_update_track_metadata_validates_and_stores_database_override(
+    tmp_path: Path,
+) -> None:
+    audio = tmp_path / "song.mp3"
+    write_audio_file(audio)
+    repository = SQLiteTrackRepository(make_connection())
+    service = LocalLibraryService(LocalFileProvider(), repository)
+    track = service.import_file(audio)
+
+    updated = service.update_track_metadata(
+        track.id,
+        title="  Manual   Title ",
+        artist=" Manual Artist ",
+        album=" Manual Album ",
+        release_year=2024,
+        genre=" Doom ",
+        track_number=4,
+        disc_number=1,
+    )
+
+    assert updated.title == "Manual Title"
+    assert updated.artist.name == "Manual Artist"
+    assert updated.album is not None
+    assert updated.album.title == "Manual Album"
+    assert updated.album.release_year == 2024
+    assert updated.genre == "Doom"
+    assert updated.track_number == 4
+    assert updated.disc_number == 1
+
+    try:
+        service.update_track_metadata(
+            track.id,
+            title="",
+            artist="Artist",
+            album=None,
+            release_year=None,
+            genre=None,
+            track_number=None,
+            disc_number=None,
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Expected empty title to be rejected")
