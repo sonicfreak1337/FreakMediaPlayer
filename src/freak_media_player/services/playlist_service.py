@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterable
+from pathlib import Path
 from uuid import uuid4
 
 from freak_media_player.core.ports import PlaylistRepository, TrackRepository
 from freak_media_player.models.media import Track
-from freak_media_player.models.playlist import NamedPlaylist
+from freak_media_player.models.playlist import NamedPlaylist, PlaylistImportResult
+from freak_media_player.providers.local_files import LOCAL_FILE_PROVIDER_ID
+from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.settings_service import SettingsService
 
 DEFAULT_PLAYLIST_ID = "active-playlist"
@@ -20,10 +24,12 @@ class PlaylistService:
         playlist_repository: PlaylistRepository,
         track_repository: TrackRepository,
         settings_service: SettingsService | None = None,
+        local_library_service: LocalLibraryService | None = None,
     ) -> None:
         self._playlist_repository = playlist_repository
         self._track_repository = track_repository
         self._settings_service = settings_service
+        self._local_library_service = local_library_service
         self._playlist_repository.ensure(DEFAULT_PLAYLIST_ID, DEFAULT_PLAYLIST_NAME)
         saved_id = (
             settings_service.load_active_playlist_id(DEFAULT_PLAYLIST_ID)
@@ -91,6 +97,51 @@ class PlaylistService:
         self._active_playlist_id = remaining[0].playlist_id
         self._persist_active_playlist()
         return remaining[0]
+
+    def import_m3u(self, playlist_path: Path) -> PlaylistImportResult:
+        path = playlist_path.resolve()
+        if path.suffix.lower() not in {".m3u", ".m3u8"}:
+            raise ValueError("Playlist must use the .m3u or .m3u8 extension.")
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+        tracks: list[Track] = []
+        skipped = 0
+        for line in lines:
+            value = line.strip()
+            if not value or value.startswith("#"):
+                continue
+            source = Path(value)
+            if not source.is_absolute():
+                source = path.parent / source
+            source = source.resolve()
+            track = self._track_repository.get_by_provider_item(
+                LOCAL_FILE_PROVIDER_ID, str(source)
+            )
+            if track is None and self._local_library_service is not None:
+                try:
+                    track = self._local_library_service.import_file(source)
+                except (OSError, ValueError):
+                    track = None
+            if track is None:
+                skipped += 1
+            else:
+                tracks.append(track)
+        playlist = self.create_playlist(self._unique_playlist_name(path.stem))
+        self._playlist_repository.replace_tracks(playlist.playlist_id, tracks)
+        return PlaylistImportResult(playlist, len(tracks), skipped)
+
+    def export_m3u(self, playlist_path: Path, *, relative: bool = True) -> Path:
+        path = playlist_path
+        if path.suffix.lower() not in {".m3u", ".m3u8"}:
+            path = path.with_suffix(".m3u8")
+        path = path.resolve()
+        lines = ["#EXTM3U"]
+        for track in self.list_tracks():
+            source = Path(track.provider_identity.item_id).resolve()
+            lines.append(
+                os.path.relpath(source, path.parent) if relative else str(source)
+            )
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return path
 
     def add_track_ids(
         self,
@@ -164,6 +215,16 @@ class PlaylistService:
         ):
             raise ValueError("A playlist with that name already exists.")
         return clean_name
+
+    def _unique_playlist_name(self, preferred: str) -> str:
+        base = " ".join(preferred.split()) or "Imported Playlist"
+        existing = {playlist.name.casefold() for playlist in self.list_playlists()}
+        if base.casefold() not in existing:
+            return base
+        suffix = 2
+        while f"{base} {suffix}".casefold() in existing:
+            suffix += 1
+        return f"{base} {suffix}"
 
     def _persist_active_playlist(self) -> None:
         if self._settings_service is not None:

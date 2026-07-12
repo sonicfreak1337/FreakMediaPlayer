@@ -63,6 +63,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         playlist_repository=database.playlists,
         track_repository=database.tracks,
         settings_service=settings_service,
+        local_library_service=local_library_service,
     )
 
     queue = PlaybackQueue(playlist_service.list_tracks())

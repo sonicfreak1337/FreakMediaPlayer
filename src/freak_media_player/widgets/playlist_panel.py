@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import (
@@ -16,6 +17,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -164,6 +166,9 @@ class PlaylistPanel(QWidget):
         actions_menu.addAction("New playlist…", self._create_playlist)
         actions_menu.addAction("Duplicate playlist…", self._duplicate_playlist)
         actions_menu.addAction("Rename playlist…", self._rename_playlist)
+        actions_menu.addSeparator()
+        actions_menu.addAction("Import M3U/M3U8…", self._import_m3u)
+        actions_menu.addAction("Export M3U8…", self._export_m3u)
         actions_menu.addSeparator()
         actions_menu.addAction("Clear playlist…", self._clear_playlist)
         actions_menu.addAction("Delete playlist…", self._delete_playlist)
@@ -317,6 +322,46 @@ class PlaylistPanel(QWidget):
         self._refresh_playlist_selector()
         self.refresh()
         self.status_message.emit(f"Deleted playlist “{deleted_name}”.")
+
+    def _import_m3u(self) -> None:
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Import playlist",
+            str(Path.home()),
+            "M3U playlists (*.m3u *.m3u8)",
+        )
+        if not selected:
+            return
+        try:
+            result = self._playlist_service.import_m3u(Path(selected))
+        except (OSError, UnicodeError, ValueError) as error:
+            self.status_message.emit(f"Could not import playlist: {error}")
+            return
+        self._refresh_playlist_selector()
+        self.refresh()
+        self.status_message.emit(
+            f"Imported “{result.playlist.name}”: {result.track_count} tracks, "
+            f"{result.skipped_count} skipped."
+        )
+
+    def _export_m3u(self) -> None:
+        suggested = f"{self._playlist_selector.currentText()}.m3u8"
+        selected, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Export playlist",
+            str(Path.home() / suggested),
+            "M3U8 playlist (*.m3u8);;M3U playlist (*.m3u)",
+        )
+        if not selected:
+            return
+        try:
+            exported = self._playlist_service.export_m3u(
+                Path(selected), relative=True
+            )
+        except OSError as error:
+            self.status_message.emit(f"Could not export playlist: {error}")
+            return
+        self.status_message.emit(f"Playlist exported to {exported.name}.")
 
     def _configure_highlight_timer(self) -> None:
         self._highlight_timer.setInterval(PLAYING_HIGHLIGHT_REFRESH_MS)

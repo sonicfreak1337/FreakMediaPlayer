@@ -72,8 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **SOLL – M3U/M3U8:** Wiedergabelisten mit lokalen Pfaden importieren und
-  exportieren; relative und absolute Pfade korrekt behandeln.
 - **SOLL – Metadaten bearbeiten:** Titel, Interpret, Album, Jahr, Genre sowie
   Track-/Disc-Nummer in der Bibliothek korrigieren. Für 1.0 werden Änderungen
   sicher in der Datenbank gespeichert; direktes Zurückschreiben in Audiodateien

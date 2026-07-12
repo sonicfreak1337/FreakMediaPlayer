@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added M3U/M3U8 import and export with UTF-8, relative and absolute local paths,
+  automatic library import and skipped-entry result reporting.
 - Activated the Player heart button with immediate SQLite persistence and favorite
   markers in both library and playlist, integrated with the favorite filter.
 - Added multiple named persistent playlists with active-list restoration and
