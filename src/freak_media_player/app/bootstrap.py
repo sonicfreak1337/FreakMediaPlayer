@@ -64,7 +64,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     )
 
     queue = PlaybackQueue(playlist_service.list_tracks())
-    audio_samples = AudioSampleBuffer()
+    audio_samples = AudioSampleBuffer(capture_enabled=False)
     selected_audio_backend = audio_backend or create_desktop_audio_backend(audio_samples)
     selected_audio_backend.set_volume(settings_service.load_playback_volume())
     selected_audio_backend.set_equalizer_preset(

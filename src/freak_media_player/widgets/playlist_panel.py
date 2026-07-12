@@ -5,7 +5,15 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QBrush, QColor, QIcon, QKeySequence, QShortcut
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QHideEvent,
+    QIcon,
+    QKeySequence,
+    QShortcut,
+    QShowEvent,
+)
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -154,7 +162,15 @@ class PlaylistPanel(QWidget):
     def _configure_highlight_timer(self) -> None:
         self._highlight_timer.setInterval(PLAYING_HIGHLIGHT_REFRESH_MS)
         self._highlight_timer.timeout.connect(self._sync_playing_highlight)
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        self._sync_playing_highlight()
         self._highlight_timer.start()
+
+    def hideEvent(self, event: QHideEvent) -> None:
+        self._highlight_timer.stop()
+        super().hideEvent(event)
 
     def _build_button(
         self,

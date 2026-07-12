@@ -53,3 +53,24 @@ def test_repeat_button_uses_distinct_assets_for_each_mode() -> None:
 
     assert len({off_icon, all_icon, one_icon}) == 3
     app.processEvents()
+
+
+def test_mute_button_uses_a_distinct_muted_icon() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=ProviderRegistry(),
+        )
+    )
+    player_bar = PlayerBar(service)
+    player_bar._refresh_timer.stop()
+    volume_icon = player_bar._volume_button.icon().cacheKey()
+
+    player_bar._toggle_mute()
+    app.processEvents()
+
+    assert player_bar._volume_button.text() == "Muted"
+    assert player_bar._volume_button.toolTip() == "Restore volume"
+    assert player_bar._volume_button.icon().cacheKey() != volume_icon

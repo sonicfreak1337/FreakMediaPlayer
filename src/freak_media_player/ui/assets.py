@@ -32,6 +32,13 @@ def asset_path(file_name: str) -> Path:
 
 def set_themed_icon(button: QAbstractButton, file_name: str, size: int) -> None:
     """Apply an icon and remember its logical path for live skin changes."""
+    if (
+        button.property(_SKIN_ASSET_PROPERTY) == file_name
+        and button.property(_SKIN_ASSET_WIDTH_PROPERTY) == size
+        and button.property(_SKIN_ASSET_HEIGHT_PROPERTY) == size
+        and not button.icon().isNull()
+    ):
+        return
     button.setProperty(_SKIN_ASSET_PROPERTY, file_name)
     button.setProperty(_SKIN_ASSET_WIDTH_PROPERTY, size)
     button.setProperty(_SKIN_ASSET_HEIGHT_PROPERTY, size)

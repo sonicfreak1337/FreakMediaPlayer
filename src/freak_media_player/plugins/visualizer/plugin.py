@@ -17,7 +17,7 @@ class VisualizerPlugin:
     manifest = PluginManifest(
         plugin_id="freak.visualizer",
         name="Freak Visualizer",
-        version="1.3.0",
+        version="1.6.0",
         description="Audio-reactive Winamp-inspired visualizer presets.",
     )
 
@@ -31,6 +31,13 @@ class VisualizerPlugin:
         if context.main_window is None or context.audio_samples is None:
             return
         panel = VisualizerPanel(context.audio_samples, context.main_window)
+        skin_manager = getattr(context.main_window, "skin_manager", None)
+        active_skin_id = getattr(skin_manager, "active_skin_id", None)
+        if isinstance(active_skin_id, str):
+            panel.select_skin_preset(active_skin_id)
+        skin_changed = getattr(skin_manager, "skin_changed", None)
+        if skin_changed is not None and hasattr(skin_changed, "connect"):
+            skin_changed.connect(panel.select_skin_preset)
         add_module = getattr(context.main_window, "add_module", None)
         if callable(add_module):
             register = cast(Callable[..., QDockWidget], add_module)

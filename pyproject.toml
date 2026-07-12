@@ -1,6 +1,6 @@
 [project]
 name = "freak-media-player"
-version = "0.7.3"
+version = "0.8.0"
 description = "A modular native Windows media player with provider and plugin architecture."
 requires-python = ">=3.11"
 dependencies = [
@@ -31,7 +31,13 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-freak_media_player = ["assets/*.png", "assets/*.ico", "assets/icons/*.png"]
+freak_media_player = [
+    "assets/*.png",
+    "assets/*.ico",
+    "assets/icons/*.png",
+    "assets/skins/fastilicious/*.png",
+    "assets/skins/fastilicious/icons/*.png",
+]
 
 [tool.ruff]
 line-length = 100

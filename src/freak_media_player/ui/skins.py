@@ -287,6 +287,29 @@ def skin_color(role: str) -> str:
 
 
 def _built_in_skins() -> dict[str, SkinDefinition]:
+    packaged_assets = Path(__file__).resolve().parent.parent / "assets"
+    fastilicious_assets = packaged_assets / "skins" / "fastilicious"
+    fastilicious_icon_names = (
+        "equalizer_icon.png",
+        "favorite_icon.png",
+        "library_note_icon.png",
+        "pause_icon.png",
+        "playlist_icon.png",
+        "queue_icon.png",
+        "repeat_all_off.png",
+        "repeat_all_on.png",
+        "repeat_one_on.png",
+        "shuffle_icon.png",
+        "shuffle_off.png",
+        "visualizer_icon.png",
+    )
+    fastilicious_overrides = {
+        "app_logo.png": fastilicious_assets / "app_logo.png",
+        **{
+            f"icons/{name}": fastilicious_assets / "icons" / name
+            for name in fastilicious_icon_names
+        },
+    }
     freaky = SkinDefinition(
         skin_id="freaky",
         name="Freaky",
@@ -298,9 +321,10 @@ def _built_in_skins() -> dict[str, SkinDefinition]:
     fastilicious = SkinDefinition(
         skin_id="fastilicious",
         name="Fastilicious",
-        description="Provisional raspberry-and-aqua racing console mockup",
+        description="Black metal console with molten red and orange highlights",
         stylesheet=fastilicious_stylesheet(),
         colors=dict(FASTILICIOUS_COLORS),
+        asset_overrides=fastilicious_overrides,
         built_in=True,
     )
     return {freaky.skin_id: freaky, fastilicious.skin_id: fastilicious}

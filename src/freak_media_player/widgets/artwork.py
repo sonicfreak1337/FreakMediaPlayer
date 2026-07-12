@@ -64,9 +64,10 @@ class LogoArtwork(QWidget):
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         if self._pixmap.isNull():
             return
+        margin = max(3, round(min(self.width(), self.height()) * 0.045))
         scaled = self._pixmap.scaled(
-            round(self.width() * 1.22),
-            round(self.height() * 1.22),
+            max(1, self.width() - margin * 2),
+            max(1, self.height() - margin * 2),
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
@@ -114,14 +115,34 @@ class ClippedArtwork(QWidget):
         painter.setClipPath(clip)
         painter.fillRect(self.rect(), QColor(skin_color("artwork_background")))
         if not self._pixmap.isNull():
+            aspect_mode = (
+                Qt.AspectRatioMode.KeepAspectRatio
+                if self._using_fallback
+                else Qt.AspectRatioMode.KeepAspectRatioByExpanding
+            )
             scaled = self._pixmap.scaled(
                 self.size(),
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                aspect_mode,
                 Qt.TransformationMode.SmoothTransformation,
             )
-            source_x = max(0, (scaled.width() - self.width()) // 2)
-            source_y = max(0, (scaled.height() - self.height()) // 2)
-            painter.drawPixmap(0, 0, scaled, source_x, source_y, self.width(), self.height())
+            if self._using_fallback:
+                painter.drawPixmap(
+                    (self.width() - scaled.width()) // 2,
+                    (self.height() - scaled.height()) // 2,
+                    scaled,
+                )
+            else:
+                source_x = max(0, (scaled.width() - self.width()) // 2)
+                source_y = max(0, (scaled.height() - self.height()) // 2)
+                painter.drawPixmap(
+                    0,
+                    0,
+                    scaled,
+                    source_x,
+                    source_y,
+                    self.width(),
+                    self.height(),
+                )
         painter.setClipping(False)
         painter.setPen(QPen(QColor(skin_color("artwork_border")), 2.0))
         painter.setBrush(Qt.BrushStyle.NoBrush)

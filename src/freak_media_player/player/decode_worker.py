@@ -22,6 +22,7 @@ from freak_media_player.player.streaming_decoder import (
 )
 
 WORKER_JOIN_TIMEOUT_SECONDS = 0.5
+QUEUE_PUT_TIMEOUT_SECONDS = 0.2
 
 
 class AudioDecodeWorker:
@@ -80,7 +81,7 @@ class AudioDecodeWorker:
     ) -> bool:
         while not stop_event.is_set():
             try:
-                self._messages.put(message, timeout=0.05)
+                self._messages.put(message, timeout=QUEUE_PUT_TIMEOUT_SECONDS)
                 return True
             except queue.Full:
                 continue

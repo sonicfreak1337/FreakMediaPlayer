@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication, QComboBox, QMainWindow
 
 from freak_media_player.app.bootstrap import build_app_context
@@ -43,6 +44,17 @@ def test_catalog_exposes_built_in_skins_and_rejects_unsafe_assets(tmp_path: Path
     skins = catalog.discover()
 
     assert [skin.name for skin in skins.values()] == ["Freaky", "Fastilicious"]
+    fastilicious = skins["fastilicious"]
+    assert fastilicious.resolve_asset("app_logo.png").is_file()
+    shuffle_icon = fastilicious.resolve_asset("icons/shuffle_icon.png")
+    repeat_icon = fastilicious.resolve_asset("icons/repeat_all_on.png")
+    assert shuffle_icon.is_file()
+    assert repeat_icon.is_file()
+    assert QImage(str(shuffle_icon)) != QImage(str(repeat_icon))
+    logo = QImage(str(fastilicious.resolve_asset("app_logo.png")))
+    assert logo.hasAlphaChannel()
+    assert logo.pixelColor(0, 0).alpha() == 0
+    assert fastilicious.colors["accent"] == "#ff2a12"
     assert len(catalog.errors) == 1
     assert "leaves the skin folder" in catalog.errors[0]
 
@@ -134,7 +146,18 @@ def test_main_window_applies_fastilicious_live(tmp_path: Path, monkeypatch) -> N
         app.processEvents()
 
         assert manager.active_skin_id == "fastilicious"
-        assert "#ff3864" in app.styleSheet()
+        assert "#ff8700" in app.styleSheet()
+        assert manager.resolve_asset("app_logo.png").parent.name == "fastilicious"
+        for fallback_icon in (
+            "folder_add_icon.png",
+            "minus_icon.png",
+            "next_icon.png",
+            "plus_icon.png",
+            "previous_icon.png",
+            "settings_icon.png",
+            "volume_icon.png",
+        ):
+            assert "skins" not in manager.resolve_asset(f"icons/{fallback_icon}").parts
         assert context.database.settings.get("settings.theme_name") == "fastilicious"
     finally:
         window.close()

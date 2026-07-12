@@ -7,7 +7,7 @@ import time
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor, QPainter
+from PySide6.QtGui import QColor, QHideEvent, QPainter, QShowEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -47,15 +47,13 @@ class MiniSpectrum(QWidget):
         gap = 3.0
         width = max(1.0, (self.width() - gap * (count - 1)) / count)
         phase = time.monotonic() * 1.4
+        active_color = QColor(skin_color("spectrum_active"))
+        inactive_color = QColor(skin_color("spectrum_inactive"))
         for index in range(count):
             envelope = max(0.12, 1.0 - index / count)
             wave = 0.35 + 0.65 * abs(math.sin(index * 0.71 + phase))
             height = max(2.0, self.height() * envelope * wave)
-            color = QColor(
-                skin_color("spectrum_active")
-                if index < 24
-                else skin_color("spectrum_inactive")
-            )
+            color = active_color if index < 24 else inactive_color
             painter.fillRect(
                 round(index * (width + gap)),
                 round(self.height() - height),
@@ -84,6 +82,14 @@ class PlayerBar(QWidget):
         self._modules_button = QToolButton()
         self._cover = ClippedArtwork(100, 5)
         self._cover_track_id: str | None = None
+        self._track_display_initialized = False
+        self._last_status: PlaybackStatus | None = None
+        self._last_repeat_mode: RepeatMode | None = None
+        self._last_shuffle_enabled: bool | None = None
+        self._last_volume_percent = -1
+        self._last_position_seconds = -1
+        self._last_duration_seconds = -1
+        self._mini_spectrum = MiniSpectrum()
         self._refresh_timer = QTimer(self)
         self._volume_before_mute = 1.0
         self.setObjectName("playerPanel")
@@ -108,7 +114,7 @@ class PlayerBar(QWidget):
         info = QVBoxLayout()
         info.setContentsMargins(4, 0, 4, 0)
         info.setSpacing(3)
-        info.addWidget(MiniSpectrum())
+        info.addWidget(self._mini_spectrum)
         self._title_label.setObjectName("playerTrackTitle")
         self._artist_label.setObjectName("playerArtist")
         self._album_label.setObjectName("playerTrackMeta")
@@ -287,8 +293,16 @@ class PlayerBar(QWidget):
     def _configure_timer(self) -> None:
         self._refresh_timer.setInterval(POSITION_REFRESH_MS)
         self._refresh_timer.timeout.connect(self.refresh)
-        self._refresh_timer.start()
         self.refresh()
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        self.refresh()
+        self._refresh_timer.start()
+
+    def hideEvent(self, event: QHideEvent) -> None:
+        self._refresh_timer.stop()
+        super().hideEvent(event)
 
     def refresh(self) -> None:
         self._playback_service.checkpoint()
@@ -297,31 +311,42 @@ class PlayerBar(QWidget):
         self._update_playback_modes(state.repeat_mode, state.shuffle_enabled)
         self._update_volume_controls()
         track = state.current_track
-        if track is None:
-            self._title_label.setText("Nothing playing")
-            self._artist_label.setText("Queue is empty")
-            self._album_label.setText("Import music into the Local Library")
-            if self._cover_track_id is not None:
+        track_id = track.id if track is not None else None
+        if not self._track_display_initialized or track_id != self._cover_track_id:
+            if track is None:
+                self._title_label.setText("Nothing playing")
+                self._artist_label.setText("Queue is empty")
+                self._album_label.setText("Import music into the Local Library")
                 self._cover.set_source(None)
-                self._cover_track_id = None
-        else:
-            self._title_label.setText(track.title)
-            self._artist_label.setText(track.artist.name)
-            album = track.album.title if track.album is not None else "Unknown album"
-            year = track.album.release_year if track.album is not None else None
-            self._album_label.setText(f"{album}{f' ({year})' if year else ''}")
-            if track.id != self._cover_track_id:
+            else:
+                self._title_label.setText(track.title)
+                self._artist_label.setText(track.artist.name)
+                album = track.album.title if track.album is not None else "Unknown album"
+                year = track.album.release_year if track.album is not None else None
+                self._album_label.setText(f"{album}{f' ({year})' if year else ''}")
                 self._cover.set_source(find_track_cover(track))
-                self._cover_track_id = track.id
+            self._cover_track_id = track_id
+            self._track_display_initialized = True
 
         position_ms = self._playback_service.position_ms()
         duration_ms = self._playback_service.duration_ms()
-        self._position_label.setText(self._format_time(position_ms))
-        self._duration_label.setText(self._format_time(duration_ms))
+        position_seconds = max(0, position_ms // 1000)
+        duration_seconds = max(0, duration_ms // 1000)
+        if position_seconds != self._last_position_seconds:
+            self._position_label.setText(self._format_time(position_ms))
+            self._last_position_seconds = position_seconds
+        if duration_seconds != self._last_duration_seconds:
+            self._duration_label.setText(self._format_time(duration_ms))
+            self._last_duration_seconds = duration_seconds
         if not self._seek_slider.isSliderDown():
-            self._seek_slider.setRange(0, max(0, duration_ms))
-            self._seek_slider.setValue(min(position_ms, max(0, duration_ms)))
-        self.update()
+            maximum = max(0, duration_ms)
+            value = min(position_ms, maximum)
+            if self._seek_slider.maximum() != maximum:
+                self._seek_slider.setRange(0, maximum)
+            if self._seek_slider.value() != value:
+                self._seek_slider.setValue(value)
+        if state.status == PlaybackStatus.PLAYING:
+            self._mini_spectrum.update()
 
     def _seek_to_slider_position(self) -> None:
         self._seek(self._seek_slider.value())
@@ -370,16 +395,32 @@ class PlayerBar(QWidget):
         self._update_volume_controls()
 
     def _sync_volume_slider(self, volume: float) -> None:
+        slider_value = round(volume * VOLUME_SCALE)
+        if self._volume_slider.value() == slider_value:
+            return
         self._volume_slider.blockSignals(True)
-        self._volume_slider.setValue(round(volume * VOLUME_SCALE))
+        self._volume_slider.setValue(slider_value)
         self._volume_slider.blockSignals(False)
 
     def _update_volume_controls(self) -> None:
         volume_percent = round(self._playback_service.volume() * VOLUME_SCALE)
+        if volume_percent == self._last_volume_percent:
+            return
         self._volume_button.setText("Muted" if volume_percent <= 0 else "Volume")
+        self._set_icon(
+            self._volume_button,
+            "mute_icon.png" if volume_percent <= 0 else "volume_icon.png",
+            20,
+        )
+        self._volume_button.setToolTip(
+            "Restore volume" if volume_percent <= 0 else "Mute"
+        )
         self._volume_label.setText(f"{volume_percent}%")
+        self._last_volume_percent = volume_percent
 
     def _update_play_pause_button(self, status: PlaybackStatus) -> None:
+        if status == self._last_status:
+            return
         is_playing = status == PlaybackStatus.PLAYING
         self._play_pause_button.setText("Ⅱ" if is_playing else "▶")
         if is_playing:
@@ -387,12 +428,18 @@ class PlayerBar(QWidget):
         else:
             clear_themed_icon(self._play_pause_button)
         self._play_pause_button.setToolTip("Pause" if is_playing else "Play")
+        self._last_status = status
 
     def _update_playback_modes(
         self,
         repeat_mode: RepeatMode,
         shuffle_enabled: bool,
     ) -> None:
+        if (
+            repeat_mode == self._last_repeat_mode
+            and shuffle_enabled == self._last_shuffle_enabled
+        ):
+            return
         self._shuffle_button.blockSignals(True)
         self._shuffle_button.setChecked(shuffle_enabled)
         self._shuffle_button.blockSignals(False)
@@ -420,6 +467,8 @@ class PlayerBar(QWidget):
             RepeatMode.ONE: "repeat_one_on.png",
         }
         self._set_icon(self._repeat_button, repeat_icons[repeat_mode], 31)
+        self._last_repeat_mode = repeat_mode
+        self._last_shuffle_enabled = shuffle_enabled
 
     def _format_time(self, value_ms: int) -> str:
         total_seconds = max(0, value_ms // 1000)

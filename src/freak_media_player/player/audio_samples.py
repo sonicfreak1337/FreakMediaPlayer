@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -20,6 +21,8 @@ class AudioSampleBuffer:
         self,
         capacity: int = DEFAULT_CAPACITY,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
+        *,
+        capture_enabled: bool = True,
     ) -> None:
         if capacity <= 0:
             raise ValueError("capacity must be positive")
@@ -30,6 +33,9 @@ class AudioSampleBuffer:
         self._available = 0
         self._sequence = 0
         self._remainder = b""
+        self._capture_enabled = capture_enabled
+        self._playback_active = False
+        self._activity_listeners: list[Callable[[bool], None]] = []
         self._lock = threading.Lock()
 
     @property
@@ -42,9 +48,15 @@ class AudioSampleBuffer:
         with self._lock:
             return self._sequence
 
+    @property
+    def playback_active(self) -> bool:
+        """Whether audio is currently expected to produce visualizer samples."""
+        with self._lock:
+            return self._playback_active
+
     def append_pcm16_stereo(self, payload: bytes) -> None:
         """Append little-endian stereo int16 PCM, preserving partial frames."""
-        if not payload:
+        if not payload or not self._capture_enabled:
             return
         with self._lock:
             framed = self._remainder + payload
@@ -53,9 +65,46 @@ class AudioSampleBuffer:
             if complete_size == 0:
                 return
             stereo = np.frombuffer(framed[:complete_size], dtype="<i2").reshape(-1, 2)
-            mono = stereo.astype(np.float32).mean(axis=1) / INT16_SCALE
+            mono = np.add(stereo[:, 0], stereo[:, 1], dtype=np.float32)
+            mono *= 0.5 / INT16_SCALE
             self._append_mono(mono)
             self._sequence += int(mono.size)
+
+    def set_capture_enabled(self, enabled: bool) -> None:
+        """Enable sample capture only while at least one visualizer is visible."""
+        with self._lock:
+            self._capture_enabled = enabled
+            if not enabled:
+                self._samples.fill(0.0)
+                self._write_position = 0
+                self._available = 0
+                self._remainder = b""
+
+    def set_playback_active(self, active: bool) -> None:
+        """Publish playback activity so visualizers can run without polling."""
+        with self._lock:
+            if active == self._playback_active:
+                return
+            self._playback_active = active
+            listeners = tuple(self._activity_listeners)
+        for listener in listeners:
+            listener(active)
+
+    def add_playback_activity_listener(
+        self,
+        listener: Callable[[bool], None],
+    ) -> None:
+        with self._lock:
+            if listener not in self._activity_listeners:
+                self._activity_listeners.append(listener)
+
+    def remove_playback_activity_listener(
+        self,
+        listener: Callable[[bool], None],
+    ) -> None:
+        with self._lock:
+            if listener in self._activity_listeners:
+                self._activity_listeners.remove(listener)
 
     def snapshot(self, sample_count: int) -> NDArray[np.float32]:
         """Return the newest mono samples, left-padded with silence if needed."""

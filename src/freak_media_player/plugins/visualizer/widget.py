@@ -17,10 +17,12 @@ from PySide6.QtGui import (
     QPainterPath,
     QPaintEvent,
     QPen,
+    QPixmap,
     QRadialGradient,
     QShowEvent,
 )
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QHBoxLayout,
     QLabel,
@@ -32,12 +34,15 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 
-FRAME_INTERVAL_MS = 33
+FOREGROUND_FRAME_INTERVAL_MS = 17
+BACKGROUND_FRAME_INTERVAL_MS = 50
 FFT_SIZE = 2_048
 SPECTRUM_BANDS = 64
 
 PRESETS = (
+    ("abyssal_cataclysm", "Abyssal Cataclysm"),
     ("freak_pulse", "Freak Pulse"),
+    ("fire_of_chaos", "Fire of Chaos"),
     ("neon_spectrum", "Neon Spectrum"),
     ("radial_bloom", "Radial Bloom"),
     ("star_tunnel", "Star Tunnel"),
@@ -50,6 +55,10 @@ PRESETS = (
     ("frequency_city", "Frequency City"),
     ("dna_helix", "DNA Helix"),
     ("solar_flare", "Solar Flare"),
+)
+PRESET_IDS = frozenset(preset_id for preset_id, _name in PRESETS)
+SELECTIVE_ANTIALIASING_PRESETS = frozenset(
+    {"abyssal_cataclysm", "fire_of_chaos", "oscilloscope"}
 )
 
 
@@ -71,34 +80,19 @@ class VisualizerCanvas(QWidget):
         self._preset = PRESETS[0][0]
         self._started = time.monotonic()
         self._smoothed = np.zeros(SPECTRUM_BANDS, dtype=np.float32)
-        self._timer = QTimer(self)
-        self._timer.setInterval(FRAME_INTERVAL_MS)
-        self._timer.timeout.connect(self.update)
-        self.setMinimumHeight(170)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)
-
-    def set_preset(self, preset_id: str) -> None:
-        if preset_id in {item[0] for item in PRESETS}:
-            self._preset = preset_id
-            self.update()
-
-    def showEvent(self, event: QShowEvent) -> None:
-        super().showEvent(event)
-        self._timer.start()
-
-    def hideEvent(self, event: QHideEvent) -> None:
-        self._timer.stop()
-        super().hideEvent(event)
-
-    def paintEvent(self, event: QPaintEvent) -> None:
-        del event
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#02030a"))
-        frame = self._build_frame()
-        renderers = {
+        self._fft_window = np.hanning(FFT_SIZE).astype(np.float32)
+        self._band_starts = np.geomspace(
+            1,
+            FFT_SIZE // 2 + 1,
+            SPECTRUM_BANDS + 1,
+        ).astype(int)[:-1]
+        self._playback_active = self._audio_samples.playback_active
+        self._vignette_cache: QPixmap | None = None
+        self._vignette_cache_key: tuple[int, int, float] | None = None
+        self._renderers = {
             "freak_pulse": self._paint_freak_pulse,
+            "abyssal_cataclysm": self._paint_abyssal_cataclysm,
+            "fire_of_chaos": self._paint_fire_of_chaos,
             "neon_spectrum": self._paint_neon_spectrum,
             "radial_bloom": self._paint_radial_bloom,
             "star_tunnel": self._paint_star_tunnel,
@@ -112,7 +106,93 @@ class VisualizerCanvas(QWidget):
             "dna_helix": self._paint_dna_helix,
             "solar_flare": self._paint_solar_flare,
         }
-        renderers[self._preset](painter, frame)
+        self._timer = QTimer(self)
+        self._timer.setInterval(BACKGROUND_FRAME_INTERVAL_MS)
+        self._timer.timeout.connect(self._advance_frame)
+        self._activity_listener = self._playback_activity_changed
+        application = QApplication.instance()
+        if isinstance(application, QApplication):
+            application.applicationStateChanged.connect(
+                self._application_state_changed
+            )
+        self.setMinimumHeight(170)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)
+
+    def set_preset(self, preset_id: str) -> None:
+        preset_id = {"fastilicious_inferno": "fire_of_chaos"}.get(
+            preset_id,
+            preset_id,
+        )
+        if preset_id in PRESET_IDS:
+            self._preset = preset_id
+            self.update()
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        self._audio_samples.add_playback_activity_listener(self._activity_listener)
+        self._playback_active = self._audio_samples.playback_active
+        self._sync_runtime_state()
+
+    def hideEvent(self, event: QHideEvent) -> None:
+        self._timer.stop()
+        self._audio_samples.set_capture_enabled(False)
+        self._audio_samples.remove_playback_activity_listener(self._activity_listener)
+        super().hideEvent(event)
+
+    def _advance_frame(self) -> None:
+        self.update()
+
+    def _playback_activity_changed(self, active: bool) -> None:
+        self._playback_active = active
+        self._sync_runtime_state()
+
+    def _application_state_changed(self, _state: Qt.ApplicationState) -> None:
+        self._sync_frame_interval()
+
+    def _sync_runtime_state(self) -> None:
+        should_run = self._playback_active and self.isVisible()
+        self._audio_samples.set_capture_enabled(should_run)
+        if not should_run:
+            self._timer.stop()
+            self._smoothed.fill(0.0)
+            self.update()
+            return
+        self._sync_frame_interval()
+        if not self._timer.isActive():
+            self._started = time.monotonic()
+            self._timer.start()
+        self.update()
+
+    def _sync_frame_interval(self) -> None:
+        if not self._playback_active or not self.isVisible():
+            return
+        interval = (
+            FOREGROUND_FRAME_INTERVAL_MS
+            if self._is_application_focused()
+            else BACKGROUND_FRAME_INTERVAL_MS
+        )
+        if self._timer.interval() != interval:
+            self._timer.setInterval(interval)
+
+    @staticmethod
+    def _is_application_focused() -> bool:
+        return QApplication.applicationState() == Qt.ApplicationState.ApplicationActive
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(
+            QPainter.RenderHint.Antialiasing,
+            self._preset not in SELECTIVE_ANTIALIASING_PRESETS,
+        )
+        painter.fillRect(self.rect(), QColor("#02030a"))
+        if not self._playback_active:
+            self._paint_vignette(painter)
+            painter.end()
+            return
+        frame = self._build_frame()
+        self._renderers[self._preset](painter, frame)
         self._paint_vignette(painter)
         painter.end()
 
@@ -191,7 +271,7 @@ class VisualizerCanvas(QWidget):
         painter.setPen(QPen(baseline, 2.0))
         painter.drawLine(QPointF(0, horizon), QPointF(width, horizon))
 
-        samples = frame.samples[:: max(1, frame.samples.size // max(2, width))]
+        samples = self._waveform_samples(frame.samples, width)
         waveform = QPainterPath()
         wave_center = height * 0.84
         for index, sample in enumerate(samples):
@@ -206,17 +286,344 @@ class VisualizerCanvas(QWidget):
         painter.setPen(QPen(QColor("#59a7ff"), 1.4))
         painter.drawPath(waveform)
 
+    def _paint_abyssal_cataclysm(
+        self,
+        painter: QPainter,
+        frame: VisualizerFrame,
+    ) -> None:
+        """Bombastic water apocalypse driven by bass, spectrum and transients."""
+        width, height = self.width(), self.height()
+        horizon = height * 0.58
+        vortex_center = QPointF(width * 0.5, height * 0.69)
+        scale = min(width, height)
+
+        abyss = QLinearGradient(0, 0, 0, height)
+        abyss.setColorAt(0.0, QColor("#000108"))
+        abyss.setColorAt(0.34, QColor("#001128"))
+        abyss.setColorAt(0.68, QColor("#002d57"))
+        abyss.setColorAt(1.0, QColor("#00030b"))
+        painter.fillRect(self.rect(), abyss)
+
+        pressure = QRadialGradient(vortex_center, width * 0.62)
+        pressure.setColorAt(0.0, QColor(27, 195, 255, 90 + int(frame.bass * 80)))
+        pressure.setColorAt(0.22, QColor(0, 94, 210, 62))
+        pressure.setColorAt(0.58, QColor(0, 24, 83, 25))
+        pressure.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillRect(self.rect(), pressure)
+
+        mist = QLinearGradient(0, horizon - height * 0.18, 0, horizon + height * 0.16)
+        mist.setColorAt(0.0, QColor(93, 220, 255, 0))
+        mist.setColorAt(0.5, QColor(126, 231, 255, 30 + int(frame.mids * 38)))
+        mist.setColorAt(1.0, QColor(8, 71, 125, 0))
+        painter.fillRect(self.rect(), mist)
+
+        rain_alpha = 20 + int(frame.treble * 88)
+        painter.setPen(QPen(QColor(112, 219, 255, rain_alpha), 0.8))
+        for index in range(52):
+            seed = (index * 0.754877666) % 1.0
+            fall = (seed + frame.elapsed * (0.21 + (index % 7) * 0.012)) % 1.0
+            x = (seed * width + index * 37.0) % max(1.0, width)
+            y = fall * height * 0.78
+            painter.drawLine(QPointF(x, y), QPointF(x - 4.0, y + 13.0))
+
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Screen)
+        layer_styles = (
+            (0.20, 0.31, QColor(0, 25, 94, 225), QColor(0, 89, 178, 70)),
+            (0.14, 0.42, QColor(0, 72, 162, 225), QColor(15, 177, 235, 88)),
+            (0.08, 0.55, QColor(0, 139, 224, 225), QColor(135, 240, 255, 115)),
+        )
+        point_count = 72
+        for layer_index, (offset, response, deep_color, crest_color) in enumerate(
+            layer_styles
+        ):
+            points: list[QPointF] = []
+            for index in range(point_count):
+                ratio = index / (point_count - 1)
+                spectrum_index = min(
+                    len(frame.spectrum) - 1,
+                    int(ratio * len(frame.spectrum)),
+                )
+                level = float(frame.spectrum[spectrum_index])
+                cross_wave = abs(math.sin(ratio * math.pi * 3.0 - frame.elapsed * 2.8))
+                chaos = math.sin(index * 1.83 + frame.elapsed * (5.1 + layer_index))
+                y = (
+                    horizon
+                    + height * offset
+                    - height * level * response
+                    - height * cross_wave * (0.045 + frame.bass * 0.065)
+                    + chaos * height * 0.012
+                )
+                points.append(QPointF(ratio * width, y))
+
+            crest = QPainterPath(points[0])
+            for point in points[1:]:
+                crest.lineTo(point)
+            water = QPainterPath(crest)
+            water.lineTo(width, height)
+            water.lineTo(0.0, height)
+            water.closeSubpath()
+            fill = QLinearGradient(0, min(point.y() for point in points), 0, height)
+            fill.setColorAt(0.0, crest_color)
+            fill.setColorAt(0.28, deep_color)
+            dark = QColor(deep_color)
+            dark.setAlpha(245)
+            fill.setColorAt(1.0, dark)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(fill)
+            painter.drawPath(water)
+
+            glow = QColor(88, 221, 255, 60 + layer_index * 32)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(glow, 7.0 - layer_index * 1.7))
+            painter.drawPath(crest)
+            foam = QColor(202, 250, 255, 135 + layer_index * 38)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            painter.setPen(QPen(foam, 1.0 + layer_index * 0.4))
+            painter.drawPath(crest)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+
+        core_radius = scale * (0.10 + frame.bass * 0.085)
+        core = QRadialGradient(vortex_center, core_radius * 3.4)
+        core.setColorAt(0.0, QColor(224, 253, 255, 245))
+        core.setColorAt(0.11, QColor(72, 226, 255, 225))
+        core.setColorAt(0.33, QColor(0, 96, 232, 130))
+        core.setColorAt(0.64, QColor(0, 18, 84, 55))
+        core.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillRect(self.rect(), core)
+
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        for ring in range(11):
+            radius = scale * (0.075 + ring * 0.035 + frame.bass * 0.012)
+            rotation = frame.elapsed * (78 + ring * 6) * (-1 if ring % 2 else 1)
+            span = 62 + frame.mids * 120 + (ring % 3) * 24
+            color = QColor(
+                42 + ring * 8,
+                166 + min(80, ring * 7),
+                255,
+                max(35, 195 - ring * 13),
+            )
+            painter.setPen(QPen(color, 1.1 + frame.bass * 2.6))
+            painter.drawArc(
+                QRectF(
+                    vortex_center.x() - radius * 1.75,
+                    vortex_center.y() - radius * 0.48,
+                    radius * 3.5,
+                    radius * 0.96,
+                ),
+                int((rotation + ring * 47) * 16),
+                int(span * 16),
+            )
+
+        for ring in range(4):
+            progress = (frame.elapsed * (0.34 + frame.bass * 0.5) + ring * 0.25) % 1.0
+            radius = scale * (0.12 + progress * 0.68)
+            alpha = int((1.0 - progress) * (75 + frame.bass * 120))
+            painter.setPen(QPen(QColor(72, 215, 255, alpha), 1.2 + frame.bass * 2.0))
+            painter.drawEllipse(vortex_center, radius * 2.1, radius * 0.48)
+
+        lightning_alpha = 45 + int(frame.treble * 185)
+        for bolt_index in range(4):
+            start_x = width * (0.08 + bolt_index * 0.28)
+            bolt = QPainterPath(QPointF(start_x, -4.0))
+            segments = 13
+            for segment in range(1, segments + 1):
+                ratio = segment / segments
+                target_x = start_x + (vortex_center.x() - start_x) * ratio
+                jitter = math.sin(
+                    bolt_index * 17.3 + segment * 9.7 + frame.elapsed * 13.0
+                )
+                x = target_x + jitter * width * 0.018 * (1.0 - ratio)
+                y = vortex_center.y() * ratio
+                bolt.lineTo(x, y)
+            painter.setPen(QPen(QColor(12, 113, 255, lightning_alpha // 3), 8.0))
+            painter.drawPath(bolt)
+            painter.setPen(QPen(QColor(198, 247, 255, lightning_alpha), 1.25))
+            painter.drawPath(bolt)
+
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        for index in range(84):
+            seed = (index * 0.61803398875) % 1.0
+            travel = (seed + frame.elapsed * (0.12 + (index % 8) * 0.011)) % 1.0
+            angle = math.pi * (0.08 + ((index * 0.371) % 0.84))
+            distance = travel * width * (0.16 + (index % 9) * 0.022)
+            x = vortex_center.x() + math.cos(angle) * distance
+            y = (
+                vortex_center.y()
+                - math.sin(angle) * distance * 0.72
+                + travel * travel * height * 0.34
+            )
+            level = float(frame.spectrum[(index * 5) % len(frame.spectrum)])
+            radius = 0.7 + level * 2.2 + (index % 3) * 0.35
+            alpha = max(18, int((1.0 - travel) * (80 + frame.treble * 170)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(148, 236, 255, alpha))
+            painter.drawEllipse(QPointF(x, y), radius, radius)
+
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+        samples = self._waveform_samples(frame.samples, width)
+        pressure_line = QPainterPath()
+        line_center = height * 0.82
+        for index, sample in enumerate(samples):
+            x = index * width / max(1, len(samples) - 1)
+            y = line_center - float(sample) * height * (0.07 + frame.energy * 0.08)
+            if index == 0:
+                pressure_line.moveTo(x, y)
+            else:
+                pressure_line.lineTo(x, y)
+        painter.setPen(QPen(QColor(0, 73, 255, 90), 8.0))
+        painter.drawPath(pressure_line)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(QPen(QColor(184, 249, 255, 225), 1.4))
+        painter.drawPath(pressure_line)
+
+    def _paint_fire_of_chaos(
+        self,
+        painter: QPainter,
+        frame: VisualizerFrame,
+    ) -> None:
+        """Brutal bass-driven flame storm for Fastilicious."""
+        width, height = self.width(), self.height()
+        floor = height * 0.95
+
+        background = QLinearGradient(0, 0, 0, height)
+        background.setColorAt(0.0, QColor("#010101"))
+        background.setColorAt(0.42, QColor("#090100"))
+        background.setColorAt(0.76, QColor("#210300"))
+        background.setColorAt(1.0, QColor("#050000"))
+        painter.fillRect(self.rect(), background)
+
+        furnace = QRadialGradient(QPointF(width * 0.5, floor), width * 0.62)
+        furnace.setColorAt(0.0, QColor(255, 104, 0, 135 + int(frame.bass * 90)))
+        furnace.setColorAt(0.18, QColor(221, 29, 0, 90))
+        furnace.setColorAt(0.55, QColor(82, 3, 0, 32))
+        furnace.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillRect(self.rect(), furnace)
+
+        impact_radius = height * (0.11 + frame.bass * 0.16)
+        impact = QRadialGradient(QPointF(width * 0.5, floor), impact_radius * 3.2)
+        impact.setColorAt(0.0, QColor(255, 246, 168, 245))
+        impact.setColorAt(0.12, QColor(255, 178, 18, 220))
+        impact.setColorAt(0.36, QColor(255, 49, 0, 135))
+        impact.setColorAt(1.0, QColor(62, 0, 0, 0))
+        painter.fillRect(self.rect(), impact)
+
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        for ring in range(3):
+            radius = height * (
+                0.18 + ring * 0.11 + (frame.elapsed * (0.42 + frame.bass)) % 0.28
+            )
+            alpha = max(0, 100 - ring * 24 - int(radius / max(1.0, height) * 42))
+            painter.setPen(QPen(QColor(255, 54, 4, alpha), 1.3 + frame.bass * 2.2))
+            painter.drawArc(
+                QRectF(
+                    width * 0.5 - radius * 1.8,
+                    floor - radius,
+                    radius * 3.6,
+                    radius * 2.0,
+                ),
+                15 * 16,
+                150 * 16,
+            )
+
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Screen)
+        flame_count = 48
+        flame_width = width / flame_count
+        layer_styles = (
+            (0.52, QColor(116, 2, 0, 125), QColor(255, 32, 0, 28)),
+            (0.72, QColor(255, 39, 0, 185), QColor(255, 111, 0, 42)),
+            (0.92, QColor(255, 183, 16, 235), QColor(255, 246, 166, 58)),
+        )
+        for layer_index, (height_scale, base_color, tip_color) in enumerate(layer_styles):
+            painter.setRenderHint(
+                QPainter.RenderHint.Antialiasing,
+                layer_index == len(layer_styles) - 1,
+            )
+            for index in range(flame_count):
+                spectrum_index = min(
+                    len(frame.spectrum) - 1,
+                    int(index * len(frame.spectrum) / flame_count),
+                )
+                level = float(frame.spectrum[spectrum_index])
+                chaos = (
+                    0.72
+                    + 0.2 * math.sin(index * 2.31 + frame.elapsed * (5.4 + layer_index))
+                    + 0.08 * math.sin(index * 0.73 - frame.elapsed * 9.2)
+                )
+                flame_height = height * (
+                    0.09
+                    + level * height_scale * max(0.34, chaos)
+                    + frame.bass * (0.13 if index % 5 == 0 else 0.035)
+                )
+                base_x = (index + 0.5) * flame_width
+                lean = math.sin(index * 1.77 + frame.elapsed * 7.0) * flame_width * 0.9
+                tip = QPointF(base_x + lean, floor - flame_height)
+                half_width = flame_width * (0.72 + layer_index * 0.12)
+                flame = QPainterPath(QPointF(base_x - half_width, floor + 3.0))
+                flame.cubicTo(
+                    QPointF(base_x - half_width * 0.8, floor - flame_height * 0.28),
+                    QPointF(tip.x() - half_width * 0.45, tip.y() + flame_height * 0.2),
+                    tip,
+                )
+                flame.cubicTo(
+                    QPointF(tip.x() + half_width * 0.5, tip.y() + flame_height * 0.22),
+                    QPointF(base_x + half_width * 0.82, floor - flame_height * 0.25),
+                    QPointF(base_x + half_width, floor + 3.0),
+                )
+                flame.closeSubpath()
+                gradient = QLinearGradient(base_x, floor, tip.x(), tip.y())
+                hot = QColor(base_color)
+                hot.setAlpha(min(255, hot.alpha() + int(level * 42)))
+                gradient.setColorAt(0.0, hot)
+                gradient.setColorAt(0.42, base_color)
+                gradient.setColorAt(1.0, tip_color)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(gradient)
+                painter.drawPath(flame)
+
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        for index in range(72):
+            seed = (index * 0.61803398875) % 1.0
+            travel = (seed + frame.elapsed * (0.08 + (index % 9) * 0.009)) % 1.0
+            x = (
+                seed * width
+                + math.sin(frame.elapsed * (1.8 + index % 5) + index) * width * 0.035
+            ) % max(1.0, width)
+            y = floor - travel * height * 0.92
+            intensity = float(frame.spectrum[(index * 7) % len(frame.spectrum)])
+            radius = 0.7 + intensity * 2.4 + (index % 3) * 0.35
+            color = QColor(
+                255,
+                72 + int((1.0 - travel) * 145),
+                3,
+                max(25, int((1.0 - travel) * (90 + frame.treble * 155))),
+            )
+            painter.setBrush(color)
+            painter.drawEllipse(QPointF(x, y), radius, radius * 1.8)
+
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+        samples = self._waveform_samples(frame.samples, width)
+        chaos_line = QPainterPath()
+        center_y = floor - height * (0.08 + frame.bass * 0.035)
+        for index, sample in enumerate(samples):
+            x = index * width / max(1, len(samples) - 1)
+            y = center_y - float(sample) * height * (0.05 + frame.energy * 0.06)
+            if index == 0:
+                chaos_line.moveTo(x, y)
+            else:
+                chaos_line.lineTo(x, y)
+        painter.setPen(QPen(QColor(255, 26, 0, 80), 8.0))
+        painter.drawPath(chaos_line)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(QPen(QColor(255, 212, 46, 220), 1.35))
+        painter.drawPath(chaos_line)
+
     def _build_frame(self) -> VisualizerFrame:
         samples = self._audio_samples.snapshot(FFT_SIZE)
-        windowed = samples * np.hanning(samples.size).astype(np.float32)
+        windowed = samples * self._fft_window
         magnitudes = np.abs(np.fft.rfft(windowed)) / max(1, samples.size)
-        edges = np.geomspace(1, magnitudes.size, SPECTRUM_BANDS + 1).astype(int)
-        spectrum = np.array(
-            [
-                np.max(magnitudes[edges[i] : max(edges[i] + 1, edges[i + 1])])
-                for i in range(SPECTRUM_BANDS)
-            ],
-            dtype=np.float32,
+        spectrum = np.maximum.reduceat(magnitudes, self._band_starts).astype(
+            np.float32,
+            copy=False,
         )
         spectrum = np.clip((20.0 * np.log10(spectrum + 1e-6) + 72.0) / 72.0, 0.0, 1.0)
         self._smoothed = np.maximum(spectrum, self._smoothed * 0.88)
@@ -233,6 +640,15 @@ class VisualizerCanvas(QWidget):
             treble=treble,
             elapsed=time.monotonic() - self._started,
         )
+
+    @staticmethod
+    def _waveform_samples(
+        samples: NDArray[np.float32],
+        width: int,
+    ) -> NDArray[np.float32]:
+        max_points = max(2, width // 2)
+        stride = max(1, math.ceil(samples.size / max_points))
+        return samples[::stride]
 
     def _paint_neon_spectrum(self, painter: QPainter, frame: VisualizerFrame) -> None:
         width, height = self.width(), self.height()
@@ -318,7 +734,7 @@ class VisualizerCanvas(QWidget):
             painter.drawLine(grid_x, 0, grid_x, height)
         for grid_y in range(0, height, 32):
             painter.drawLine(0, grid_y, width, grid_y)
-        samples = frame.samples[:: max(1, frame.samples.size // max(2, width))]
+        samples = self._waveform_samples(frame.samples, width)
         path = QPainterPath()
         for index, sample in enumerate(samples):
             x = index * width / max(1, len(samples) - 1)
@@ -327,9 +743,12 @@ class VisualizerCanvas(QWidget):
                 path.moveTo(x, y)
             else:
                 path.lineTo(x, y)
-        for pen_width, alpha in ((9, 20), (5, 55), (2, 245)):
+        for pen_width, alpha in ((9, 20), (5, 55)):
             painter.setPen(QPen(QColor(28, 255, 156, alpha), pen_width))
             painter.drawPath(path)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(QPen(QColor(28, 255, 156, 245), 2))
+        painter.drawPath(path)
 
     def _paint_aurora(self, painter: QPainter, frame: VisualizerFrame) -> None:
         width, height = self.width(), self.height()
@@ -600,13 +1019,27 @@ class VisualizerCanvas(QWidget):
         painter.restore()
 
     def _paint_vignette(self, painter: QPainter) -> None:
-        gradient = QRadialGradient(
-            QPointF(self.width() / 2, self.height() / 2),
-            max(self.width(), self.height()) * 0.7,
-        )
-        gradient.setColorAt(0.55, QColor(0, 0, 0, 0))
-        gradient.setColorAt(1.0, QColor(0, 0, 0, 185))
-        painter.fillRect(self.rect(), gradient)
+        device_ratio = self.devicePixelRatioF()
+        cache_key = (self.width(), self.height(), device_ratio)
+        if self._vignette_cache is None or self._vignette_cache_key != cache_key:
+            cache = QPixmap(
+                max(1, round(self.width() * device_ratio)),
+                max(1, round(self.height() * device_ratio)),
+            )
+            cache.setDevicePixelRatio(device_ratio)
+            cache.fill(Qt.GlobalColor.transparent)
+            cache_painter = QPainter(cache)
+            gradient = QRadialGradient(
+                QPointF(self.width() / 2, self.height() / 2),
+                max(self.width(), self.height()) * 0.7,
+            )
+            gradient.setColorAt(0.55, QColor(0, 0, 0, 0))
+            gradient.setColorAt(1.0, QColor(0, 0, 0, 185))
+            cache_painter.fillRect(self.rect(), gradient)
+            cache_painter.end()
+            self._vignette_cache = cache
+            self._vignette_cache_key = cache_key
+        painter.drawPixmap(0, 0, self._vignette_cache)
 
 
 class VisualizerPanel(QWidget):
@@ -631,6 +1064,7 @@ class VisualizerPanel(QWidget):
         preset_label.setObjectName("compactLabel")
         controls_layout.addWidget(preset_label)
         selector = QComboBox()
+        selector.setObjectName("visualizerPresetSelector")
         for preset_id, name in PRESETS:
             selector.addItem(name, preset_id)
         controls_layout.addWidget(selector)
@@ -640,21 +1074,40 @@ class VisualizerPanel(QWidget):
         controls_layout.addWidget(QLabel(f"{len(PRESETS)} realtime presets"))
         controls_layout.addStretch(1)
         self._canvas = VisualizerCanvas(audio_samples, self)
+        self._selector = selector
         selector.currentIndexChanged.connect(
             lambda index: self._canvas.set_preset(str(selector.itemData(index)))
         )
-        for text, preset_index in (("SPECTRUM", 0), ("WAVEFORM", 5), ("SCOPE", 4)):
+        for text, preset_id in (
+            ("SPECTRUM", "abyssal_cataclysm"),
+            ("WAVEFORM", "aurora"),
+            ("SCOPE", "oscilloscope"),
+        ):
             button = QToolButton(modes)
             button.setObjectName("visualizerModeButton")
             button.setText(text)
             button.setCheckable(True)
             button.setAutoExclusive(True)
-            button.setChecked(preset_index == 0)
+            button.setChecked(preset_id == PRESETS[0][0])
             button.clicked.connect(
-                lambda _checked=False, index=preset_index: selector.setCurrentIndex(index)
+                lambda _checked=False, target=preset_id: selector.setCurrentIndex(
+                    selector.findData(target)
+                )
             )
             modes_layout.addWidget(button)
         modes_layout.addStretch(1)
         layout.addWidget(modes)
         layout.addWidget(self._canvas, 1)
         layout.addWidget(controls)
+
+    def select_skin_preset(self, skin_id: str) -> None:
+        """Select the branded preset that belongs to a built-in skin."""
+        preset_id = {
+            "freaky": "abyssal_cataclysm",
+            "fastilicious": "fire_of_chaos",
+        }.get(skin_id)
+        if preset_id is None:
+            return
+        index = self._selector.findData(preset_id)
+        if index >= 0:
+            self._selector.setCurrentIndex(index)

@@ -57,6 +57,7 @@ class MainWindow(QMainWindow):
         self._local_library_service = local_library_service
         self._playlist_service = playlist_service
         self._equalizer_service = equalizer_service
+        self._skin_manager = skin_manager
         self._module_menu = QMenu("Module", self)
         self._module_docks: dict[str, QDockWidget] = {}
 
@@ -85,6 +86,11 @@ class MainWindow(QMainWindow):
     def module_menu(self) -> QMenu:
         """Visibility menu used by built-in and plugin-provided modules."""
         return self._module_menu
+
+    @property
+    def skin_manager(self) -> SkinManager | None:
+        """Expose the active skin source to skin-aware plugin modules."""
+        return self._skin_manager
 
     def add_module(
         self,

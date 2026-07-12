@@ -1,9 +1,9 @@
 # Freak Media Player
 
-A modular Winamp-inspired desktop music player focused on local playback today,
-with a provider-based architecture for YouTube Music and other sources later.
+A modular Winamp-inspired desktop music player focused on local playback through
+version 1.0, with a provider-based architecture for external sources after 1.0.
 
-Current version: `0.7.3`
+Current version: `0.8.0`
 
 ## Current Features
 
@@ -30,9 +30,9 @@ Current version: `0.7.3`
 - Remove playlist entries without deleting library tracks
 - Audible parametric equalizer with metal-subgenre presets and Custom mode
 - DAW-style response graph with frequency, gain, Q, enable, and preamp controls
-- Dockable audio-reactive visualizer with thirteen animated presets
-- Live-switchable skin system with the default Freaky design and provisional
-  Fastilicious racing-console mockup
+- Dockable audio-reactive visualizer with fifteen animated presets
+- Live-switchable skin system with the default Freaky design and the black-metal,
+  red/orange Fastilicious console skin
 - User skins with inherited or standalone QSS, semantic colors and custom assets
 - Branded application/taskbar icon and logo-based fallback artwork
 - Automatic album-cover discovery from conventional images beside local tracks
@@ -47,7 +47,7 @@ The project is built around small, replaceable modules:
 
 - **UI:** PySide6 desktop shell
 - **Core:** UI-neutral playback, queue, playlist, and event concepts
-- **Providers:** YouTube Music, local files, radio, and other media sources behind one
+- **Providers:** Local files through 1.0; external sources later behind the same
   shared interface
 - **Database:** SQLite persistence with migrations
 - **Plugins:** Extension points for visualizers, lyrics, integrations, and tools
@@ -69,7 +69,8 @@ Fastilicious and installed user skins. The selection persists across launches.
 Custom skin folders live below `%LOCALAPPDATA%\FreakMediaPlayer\skins` and can
 override the complete QSS, semantic colors and any packaged image or icon while
 retaining safe fallbacks. See [`docs/SKINS.md`](docs/SKINS.md) for the manifest,
-asset convention and a ready-to-copy example.
+asset convention and a ready-to-copy example. The built-in Visualizer follows
+skin changes by selecting Abyssal Cataclysm or Fire of Chaos automatically.
 
 ## Equalizer
 
@@ -86,11 +87,13 @@ PyAV handles local decoding, SciPy applies cascaded second-order filters, and Qt
 Version `0.6.0` adds the built-in Freak Visualizer plugin. It receives the
 actual post-DSP PCM stream through a bounded, thread-safe sample tap and derives
 waveform, spectrum, bass, midrange and treble energy without delaying playback.
-The thirteen included presets range from the branded gold/blue Freak Pulse view
-through classic spectrum and oscilloscope views to layered mandalas, perspective
-grids, particle orbits and animated solar
-corona effects. The module can be toggled through `Module > Visualizer` or
-`Ctrl+Shift+V`.
+The fifteen included presets range from Freaky's bombastic water apocalypse
+Abyssal Cataclysm and the bass-driven Fastilicious firestorm Fire of Chaos to
+the legacy Freak Pulse, classic spectrum and oscilloscope views, layered
+mandalas, perspective grids, particle orbits and animated solar corona effects.
+Rendering stays inactive without playback, targets 60 FPS while the application
+is focused and automatically reduces its refresh rate in the background.
+The module can be toggled through `Module > Visualizer` or `Ctrl+Shift+V`.
 
 ## Build
 
@@ -142,3 +145,9 @@ The SQLite database is created there automatically on startup.
 ## Changelog
 
 See `CHANGELOG.md`.
+
+## Roadmap
+
+The release plan through the stable local-player milestone 1.0 is documented in
+[`ROADMAP.md`](ROADMAP.md). External audio sources are explicitly scheduled only
+after version 1.0.

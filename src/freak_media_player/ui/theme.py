@@ -45,26 +45,26 @@ FREAKY_COLORS = {
 }
 
 FASTILICIOUS_COLORS = {
-    "background": "#100b17",
-    "panel_background": "#19111f",
-    "panel_sunken": "#09070d",
-    "panel_border": "#56364f",
-    "header_background": "#25152d",
-    "header_highlight": "#7d244e",
-    "text_primary": "#fff4f8",
-    "text_secondary": "#c5a9b8",
-    "display": "#2ee0cf",
-    "accent": "#ff3864",
-    "highlight": "#ff5a7d",
-    "playing_row_background": "#561b36",
-    "playing_row_text": "#ffb2c4",
-    "artwork_background": "#0d0712",
-    "artwork_border": "#ff3864",
-    "spectrum_active": "#2ee0cf",
-    "spectrum_inactive": "#402038",
-    "graph_background": "#150c1b",
-    "graph_band": "#2ee0cf",
-    "graph_band_disabled": "#503044",
+    "background": "#050505",
+    "panel_background": "#0b0b0b",
+    "panel_sunken": "#030303",
+    "panel_border": "#2b2b2b",
+    "header_background": "#090909",
+    "header_highlight": "#67140b",
+    "text_primary": "#dddddd",
+    "text_secondary": "#999999",
+    "display": "#ff9a00",
+    "accent": "#ff2a12",
+    "highlight": "#ff8700",
+    "playing_row_background": "#54140b",
+    "playing_row_text": "#ffd6cb",
+    "artwork_background": "#050505",
+    "artwork_border": "#d52615",
+    "spectrum_active": "#ff8700",
+    "spectrum_inactive": "#571208",
+    "graph_background": "#080808",
+    "graph_band": "#ff4a12",
+    "graph_band_disabled": "#4a241c",
 }
 
 
@@ -444,53 +444,350 @@ def freaky_stylesheet() -> str:
 
 
 def fastilicious_stylesheet() -> str:
-    """Return the provisional Fastilicious racing-console mockup."""
+    """Return the black-metal Fastilicious skin from the supplied mockup."""
     replacements = {
-        "#01081a": "#100b17",
-        "#050d20": "#19111f",
-        "#000410": "#09070d",
-        "#29384f": "#56364f",
-        "#071127": "#25152d",
-        "#123a88": "#7d244e",
-        "#e6e8f3": "#fff4f8",
-        "#8e9ab1": "#c5a9b8",
-        "#4d91ff": "#2ee0cf",
-        "#2b83ff": "#ff3864",
-        "#ffc126": "#ff5a7d",
-        "#503900": "#561b36",
-        "#ffd45c": "#ffb2c4",
-        "#061026": "#32152e",
-        "#020818": "#0d0712",
-        "#173e78": "#8d2857",
-        "#1d2e4c": "#63364f",
-        "#14213a": "#402038",
-        "#07142d": "#2a1227",
-        "#3d8dff": "#ff5578",
-        "#1155c0": "#b62055",
-        "#4b89ee": "#2ee0cf",
-        "#397bd5": "#ff7893",
-        "#5a8fe8": "#2ee0cf",
-        "#afc8fa": "#b7fff8",
+        # Semantic Freaky colors.
+        "#01081a": "#050505",
+        "#050d20": "#0b0b0b",
+        "#000410": "#030303",
+        "#29384f": "#2b2b2b",
+        "#071127": "#090909",
+        "#123a88": "#67140b",
+        "#e6e8f3": "#dddddd",
+        "#8e9ab1": "#999999",
+        "#4d91ff": "#ff9a00",
+        "#2b83ff": "#ff2a12",
+        "#ffc126": "#ff8700",
+        "#503900": "#54140b",
+        "#ffd45c": "#ffd6cb",
+        # Navy surfaces become layered graphite; blue chrome becomes hot metal.
+        "#061026": "#111111",
+        "#020818": "#050505",
+        "#173e78": "#3a0d08",
+        "#1d2e4c": "#292929",
+        "#14213a": "#1b1b1b",
+        "#07142d": "#111111",
+        "#3d8dff": "#ff4b1a",
+        "#1155c0": "#a91c0d",
+        "#4b89ee": "#ff7a00",
+        "#397bd5": "#e83a16",
+        "#5a8fe8": "#ff9a00",
+        "#afc8fa": "#ffc065",
+        "#263650": "#292929",
+        "#071126": "#101010",
+        "#030919": "#050505",
+        "#030916": "#050505",
+        "#030a18": "#070707",
+        "#081329": "#121212",
+        "#030b1c": "#060606",
+        "#09152b": "#151515",
+        "#071123": "#090909",
+        "#24344e": "#353535",
+        "#202f48": "#303030",
+        "#2a3a55": "#353535",
+        "#25334a": "#292929",
+        "#0c1930": "#181818",
+        "#0a162b": "#151515",
+        "#020714": "#040404",
+        "#030918": "#050505",
+        "#040c1c": "#080808",
+        "#07142a": "#0b0b0b",
+        "#071022": "#0c0c0c",
+        "#274263": "#3a3a3a",
+        "#3c5275": "#464646",
+        "#638aca": "#ff5b22",
+        "#74a0ff": "#ff5b22",
+        "#9cb8ec": "#b8b8b8",
+        "#75a6ff": "#ff4a18",
     }
     stylesheet = freaky_stylesheet()
     for source, target in replacements.items():
         stylesheet = stylesheet.replace(source, target)
     return stylesheet + """
-        QDockWidget, #transportSurface, QStatusBar#appStatusBar {
-            border-radius: 2px;
+        QMainWindow#mainWindow {
+            background: #050505;
+            border: 1px solid #343434;
+        }
+        QDockWidget {
+            background: #090909;
+            border: 1px solid #292929;
+            border-radius: 7px;
+        }
+        #appTitleBar, #moduleTitleBar, QStatusBar#appStatusBar {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #171717, stop:0.16 #0d0d0d, stop:1 #050505);
         }
         #appTitleBar {
-            border-bottom: 2px solid #ff3864;
+            border-top: 1px solid #353535;
+            border-bottom: 1px solid #292929;
         }
-        #appBrandFreak, #moduleTitle, #panelTitle, #visualizerLive {
-            color: #2ee0cf;
+        #moduleTitleBar {
+            border-bottom: 1px solid #272727;
+        }
+        #playerPanel {
+            background: qradialgradient(cx:0.52, cy:0.35, radius:0.9,
+                stop:0 #151515, stop:0.58 #090909, stop:1 #030303);
+        }
+        #transportSurface {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #1b1b1b, stop:0.18 #0c0c0c, stop:0.8 #050505, stop:1 #151515);
+            border: 1px solid #3c3c3c;
+            border-radius: 14px;
+        }
+        QToolButton#transportButton, QToolButton#modeButton,
+        QToolButton#shuffleButton, QToolButton#utilityButton,
+        QToolButton#flatPlayerButton, QToolButton#moduleChromeButton,
+        QToolButton#skinUtilityButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #1e1e1e, stop:0.14 #111111, stop:1 #050505);
+            border: 1px solid #343434;
+            color: #c8c8c8;
+        }
+        QToolButton#transportButton:hover, QToolButton#modeButton:hover,
+        QToolButton#shuffleButton:hover, QToolButton#utilityButton:hover,
+        QToolButton#flatPlayerButton:hover, QToolButton#moduleChromeButton:hover,
+        QToolButton#skinUtilityButton:hover {
+            border-color: #ff4a19;
+            color: #ff9200;
         }
         QToolButton#playPauseButton {
-            border-color: #ff7893;
+            background: qradialgradient(cx:0.5, cy:0.42, radius:0.62,
+                stop:0 #b32612, stop:0.48 #4d0903, stop:0.7 #140100, stop:1 #050505);
+            border: 2px solid #ff3c18;
+            border-radius: 36px;
+            color: #ff9a00;
+            font-size: 31px;
+        }
+        QToolButton#playPauseButton:hover {
+            background: qradialgradient(cx:0.5, cy:0.42, radius:0.62,
+                stop:0 #e94017, stop:0.5 #6a1006, stop:1 #080808);
+            border-color: #ff7a22;
+        }
+        QComboBox, QSpinBox, QDoubleSpinBox, QLineEdit {
+            background: #070707;
+            border: 1px solid #353535;
+            color: #d8d8d8;
+            selection-background-color: #6b170b;
+        }
+        QComboBox:hover, QSpinBox:hover, QDoubleSpinBox:hover, QLineEdit:hover {
+            border-color: #c72b16;
+        }
+        QHeaderView::section {
+            background: #0d0d0d;
+            border-color: #292929;
+            color: #bdbdbd;
+        }
+        QTableView {
+            background: #070707;
+            alternate-background-color: #0d0d0d;
+            border-color: #292929;
+            gridline-color: #252525;
+        }
+        QTableView::item:selected {
+            background: #5b140a;
+            color: #f1f1f1;
+        }
+        #panelSummary {
+            background: #090909;
+            border-top-color: #292929;
+        }
+        #appBrandFreak, #moduleTitle, #panelTitle, #visualizerLive,
+        #playerArtist, #readyStatus {
+            color: #ff3217;
+        }
+        #playerTime, #skinSelectorLabel, #compactLabel {
+            color: #a3a3a3;
+        }
+        QSlider::groove:horizontal {
+            background: #111111;
+            border-color: #292929;
         }
         QSlider::sub-page:horizontal {
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #ff3864, stop:1 #2ee0cf);
+                stop:0 #a91609, stop:0.58 #ff3515, stop:1 #ff9100);
+        }
+        QSlider::handle:horizontal {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #eeeeee, stop:0.45 #a8a8a8, stop:1 #555555);
+            border: 1px solid #f0f0f0;
+        }
+        QSlider::groove:vertical {
+            background: #080808;
+            border-color: #303030;
+        }
+        QSlider::sub-page:vertical, QSlider::add-page:vertical {
+            background: #ff3216;
+        }
+        QSlider::handle:vertical {
+            background: #111111;
+            border: 1px solid #ff5b21;
+        }
+        QCheckBox::indicator:checked {
+            background: #ff8700;
+            border-color: #ffb14c;
+        }
+        #visualizerControls {
+            background: #080808;
+            border-color: #2c2c2c;
+        }
+        QToolButton#visualizerModeButton {
+            background: #080808;
+            border-color: #303030;
+            color: #bcbcbc;
+        }
+        QToolButton#visualizerModeButton:checked {
+            background: #150503;
+            border-color: #ff3216;
+            color: #ff4a19;
+        }
+        QStatusBar#appStatusBar {
+            border: 1px solid #292929;
+            border-radius: 6px;
+        }
+        QToolButton#windowButton:hover {
+            background: #222222;
+        }
+        QToolButton#windowCloseButton:hover {
+            background: #8f160b;
+        }
+        QComboBox#skinSelector:hover {
+            border-color: #ff3c19;
+        }
+        QMainWindow::separator {
+            background: #121212;
+            width: 6px;
+            height: 6px;
+        }
+        QMainWindow::separator:hover {
+            background: #4d120a;
+        }
+        QDockWidget {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #121212, stop:0.08 #090909, stop:1 #050505);
+            border: 1px solid #3b3b3b;
+            border-radius: 7px;
+        }
+        #moduleTitleBar {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #1d1d1d, stop:0.18 #101010, stop:1 #060606);
+            border-top: 1px solid #424242;
+            border-bottom: 1px solid #323232;
+        }
+        #appBrandFreak {
+            color: #ff8700;
+        }
+        #moduleTitle, #panelTitle, #visualizerLive, #playerArtist, #readyStatus {
+            color: #ff3217;
+        }
+        QToolButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #202020, stop:0.14 #131313, stop:1 #070707);
+            border: 1px solid #3b3b3b;
+            border-radius: 5px;
+            color: #c6c6c6;
+        }
+        QToolButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #2a211e, stop:0.18 #1d100c, stop:1 #090706);
+            border-color: #d43a1c;
+            color: #ff9200;
+        }
+        QToolButton:checked {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #5e180d, stop:0.3 #2d0904, stop:1 #100302);
+            border-color: #ff421c;
+            color: #ff9400;
+        }
+        QToolButton:disabled {
+            background: #0a0a0a;
+            border-color: #242424;
+            color: #595959;
+        }
+        QToolButton#modeButton:checked, QToolButton#shuffleButton:checked {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #64180d, stop:0.32 #300904, stop:1 #0e0201);
+            border-color: #ff471d;
+            color: #ff9400;
+        }
+        QToolButton#utilityButton:disabled {
+            background: #090909;
+            border-color: #252525;
+            color: #555555;
+        }
+        QMenu {
+            background: #0b0b0b;
+            border: 1px solid #3b3b3b;
+            color: #dddddd;
+        }
+        QMenu::item:selected {
+            background: #5c150b;
+            color: #ffffff;
+        }
+        QComboBox QAbstractItemView {
+            background: #080808;
+            border: 1px solid #3b3b3b;
+            color: #dddddd;
+            selection-background-color: #5c150b;
+        }
+        QTableWidget {
+            background: #060606;
+            alternate-background-color: #0b0b0b;
+            border: 0;
+            color: #d7d7d7;
+            gridline-color: #292929;
+            selection-background-color: #4b1008;
+            selection-color: #f2f2f2;
+        }
+        QTableWidget::item {
+            border-bottom: 1px solid #272727;
+            padding: 4px 7px;
+        }
+        QTableWidget::item:selected {
+            background: #4b1008;
+            border-top: 1px solid #b52c15;
+            border-bottom: 1px solid #b52c15;
+            color: #f2f2f2;
+        }
+        QHeaderView::section {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #171717, stop:1 #090909);
+            border: 0;
+            border-right: 1px solid #303030;
+            border-bottom: 1px solid #3a3a3a;
+            color: #c8c8c8;
+        }
+        #panelSummary {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #111111, stop:1 #070707);
+            border-top: 1px solid #303030;
+            color: #a8a8a8;
+        }
+        QScrollBar:vertical {
+            background: #080808;
+            border-left: 1px solid #242424;
+            width: 11px;
+            margin: 0;
+        }
+        QScrollBar::handle:vertical {
+            background: #555555;
+            border: 1px solid #777777;
+            border-radius: 4px;
+            min-height: 24px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #c9361a;
+            border-color: #ff5a25;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: transparent;
+            border: 0;
+            height: 0;
+        }
+        QToolTip {
+            background: #141414;
+            border: 1px solid #d43a1c;
+            color: #f0f0f0;
         }
     """
 

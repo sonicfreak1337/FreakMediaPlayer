@@ -76,7 +76,6 @@ class DawAudioBackend(QObject):
         self._pump_timer = QTimer(self)
         self._pump_timer.setInterval(OUTPUT_PUMP_INTERVAL_MS)
         self._pump_timer.timeout.connect(self._pump_output)
-        self._pump_timer.start()
 
     def load(self, source: AudioSource) -> None:
         path = self._path_from_source(source)
@@ -84,14 +83,15 @@ class DawAudioBackend(QObject):
         self._source_path = path
         self._duration_ms = stream_info.duration_ms
         self._status = PlaybackStatus.PAUSED
-        self._restart_pipeline(0, start_output=False)
+        self._set_sample_playback_active(False)
+        self._prepare_pipeline(0)
 
     def play(self) -> None:
         if self._source_path is None:
             return
         if self._sink is None:
-            self._create_sink()
-        if self._output_device is None and self._sink is not None:
+            self._restart_pipeline(self._base_position_ms, start_output=True)
+        elif self._output_device is None and self._sink is not None:
             self._output_device = self._sink.start()
         elif (
             self._sink is not None
@@ -99,16 +99,22 @@ class DawAudioBackend(QObject):
         ):
             self._sink.resume()
         self._status = PlaybackStatus.PLAYING
+        self._set_sample_playback_active(True)
+        self._pump_timer.start()
         self._pump_output()
 
     def pause(self) -> None:
         if self._sink is not None and self._status == PlaybackStatus.PLAYING:
             self._sink.suspend()
             self._status = PlaybackStatus.PAUSED
+            self._set_sample_playback_active(False)
+            self._pump_timer.stop()
 
     def stop(self) -> None:
         self._status = PlaybackStatus.STOPPED
         self._base_position_ms = 0
+        self._set_sample_playback_active(False)
+        self._pump_timer.stop()
         self._stop_worker()
         self._reset_output()
         self._clear_messages()
@@ -121,9 +127,12 @@ class DawAudioBackend(QObject):
         target_ms = min(self._duration_ms, max(0, position_ms))
         was_playing = self._status == PlaybackStatus.PLAYING
         self._status = PlaybackStatus.PAUSED
-        self._restart_pipeline(target_ms, start_output=was_playing)
         if was_playing:
+            self._restart_pipeline(target_ms, start_output=True)
             self._status = PlaybackStatus.PLAYING
+            self._pump_timer.start()
+        else:
+            self._prepare_pipeline(target_ms)
 
     def position_ms(self) -> int:
         processed_ms = 0
@@ -158,6 +167,13 @@ class DawAudioBackend(QObject):
         self._finished_callback = callback
 
     def _restart_pipeline(self, position_ms: int, start_output: bool) -> None:
+        self._prepare_pipeline(position_ms)
+        self._create_sink()
+        self._start_worker(position_ms)
+        if start_output and self._sink is not None:
+            self._output_device = self._sink.start()
+
+    def _prepare_pipeline(self, position_ms: int) -> None:
         self._stop_worker()
         self._reset_output()
         self._clear_messages()
@@ -167,10 +183,6 @@ class DawAudioBackend(QObject):
         self._decode_finished = False
         if self._audio_samples is not None:
             self._audio_samples.clear()
-        self._create_sink()
-        self._start_worker(position_ms)
-        if start_output and self._sink is not None:
-            self._output_device = self._sink.start()
 
     def _start_worker(self, position_ms: int) -> None:
         if self._source_path is None:
@@ -226,12 +238,15 @@ class DawAudioBackend(QObject):
             self._decode_finished = True
         elif isinstance(message, DecodeFailed):
             self._status = PlaybackStatus.ERROR
+            self._set_sample_playback_active(False)
             self._reset_output()
         return True
 
     def _finish_playback(self) -> None:
         self._status = PlaybackStatus.STOPPED
         self._base_position_ms = self._duration_ms
+        self._set_sample_playback_active(False)
+        self._pump_timer.stop()
         self._reset_output()
         if self._audio_samples is not None:
             self._audio_samples.clear()
@@ -255,7 +270,12 @@ class DawAudioBackend(QObject):
     def _stop_worker(self) -> None:
         self._decode_worker.stop()
 
+    def _set_sample_playback_active(self, active: bool) -> None:
+        if self._audio_samples is not None:
+            self._audio_samples.set_playback_active(active)
+
     def _reset_output(self) -> None:
+        self._pump_timer.stop()
         if self._sink is not None:
             self._sink.reset()
         self._sink = None

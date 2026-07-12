@@ -1,12 +1,41 @@
 # Changelog
 
+## 0.8.0 - 2026-07-12
+
+- Reduced visualizer CPU usage with cached FFT and vignette data, pixel-bounded
+  waveforms and selective antialiasing that retains smooth foreground contours.
+- Kept the visualizer completely inactive until playback starts, renders at 60 FPS
+  while the application is focused and falls back to an efficient background rate.
+- Bypassed no-op equalizer stages, including the default Flat preset, while keeping
+  active bands and preamp processing unchanged.
+- Suspended audio, player and playlist timers whenever their work is inactive or
+  hidden, and deferred decoding until playback actually starts.
+- Disabled PCM sample conversion while the visualizer is hidden and reduced
+  temporary allocations in sample downmixing and PCM output conversion.
+- Avoided redundant player text, slider, icon and artwork updates while preserving
+  live playback state, controls, skins and all visualizer presets.
+
 ## 0.7.3 - 2026-07-11
 
 - Added a live, persistent skin system with the original interface as the default
-  Freaky skin and a provisional Fastilicious racing-console mockup.
+  Freaky skin and the black-metal, red/orange Fastilicious console skin.
 - Added a title-bar skin dropdown plus custom-skin reload and folder controls.
 - Added safe external JSON/QSS skin discovery, semantic color overrides, custom
   asset mappings, convention-based asset replacement and packaged fallbacks.
+- Bundled the supplied Fastilicious character and control assets plus the brutal,
+  audio-reactive Fire of Chaos flame visualizer.
+- Refined the Fastilicious panel chrome, removed remaining blue control states,
+  corrected the invalid supplied Shuffle On icon and made Fire of Chaos activate with
+  the skin automatically.
+- Replaced broken screenshot-crop controls with the reliable Freaky transport,
+  library, playlist, volume and settings icons, added a distinct muted speaker
+  state and rebuilt the supplied logo master with a real transparent background.
+- Reworked logo rendering to preserve the full character silhouette with a safe
+  margin instead of cropping the hair and replaced the former segmented spectrum
+  with layered flames, embers, bass shockwaves and a white-hot chaos core.
+- Added Abyssal Cataclysm as Freaky's new default visualizer: a bombastic water
+  apocalypse with spectrum-driven tsunami walls, a rotating maelstrom, bass
+  pressure waves, underwater lightning, rain and treble-reactive spray.
 
 ## 0.7.2 - 2026-07-10
 

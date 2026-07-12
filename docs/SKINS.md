@@ -3,7 +3,8 @@
 The player ships with two built-in skins:
 
 - **Freaky** is the original navy, gold and neon-blue interface and the default.
-- **Fastilicious** is a provisional raspberry-and-aqua racing-console mockup.
+- **Fastilicious** is a black-metal console with red/orange hot-metal accents,
+  custom character artwork and matching control icons.
 
 Choose a skin from the `SKIN` dropdown in the application title bar. The choice
 is applied immediately and restored on the next launch. The reload button beside

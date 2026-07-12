@@ -95,6 +95,7 @@ def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:
         sink_factory=lambda _format: cast(QAudioSink, fake_sink),
         audio_samples=audio_samples,
     )
+    assert backend._pump_timer.isActive() is False
     finished = False
 
     def mark_finished() -> None:
@@ -103,7 +104,12 @@ def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:
 
     backend.set_finished_callback(mark_finished)
     backend.load(AudioSource(uri=path.as_uri()))
+    assert backend._decode_worker._thread is None
+    assert backend._pump_timer.isActive() is False
+    assert audio_samples.playback_active is False
     backend.play()
+    assert backend._pump_timer.isActive() is True
+    assert audio_samples.playback_active is True
     deadline = time.monotonic() + 2.0
     while not finished and time.monotonic() < deadline:
         app.processEvents()
@@ -114,3 +120,5 @@ def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:
     assert fake_sink.device.payload
     assert audio_samples.sequence > 0
     assert backend.status() == PlaybackStatus.STOPPED
+    assert backend._pump_timer.isActive() is False
+    assert audio_samples.playback_active is False

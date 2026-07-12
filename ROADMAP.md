@@ -1,0 +1,308 @@
+# Roadmap bis Version 1.0
+
+## Produktziel für 1.0
+
+Freak Media Player 1.0 ist ein stabiler, eigenständiger Windows-Musikplayer für
+lokale Audiodateien. Die vorhandenen Stärken – modulare Oberfläche, Wiedergabeliste,
+DAW-Equalizer, Visualizer und Skins – sollen zuverlässig zusammenspielen und als
+sauber installierbares Release ausgeliefert werden.
+
+Die Versionsnummern markieren Qualitäts- und Funktionsziele, keine festen Termine.
+Ein Meilenstein ist erst abgeschlossen, wenn seine Abnahmekriterien erfüllt sind.
+
+## Leitplanken
+
+- Bis einschließlich 1.0 werden ausschließlich lokale Audiodateien als Quelle
+  unterstützt.
+- Externe Audioquellen wie Webradio, direkte Stream-URLs, YouTube Music oder andere
+  Online-Dienste beginnen frühestens nach dem stabilen 1.0-Release.
+- Stabilität, Datenintegrität und verständliche Fehlerbehandlung haben Vorrang vor
+  neuen Modulen und zusätzlichen Effekten.
+- Bereits vorhandene Funktionen werden zuerst vervollständigt und abgesichert.
+- Crossfade, ReplayGain und echtes Gapless Playback sind keine Pflicht für 1.0. Sie
+  bleiben mögliche Erweiterungen, sofern sie die Stabilisierung nicht verzögern.
+
+## Ausgangspunkt: 0.8.0
+
+Der aktuelle Stand besitzt bereits den vollständigen lokalen Wiedergabepfad:
+
+- lokale Bibliothek und persistente, geordnete Wiedergabeliste
+- Streaming-Decoding über PyAV/FFmpeg und native Ausgabe über Qt AudioSink
+- Shuffle, Repeat, Seek, Lautstärke und Wiederherstellung der letzten Sitzung
+- hörbarer parametrischer Equalizer und audio-reaktiver Visualizer
+- modulares, abdockbares Desktop-Layout
+- wechselbare und erweiterbare Skins
+- SQLite-Migrationen, automatisierte Tests und Windows-Build
+
+Die verbleibende Arbeit bis 1.0 konzentriert sich deshalb auf robuste
+Alltagsabläufe und Release-Qualität statt auf einen weiteren Architekturumbau.
+
+## Priorisierung der neuen Funktionsvorschläge
+
+Damit der Umfang bis 1.0 beherrschbar bleibt, sind die folgenden Funktionen in
+drei Stufen eingeordnet:
+
+- **MUSS:** gehört zum verbindlichen 1.0-Umfang.
+- **SOLL:** hoher Nutzen und vorhandene technische Grundlage; ein Weglassen muss
+  vor dem Release bewusst entschieden und dokumentiert werden.
+- **OPTIONAL:** wird nur umgesetzt, wenn die MUSS- und SOLL-Funktionen stabil sind.
+
+Die wichtigsten zusätzlichen Vorschläge nutzen bereits vorhandene Vorarbeit: Das
+Datenbankschema kennt Favoriten, Bewertungen, Wiedergabeverlauf und Queue-Einträge,
+während Favoriten- und Einstellungsbuttons in der Oberfläche schon vorgesehen sind.
+
+## 0.8.x – Aktuellen Funktionsumfang stabilisieren
+
+Ziel: Die Funktionen aus 0.7 und 0.8 bilden eine belastbare Basis für die letzte
+Entwicklungsphase.
+
+### Featureliste
+
+- **MUSS – Fehleranzeige im Player:** Nicht auffindbare, defekte oder nicht
+  unterstützte Dateien verständlich anzeigen; Wiederholen, Überspringen und aus
+  der Wiedergabeliste entfernen direkt anbieten.
+- **MUSS – Sitzungswiederherstellung:** Letzten Titel, Position, Lautstärke,
+  Equalizer, Skin, Shuffle/Repeat und die aktive Wiedergabeliste konsistent
+  wiederherstellen, aber nie ungefragt automatisch abspielen.
+- **MUSS – Layout-Wiederherstellung:** Position, Größe, Sichtbarkeit und Dock-Zustand
+  aller Module über Neustarts hinweg speichern.
+- **SOLL – Layout zurücksetzen:** Einen sichtbaren Befehl anbieten, der das
+  Standardlayout wiederherstellt, falls ein Modul außerhalb des sichtbaren
+  Bildschirmbereichs liegt.
+- **SOLL – Aussagekräftige Leerzustände:** Bibliothek und Wiedergabeliste erklären
+  beim ersten Start direkt, wie Dateien importiert beziehungsweise hinzugefügt
+  werden.
+- **SOLL – Statusmeldungen:** Import, Wiedergabefehler und gespeicherte Änderungen
+  kurz und eindeutig in der Statusleiste melden.
+
+### Stabilität und Technik
+
+- Regressionen bei Play/Pause, Seek, Titelende, Shuffle und Repeat beseitigen.
+- Start, Beenden und Wiederherstellen der Sitzung auch bei leerer oder veränderter
+  Wiedergabeliste absichern.
+- Abgedockte, geschlossene und wiederhergestellte Module mit beiden eingebauten
+  Skins testen.
+- Defekte, nicht unterstützte oder während der Wiedergabe entfernte Dateien mit
+  einer verständlichen Meldung behandeln, ohne die Anwendung zu blockieren.
+- Nebenläufigkeit der Decoder-Pipeline, Speichergrenzen und sauberes Beenden der
+  Worker-Threads durch Stresstests absichern.
+
+Abnahme:
+
+- Die vollständige automatisierte Testsuite ist grün.
+- Keine bekannten Fehler mit Datenverlust, Absturz oder dauerhaft blockierter
+  Wiedergabe.
+- Ein mehrstündiger manueller Wiedergabetest mit Titelwechseln, Seek, Shuffle,
+  Repeat, Equalizer, Visualizer und Skinwechsel läuft ohne Absturz.
+
+## 0.9.0 – Bibliothek und Wiedergabelisten alltagstauglich machen
+
+Ziel: Auch größere lokale Musiksammlungen lassen sich schnell und nachvollziehbar
+verwalten.
+
+### Featureliste
+
+- **MUSS – Bibliothekssuche:** Sichtbare Sofortsuche nach Titel, Interpret, Album,
+  Genre, Jahr und Dateiname auf dem vorhandenen `SearchService` aufbauen.
+- **MUSS – Filter:** Kombinierbare Filter für Interpret, Album, Genre, Jahr,
+  Favoriten und Dateistatus; Filter mit einem Klick zurücksetzen.
+- **MUSS – Verwaltete Musikordner:** Ordner als Bibliotheksquellen hinzufügen,
+  entfernen und gezielt neu einlesen können.
+- **MUSS – Hintergrundimport:** Fortschritt, Abbruch und Ergebnisübersicht für
+  große Importe anzeigen, ohne Wiedergabe oder Oberfläche zu blockieren.
+- **MUSS – Duplikat- und Dateistatus:** Doppelte Titel vermeiden sowie fehlende,
+  verschobene oder unlesbare Dateien markieren; einen neuen Speicherort manuell
+  zuordnen können.
+- **MUSS – Benannte Wiedergabelisten:** Erstellen, öffnen, duplizieren, umbenennen,
+  leeren und löschen; Änderungen bleiben sofort persistent.
+- **SOLL – Favoriten:** Den bereits sichtbaren Herz-Button aktivieren und Favoriten
+  in Bibliothek und Wiedergabeliste darstellen und filtern.
+- **SOLL – Bewertungen:** Null bis fünf Sterne speichern, in der Bibliothek
+  anzeigen und zum Sortieren beziehungsweise Filtern verwenden.
+- **SOLL – Wiedergabeverlauf:** Zuletzt und häufig gespielte Titel anzeigen; Verlauf
+  einzeln oder vollständig löschen können.
+- **SOLL – M3U/M3U8:** Wiedergabelisten mit lokalen Pfaden importieren und
+  exportieren; relative und absolute Pfade korrekt behandeln.
+- **SOLL – Metadaten bearbeiten:** Titel, Interpret, Album, Jahr, Genre sowie
+  Track-/Disc-Nummer in der Bibliothek korrigieren. Für 1.0 werden Änderungen
+  sicher in der Datenbank gespeichert; direktes Zurückschreiben in Audiodateien
+  bleibt zunächst optional, um Dateischäden zu vermeiden.
+- **OPTIONAL – Gruppierte Navigation:** Zusätzliche Ansichten für Interpreten,
+  Alben und Genres anbieten, ohne die schnelle Tabellenansicht zu ersetzen.
+- **OPTIONAL – Intelligente Listen:** Dynamische Ansichten wie „Favoriten“,
+  „Zuletzt hinzugefügt“, „Zuletzt gespielt“ und „Am häufigsten gespielt“ aus
+  Filtern erzeugen.
+
+### Stabilität und Technik
+
+- Metadaten und Dateistatus beim erneuten Einlesen aktualisieren, ohne manuelle
+  Bibliothekskorrekturen unbemerkt zu überschreiben.
+- Sortierung, Mehrfachauswahl und Drag-and-drop mit großen Bibliotheken testen und
+  bei Bedarf optimieren.
+- Löschaktionen eindeutig zwischen „aus Wiedergabeliste entfernen“, „aus Bibliothek
+  entfernen“ und „Datei vom Datenträger löschen“ unterscheiden. Letzteres gehört
+  nur mit zusätzlicher Bestätigung in den Umfang.
+
+Abnahme:
+
+- Import, erneutes Einlesen und Suche bleiben bei mindestens 10.000
+  Bibliothekseinträgen bedienbar.
+- Ein erneuter Scan erzeugt keine Duplikate und verliert keine manuell gepflegte
+  Wiedergabelistenreihenfolge.
+- Datenbank-Upgrades von allen bisher veröffentlichten Schemaständen sind getestet.
+
+## 0.9.1 – Wiedergabe und Windows-Integration abrunden
+
+Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorhersehbar.
+
+### Featureliste
+
+- **MUSS – Einstellungsdialog:** Den vorhandenen Button aktivieren und mindestens
+  Audioausgabe, Sitzungswiederherstellung, Verhalten bei Titelende, Oberfläche,
+  Visualizer-Leistung und Benachrichtigungen konfigurierbar machen.
+- **MUSS – Audioausgabegerät:** Verfügbare Windows-Ausgabegeräte anzeigen, ein
+  Gerät wählen und auf Wunsch dem Windows-Standardgerät folgen.
+- **MUSS – „Als Nächstes abspielen“:** Eine temporäre Queue vor der normalen
+  Wiedergabelistenreihenfolge einführen; Einträge anzeigen, umsortieren und
+  entfernen. Das vorhandene `queue_items`-Schema kann dafür genutzt werden.
+- **MUSS – Fehlerfortsetzung:** Bei einem unspielbaren Titel automatisch zum
+  nächsten gültigen Queue- oder Playlist-Eintrag wechseln, ohne Endlosschleife.
+- **SOLL – Tastenkürzel:** Play/Pause, Stop, Vor, Zurück, Lautstärke, Stumm,
+  Shuffle, Repeat, Suche und Modulumschaltung dokumentiert steuerbar machen.
+- **SOLL – Windows-Medientasten:** Play/Pause, Vor und Zurück unterstützen, sofern
+  dies ohne instabile globale Tastatur-Hooks möglich ist.
+- **SOLL – Benachrichtigung bei Titelwechsel:** Optional Titel, Interpret und Cover
+  als native Windows-Benachrichtigung anzeigen.
+- **SOLL – Cover-Auswahl:** Ein abweichendes lokales Cover pro Album oder Titel
+  auswählen und auf die automatische Erkennung zurücksetzen können.
+- **OPTIONAL – Infobereich:** Konfigurierbares Minimieren in den Windows-Tray mit
+  Wiedergabesteuerung; standardmäßig bleibt normales Taskleistenverhalten erhalten.
+- **OPTIONAL – Schlaf-Timer:** Wiedergabe nach einer Zeitspanne oder am Ende des
+  aktuellen Titels stoppen, ohne den Rechner automatisch herunterzufahren.
+
+### Stabilität und Technik
+
+- Fehlerhafte Titel überspringbar machen und Fehlerzustände sichtbar im Player und
+  Protokoll ausgeben.
+- Wechsel, Verlust und Wiederkehr des Audio-Ausgabegeräts robust behandeln.
+- Unterstützte Dateiformate sowie Sonderfälle bei Dauer, Seek und Metadaten mit
+  echten Testdateien abdecken.
+- Tastatursteuerung vervollständigen und Windows-Medientasten integrieren, sofern
+  dies ohne instabile globale Hooks möglich ist.
+- Fokusführung, Tooltips, Skalierung und Kontrast für 100 %, 125 %, 150 % und 200 %
+  DPI prüfen.
+- Leerlauf-, Wiedergabe- und Visualizer-Last auf typischer Hardware messen und
+  dokumentierte Zielwerte festhalten.
+
+Abnahme:
+
+- Audio-Gerätewechsel und Decoderfehler führen nicht zum Anwendungsabsturz.
+- Die wichtigsten Bedienabläufe funktionieren vollständig mit Maus und Tastatur.
+- Ein definierter Format- und Windows-Smoke-Test ist reproduzierbar bestanden.
+
+## 0.9.2 – Release Candidate vorbereiten
+
+Ziel: Aus dem Entwicklungsstand wird ein wartbares Produkt, das auf einem sauberen
+Windows-System zuverlässig installiert und diagnostiziert werden kann.
+
+### Featureliste
+
+- **MUSS – Sicherung und Wiederherstellung:** Bibliothek, Wiedergabelisten,
+  Favoriten, Bewertungen, Einstellungen und benutzerdefinierte Equalizer-Daten in
+  ein lokales Sicherungspaket exportieren und wieder einlesen.
+- **MUSS – Diagnoseansicht:** App-Version, Datenbankversion, Datenpfade,
+  Audioausgabe und letzte Fehler anzeigen sowie Protokollordner öffnen können.
+- **MUSS – Über/About-Dialog:** Version, Projektinformationen, Lizenzen und
+  mitgelieferte Drittanbieterkomponenten auffindbar machen.
+- **SOLL – Erster-Start-Assistent:** Kurz Musikordner, Audioausgabe und
+  Sitzungsverhalten abfragen; jeder Schritt bleibt überspringbar.
+- **SOLL – Dateizuordnung:** Während der Installation optional unterstützte
+  Audiodateien mit Freak Media Player öffnen beziehungsweise an die aktive
+  Wiedergabeliste übergeben.
+- **SOLL – Wartungsfunktionen:** Standardlayout wiederherstellen, Bibliotheksindex
+  neu aufbauen und Einstellungen mit klarer Bestätigung zurücksetzen.
+- **OPTIONAL – Portable Ausgabe:** Zusätzlich zur Installation ein klar
+  gekennzeichnetes portables Paket bereitstellen, dessen Datenablage nicht mit der
+  installierten Variante kollidiert.
+
+### Release-Qualität und Technik
+
+- Einstellungen und Bibliotheksdaten vor riskanten Migrationen sichern und bei
+  Fehlern verständlich reagieren.
+- Rotierende Logdateien, aussagekräftige Fehlermeldungen und eine leicht auffindbare
+  Diagnoseinformation bereitstellen; keine persönlichen Dateipfade ungefragt in
+  Berichte übernehmen.
+- Reproduzierbaren Release-Build auf einem sauberen System prüfen.
+- Installations- oder portable Release-Verteilung festlegen, inklusive sauberer
+  Deinstallation beziehungsweise klar dokumentierter Datenablage.
+- Lizenzhinweise für Python-, Qt-, FFmpeg/PyAV-, NumPy- und SciPy-Bestandteile
+  vollständig mitliefern.
+- Benutzerhandbuch für Import, Playlist, Equalizer, Visualizer, Skins,
+  Tastenkürzel, Datenablage und Fehlerdiagnose fertigstellen.
+- Versionsnummern, Dateieigenschaften, Programmtitel und Changelog automatisiert
+  auf Konsistenz prüfen.
+
+Abnahme:
+
+- Release-Artefakt startet ohne installierte Python-Entwicklungsumgebung auf den
+  unterstützten Windows-Versionen.
+- Upgrade, Neuinstallation und Deinstallation wurden auf einer sauberen Umgebung
+  getestet.
+- Keine bekannten Fehler der Priorität Blocker oder Kritisch; alle übrigen
+  bekannten Einschränkungen sind dokumentiert.
+
+## 1.0.0 – Stabiler lokaler Player
+
+Ziel: Funktionsumfang einfrieren, letzte Release-Blocker beheben und den lokalen
+Player offiziell als stabil veröffentlichen.
+
+### Ausgelieferter Funktionsumfang
+
+- lokale Dateien und verwaltete Musikordner importieren und neu einlesen
+- Bibliothek durchsuchen, filtern, sortieren und fehlende Dateien reparieren
+- aktive Queue sowie mehrere persistente Wiedergabelisten verwalten
+- Favoriten und – sofern das SOLL-Gate erfüllt ist – Bewertungen und Verlauf nutzen
+- Wiedergabe mit Seek, Lautstärke, Shuffle, Repeat und wählbarer Audioausgabe
+- parametrischen Equalizer, Visualizer, Skins und modulares Layout verwenden
+- Sitzung, Layout und Einstellungen sicher wiederherstellen
+- lokale Daten sichern, wiederherstellen und diagnostizieren
+- als dokumentiertes Windows-Release installieren oder bewusst portabel starten
+
+### Release-Freeze
+
+- Ab 1.0-RC nur noch Fehlerkorrekturen, Dokumentation und notwendige
+  Kompatibilitätsanpassungen aufnehmen.
+- Vollständige Regression über Bibliothek, Wiedergabelisten, Decoder, Audioausgabe,
+  Equalizer, Visualizer, Skins, Sitzungswiederherstellung und Migrationen ausführen.
+- Release-Artefakt, Prüfsumme, Changelog, Lizenzhinweise und bekannte
+  Einschränkungen veröffentlichen.
+- Eine Rückkehr zur vorherigen Version darf Benutzerdaten nicht stillschweigend
+  beschädigen; unvermeidbare Einschränkungen müssen vor dem Upgrade sichtbar sein.
+
+1.0 gilt als fertig, wenn:
+
+- lokale Musik ohne Netzwerkverbindung importiert, organisiert und zuverlässig
+  wiedergegeben werden kann,
+- Bibliothek, Wiedergabelisten und Einstellungen Neustarts und Upgrades ohne
+  Datenverlust überstehen,
+- keine bekannten reproduzierbaren Abstürze oder Wiedergabe-Blocker offen sind,
+- automatisierte Tests sowie der definierte manuelle Release-Test bestanden sind,
+- Build, Installation, Bedienung, Datenablage und Fehlerdiagnose dokumentiert sind.
+
+## Nach 1.0
+
+Erst nach dem stabilen 1.0-Release wird die vorhandene Provider-Architektur für
+externe Audioquellen produktiv erweitert. Vor dem ersten Anbieter wird gemeinsam
+geklärt, wie Authentifizierung, Netzwerkfehler, Caching, Quellenkennzeichnung,
+Metadaten, Nutzungsbedingungen und optionale Abhängigkeiten behandelt werden.
+
+Mögliche spätere Schritte, noch ohne feste Reihenfolge:
+
+- direkte Stream-URLs und Webradio
+- externe Musikkataloge und Musikdienste
+- YouTube Music oder vergleichbare Anbieter, soweit technisch und rechtlich
+  tragfähig
+- quellenübergreifende Suche und gemischte Wiedergabelisten
+- Offline-Cache nur dort, wo der jeweilige Dienst dies ausdrücklich erlaubt
+
+Diese Punkte gehören ausdrücklich nicht zum Umfang von 0.8.x, 0.9.x oder 1.0.0.
