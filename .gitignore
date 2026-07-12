@@ -18,6 +18,7 @@ dist-dev/
 !FreakMediaPlayer.dev.spec
 *.sqlite3
 .codex-git-tmp/
+.codex-test-temp-*/
 Freak_Media_Player_Assets_*/
 Freak_Media_Player_Repeat_Assets_*/
 /shuffle_inaktiv.png
