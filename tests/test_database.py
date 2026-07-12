@@ -54,7 +54,7 @@ def test_database_upgrades_from_every_published_schema(starting_version: int) ->
         for row in connection.execute("PRAGMA table_info(tracks)").fetchall()
     }
     assert versions == {migration.version for migration in INITIAL_MIGRATIONS}
-    assert {"metadata_overridden", "added_at"} <= columns
+    assert {"metadata_overridden", "added_at", "cover_url"} <= columns
 
 
 def test_settings_repository_round_trips_values() -> None:
@@ -84,6 +84,7 @@ def test_track_repository_round_trips_track() -> None:
         genre="Metalcore",
         track_number=4,
         disc_number=2,
+        cover_url="C:/covers/custom.jpg",
     )
 
     repository.save(track)
@@ -98,6 +99,7 @@ def test_track_repository_round_trips_track() -> None:
     assert loaded.album.release_year == 2024
     assert loaded.duration == timedelta(seconds=123)
     assert loaded.genre == "Metalcore"
+    assert loaded.cover_url == "C:/covers/custom.jpg"
     assert loaded.track_number == 4
     assert loaded.disc_number == 2
 

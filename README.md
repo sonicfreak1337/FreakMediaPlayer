@@ -10,6 +10,7 @@ Current version: `0.9.0`
 - Import local audio by file, folder, or drag and drop
 - Manage persistent music folders with targeted background rescans and cancellation
 - Read embedded title, artist, album, year, genre and track metadata
+- Infer artist and title from `Artist - Title` filenames when tags are missing
 - Search and combine artist, album, genre, year, favorite and file-status filters
 - Browse grouped artists, albums and genres plus Favorites and Recently Added views
 - Separate local library and persistent active playlist
@@ -48,6 +49,7 @@ Current version: `0.9.0`
 - User skins with inherited or standalone QSS, semantic colors and custom assets
 - Branded application/taskbar icon and logo-based fallback artwork
 - Automatic album-cover discovery from conventional images beside local tracks
+- Per-track local cover overrides with one-click return to automatic discovery
 - Gold playing-row emphasis and restrained outlined table selection
 - SQLite storage for imported tracks and settings
 - Versioned settings and database migrations

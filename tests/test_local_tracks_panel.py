@@ -233,6 +233,8 @@ def test_library_keeps_rare_actions_in_single_overflow_menu() -> None:
     assert [action.text() for action in panel._library_actions.menu().actions()] == [
         "Edit selected metadata…",
         "Relocate selected missing file…",
+        "Choose local cover…",
+        "Use automatic cover detection",
         "",
         "Remove selected from library",
         "Delete selected audio files from disk…",

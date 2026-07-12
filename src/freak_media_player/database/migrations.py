@@ -135,6 +135,12 @@ INITIAL_MIGRATIONS: tuple[Migration, ...] = (
         CREATE INDEX IF NOT EXISTS tracks_added_at_index ON tracks(added_at DESC);
         """,
     ),
+    Migration(
+        version=7,
+        sql="""
+        ALTER TABLE tracks ADD COLUMN cover_url TEXT;
+        """,
+    ),
 )
 
 

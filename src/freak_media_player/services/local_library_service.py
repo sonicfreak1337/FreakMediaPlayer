@@ -167,6 +167,25 @@ class LocalLibraryService:
     def set_favorite(self, track_id: str, favorite: bool) -> None:
         self._track_repository.set_favorite(track_id, favorite)
 
+    def set_track_cover(self, track_id: str, cover_path: Path | None) -> Track:
+        cover_url: str | None = None
+        if cover_path is not None:
+            resolved = cover_path.resolve()
+            if not resolved.is_file() or resolved.suffix.casefold() not in {
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".webp",
+                ".bmp",
+            }:
+                raise ValueError("Choose an existing JPG, PNG, WebP or BMP image.")
+            cover_url = str(resolved)
+        self._track_repository.update_cover_url(track_id, cover_url)
+        updated = self._track_repository.get_by_id(track_id)
+        if updated is None:
+            raise KeyError(track_id)
+        return updated
+
     def relocate_track(self, track_id: str, new_path: Path) -> Track:
         track = self._track_repository.get_by_id(track_id)
         if track is None:

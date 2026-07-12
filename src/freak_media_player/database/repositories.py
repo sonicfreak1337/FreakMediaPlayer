@@ -13,9 +13,9 @@ TRACK_UPSERT_SQL = """
     INSERT INTO tracks (
         id, provider_id, provider_track_id, title, artist, album,
         duration_seconds, album_artist, release_year, genre, track_number,
-        disc_number, added_at
+        disc_number, cover_url, added_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(id) DO UPDATE SET
         provider_id = excluded.provider_id,
         provider_track_id = excluded.provider_track_id,
@@ -35,7 +35,8 @@ TRACK_UPSERT_SQL = """
         track_number = CASE WHEN tracks.metadata_overridden = 1
             THEN tracks.track_number ELSE excluded.track_number END,
         disc_number = CASE WHEN tracks.metadata_overridden = 1
-            THEN tracks.disc_number ELSE excluded.disc_number END
+            THEN tracks.disc_number ELSE excluded.disc_number END,
+        cover_url = COALESCE(tracks.cover_url, excluded.cover_url)
 """
 
 
@@ -92,7 +93,7 @@ class SQLiteTrackRepository:
             SELECT
                 id, provider_id, provider_track_id, title, artist, album,
                 duration_seconds, album_artist, release_year, genre,
-                track_number, disc_number
+                track_number, disc_number, cover_url
             FROM tracks
             WHERE id = ?
             """,
@@ -108,7 +109,7 @@ class SQLiteTrackRepository:
             SELECT
                 id, provider_id, provider_track_id, title, artist, album,
                 duration_seconds, album_artist, release_year, genre,
-                track_number, disc_number
+                track_number, disc_number, cover_url
             FROM tracks
             WHERE provider_id = ? AND provider_track_id = ?
             """,
@@ -130,7 +131,7 @@ class SQLiteTrackRepository:
             SELECT
                 id, provider_id, provider_track_id, title, artist, album,
                 duration_seconds, album_artist, release_year, genre,
-                track_number, disc_number
+                track_number, disc_number, cover_url
             FROM tracks
             ORDER BY title COLLATE NOCASE, artist COLLATE NOCASE
             """
@@ -165,6 +166,15 @@ class SQLiteTrackRepository:
         cursor = self._connection.execute(
             "UPDATE tracks SET provider_track_id = ? WHERE id = ?",
             (item_id, track_id),
+        )
+        if cursor.rowcount != 1:
+            raise KeyError(track_id)
+        self._connection.commit()
+
+    def update_cover_url(self, track_id: str, cover_url: str | None) -> None:
+        cursor = self._connection.execute(
+            "UPDATE tracks SET cover_url = ? WHERE id = ?",
+            (cover_url, track_id),
         )
         if cursor.rowcount != 1:
             raise KeyError(track_id)
@@ -246,7 +256,8 @@ class SQLitePlaylistRepository:
                 tracks.release_year,
                 tracks.genre,
                 tracks.track_number,
-                tracks.disc_number
+                tracks.disc_number,
+                tracks.cover_url
             FROM playlist_tracks
             JOIN tracks ON tracks.id = playlist_tracks.track_id
             WHERE playlist_tracks.playlist_id = ?
@@ -345,6 +356,7 @@ def _track_from_row(row: sqlite3.Row) -> Track:
             if duration_seconds is not None
             else None
         ),
+        cover_url=str(row["cover_url"]) if row["cover_url"] else None,
         genre=str(row["genre"]) if row["genre"] else None,
         track_number=(
             int(row["track_number"]) if row["track_number"] is not None else None
@@ -369,4 +381,5 @@ def _track_values(track: Track) -> tuple[object, ...]:
         track.genre,
         track.track_number,
         track.disc_number,
+        track.cover_url,
     )

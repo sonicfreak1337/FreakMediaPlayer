@@ -75,7 +75,8 @@ class LocalFileProvider:
         if not self.is_supported_file(resolved):
             raise ValueError(f"Unsupported audio file: {resolved}")
         metadata = self._metadata_reader.read(resolved)
-        artist = Artist(name=metadata.artist or UNKNOWN_ARTIST)
+        fallback_artist, fallback_title = self._split_file_name(resolved.stem)
+        artist = Artist(name=metadata.artist or fallback_artist or UNKNOWN_ARTIST)
         album_artist = Artist(name=metadata.album_artist or artist.name)
         album = None
         if metadata.album_title:
@@ -90,7 +91,7 @@ class LocalFileProvider:
                 provider_id=self.provider_id,
                 item_id=str(resolved),
             ),
-            title=metadata.title or resolved.stem,
+            title=metadata.title or fallback_title or resolved.stem,
             artist=artist,
             album=album,
             duration=(
@@ -117,6 +118,16 @@ class LocalFileProvider:
     def _track_id(self, path: Path) -> str:
         digest = hashlib.sha1(str(path).encode("utf-8")).hexdigest()
         return f"{self.provider_id}:{digest}"
+
+    @staticmethod
+    def _split_file_name(stem: str) -> tuple[str | None, str | None]:
+        parts = stem.split(" - ", 1)
+        if len(parts) != 2:
+            return None, None
+        artist, title = (part.strip() for part in parts)
+        if not artist or not title:
+            return None, None
+        return artist, title
 
     def _validate_track(self, track: Track) -> None:
         if track.provider_identity.provider_id != self.provider_id:

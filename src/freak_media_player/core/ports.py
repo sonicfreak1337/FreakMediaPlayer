@@ -108,6 +108,9 @@ class TrackRepository(Protocol):
     def update_provider_item(self, track_id: str, item_id: str) -> None:
         ...
 
+    def update_cover_url(self, track_id: str, cover_url: str | None) -> None:
+        ...
+
     def update_metadata(
         self,
         track_id: str,

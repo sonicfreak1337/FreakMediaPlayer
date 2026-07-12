@@ -236,6 +236,10 @@ class LocalTracksPanel(QWidget):
         actions_menu.addAction(
             "Relocate selected missing file…", self._relocate_selected_track
         )
+        actions_menu.addAction("Choose local cover…", self._choose_selected_cover)
+        actions_menu.addAction(
+            "Use automatic cover detection", self._reset_selected_cover
+        )
         actions_menu.addSeparator()
         actions_menu.addAction(
             "Remove selected from library", self._remove_selected_track
@@ -727,6 +731,45 @@ class LocalTracksPanel(QWidget):
         self.refresh()
         self.track_metadata_changed.emit(updated)
         self.status_message.emit("Library metadata saved; audio file unchanged.")
+
+    def _choose_selected_cover(self) -> None:
+        track = self._single_selected_track("choose a cover for")
+        if track is None:
+            return
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Choose local cover image",
+            str(Path(track.provider_identity.item_id).parent),
+            "Images (*.jpg *.jpeg *.png *.webp *.bmp)",
+        )
+        if selected:
+            self._save_track_cover(track.id, Path(selected))
+
+    def _reset_selected_cover(self) -> None:
+        track = self._single_selected_track("reset the cover for")
+        if track is not None:
+            self._save_track_cover(track.id, None)
+
+    def _single_selected_track(self, action: str) -> Track | None:
+        track_ids = self._selected_track_ids()
+        if len(track_ids) != 1:
+            self.status_message.emit(f"Select exactly one library track to {action}.")
+            return None
+        return self._local_library_service.get_track(track_ids[0])
+
+    def _save_track_cover(self, track_id: str, path: Path | None) -> None:
+        try:
+            updated = self._local_library_service.set_track_cover(track_id, path)
+        except ValueError as error:
+            self.status_message.emit(f"Could not save cover: {error}")
+            return
+        self.refresh()
+        self.track_metadata_changed.emit(updated)
+        self.status_message.emit(
+            "Local cover saved."
+            if path is not None
+            else "Automatic cover detection restored."
+        )
 
     def _add_item_to_playlist(self, item: QTableWidgetItem) -> None:
         title_item = self._table.item(item.row(), 0)

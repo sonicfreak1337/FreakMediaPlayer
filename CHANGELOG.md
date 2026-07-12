@@ -13,6 +13,10 @@
   preferring Up Next entries and retaining a visible final error if all fail.
 - Added application-wide Qt media-key handling for Windows transport controls
   without global keyboard hooks.
+- Added persistent per-track local cover overrides with reset to automatic folder
+  artwork discovery.
+- Added metadata fallback for untagged files named `Artist - Title`, while embedded
+  tags continue to take priority.
 - Added documented window-wide shortcuts for transport, volume, mute, Shuffle,
   Repeat, library search and core module visibility.
 

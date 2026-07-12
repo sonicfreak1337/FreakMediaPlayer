@@ -57,12 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **SOLL – Cover-Auswahl:** Ein abweichendes lokales Cover pro Album oder Titel
-  auswählen und auf die automatische Erkennung zurücksetzen können.
-- **OPTIONAL – Infobereich:** Konfigurierbares Minimieren in den Windows-Tray mit
-  Wiedergabesteuerung; standardmäßig bleibt normales Taskleistenverhalten erhalten.
-- **OPTIONAL – Schlaf-Timer:** Wiedergabe nach einer Zeitspanne oder am Ende des
-  aktuellen Titels stoppen, ohne den Rechner automatisch herunterzufahren.
 
 ### Stabilität und Technik
 

@@ -76,6 +76,11 @@ class StubMetadataReader(LocalMetadataReader):
         )
 
 
+class EmptyMetadataReader(LocalMetadataReader):
+    def read(self, _path: Path) -> LocalTrackMetadata:
+        return LocalTrackMetadata()
+
+
 def test_local_file_provider_uses_embedded_metadata(tmp_path: Path) -> None:
     file_path = tmp_path / "fallback-name.flac"
     write_audio_file(file_path)
@@ -93,6 +98,32 @@ def test_local_file_provider_uses_embedded_metadata(tmp_path: Path) -> None:
     assert track.genre == "Metal"
     assert track.track_number == 3
     assert track.disc_number == 1
+
+
+def test_local_file_provider_infers_artist_and_title_from_file_name(
+    tmp_path: Path,
+) -> None:
+    file_path = tmp_path / "Suicide Silence - Wake up.mp3"
+    write_audio_file(file_path)
+    provider = LocalFileProvider(metadata_reader=EmptyMetadataReader())
+
+    track = provider.track_from_path(file_path)
+
+    assert track.artist.name == "Suicide Silence"
+    assert track.title == "Wake up"
+
+
+def test_embedded_metadata_takes_priority_over_file_name_fallback(
+    tmp_path: Path,
+) -> None:
+    file_path = tmp_path / "Wrong Artist - Wrong Title.flac"
+    write_audio_file(file_path)
+    provider = LocalFileProvider(metadata_reader=StubMetadataReader())
+
+    track = provider.track_from_path(file_path)
+
+    assert track.artist.name == "Tagged Artist"
+    assert track.title == "Tagged Song"
 
 
 def test_local_file_provider_searches_library_roots(tmp_path: Path) -> None:
@@ -172,6 +203,22 @@ def test_local_library_service_removes_track(tmp_path: Path) -> None:
 
     assert removed is True
     assert service.list_tracks() == []
+
+
+def test_local_library_service_sets_and_resets_custom_cover(tmp_path: Path) -> None:
+    audio_file = tmp_path / "One.mp3"
+    cover_file = tmp_path / "special-cover.png"
+    write_audio_file(audio_file)
+    cover_file.write_bytes(b"image fixture")
+    repository = SQLiteTrackRepository(make_connection())
+    service = LocalLibraryService(LocalFileProvider(), repository)
+    track = service.import_file(audio_file)
+
+    customized = service.set_track_cover(track.id, cover_file)
+    restored = service.set_track_cover(track.id, None)
+
+    assert customized.cover_url == str(cover_file.resolve())
+    assert restored.cover_url is None
 
 
 def test_local_library_service_refreshes_existing_metadata(tmp_path: Path) -> None:
