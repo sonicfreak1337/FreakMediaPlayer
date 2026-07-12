@@ -35,6 +35,7 @@ class PlaybackController:
         self._current_is_play_next = False
         self._continue_after_track = True
         self._audio_backend.set_finished_callback(self._handle_finished)
+        self._audio_backend.set_error_callback(self._handle_backend_error)
 
     @property
     def state(self) -> PlaybackState:
@@ -88,7 +89,7 @@ class PlaybackController:
             return self.state
         self._current_is_play_next = False
         self._state = self._idle_state()
-        return self._start_track(track)
+        return self._start_with_error_skip(track)
 
     def sync_playlist(self, tracks: list[Track]) -> PlaybackState:
         current_track = self._state.current_track
@@ -128,7 +129,7 @@ class PlaybackController:
         if track is None:
             return self._snapshot()
 
-        return self._start_track(track)
+        return self._start_with_error_skip(track)
 
     def retry(self) -> PlaybackState:
         track = self._state.current_track
@@ -145,7 +146,7 @@ class PlaybackController:
         if track is None:
             return self.stop()
         self._current_is_play_next = is_play_next
-        return self._start_track(track)
+        return self._start_with_error_skip(track)
 
     def previous_track(self) -> PlaybackState:
         track = self._queue.previous()
@@ -288,6 +289,30 @@ class PlaybackController:
             self.stop()
             return
         self.next_track()
+
+    def _handle_backend_error(self) -> None:
+        LOGGER.error("Audio backend failed; continuing with the next queued track")
+        self.next_track()
+
+    def _start_with_error_skip(self, track: Track) -> PlaybackState:
+        maximum_attempts = max(
+            1,
+            self._queue.track_count() + len(self._queue.play_next_tracks()),
+        )
+        for _attempt in range(maximum_attempts):
+            state = self._start_track(track)
+            if state.status != PlaybackStatus.ERROR:
+                return state
+            is_play_next = bool(self._queue.play_next_tracks())
+            candidate = self._queue.next()
+            if candidate is None and self._state.repeat_mode == RepeatMode.ALL:
+                candidate = self._queue.select(0)
+                is_play_next = False
+            if candidate is None:
+                return state
+            self._current_is_play_next = is_play_next
+            track = candidate
+        return self.state
 
     def _snapshot(
         self,

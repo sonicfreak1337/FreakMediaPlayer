@@ -33,6 +33,8 @@ Current version: `0.9.0`
 - Automatic playback of the next playlist title
 - Visible temporary Up Next queue with reorder and remove controls before normal
   playlist playback resumes
+- Automatic bounded skip over unreadable Up Next and playlist entries, including
+  asynchronous decoder failures
 - Highlighted currently playing playlist row
 - Clickable and draggable playback and volume sliders
 - Multi-select library tables with Shift-click and Ctrl-click

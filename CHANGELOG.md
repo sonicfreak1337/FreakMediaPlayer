@@ -10,6 +10,8 @@
   peak-stable upmix/downmix matrices and multichannel Visualizer sample capture.
 - Added a visible temporary Up Next queue that can be filled from playlist
   selections, reordered and cleared without changing saved playlist order.
+- Added bounded automatic continuation after load, decoder or backend errors,
+  preferring Up Next entries and retaining a visible final error if all fail.
 - Added documented window-wide shortcuts for transport, volume, mute, Shuffle,
   Repeat, library search and core module visibility.
 

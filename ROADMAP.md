@@ -57,8 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **MUSS – Fehlerfortsetzung:** Bei einem unspielbaren Titel automatisch zum
-  nächsten gültigen Queue- oder Playlist-Eintrag wechseln, ohne Endlosschleife.
 - **SOLL – Windows-Medientasten:** Play/Pause, Vor und Zurück unterstützen, sofern
   dies ohne instabile globale Tastatur-Hooks möglich ist.
 - **SOLL – Benachrichtigung bei Titelwechsel:** Optional Titel, Interpret und Cover
@@ -72,8 +70,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Stabilität und Technik
 
-- Fehlerhafte Titel überspringbar machen und Fehlerzustände sichtbar im Player und
-  Protokoll ausgeben.
 - Wechsel, Verlust und Wiederkehr des Audio-Ausgabegeräts robust behandeln.
 - Unterstützte Dateiformate sowie Sonderfälle bei Dauer, Seek und Metadaten mit
   echten Testdateien abdecken.

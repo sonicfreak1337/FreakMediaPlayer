@@ -73,6 +73,9 @@ class AudioBackend(Protocol):
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         ...
 
+    def set_error_callback(self, callback: Callable[[], None]) -> None:
+        ...
+
 
 class TrackRepository(Protocol):
     def save(self, track: Track) -> None:

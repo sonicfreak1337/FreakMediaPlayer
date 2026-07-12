@@ -32,6 +32,7 @@ class NullAudioBackend:
         self._volume = DEFAULT_VOLUME
         self._equalizer_preset = EQUALIZER_PRESETS[0]
         self._finished_callback: Callable[[], None] | None = None
+        self._error_callback: Callable[[], None] | None = None
         self._output_device_id: str | None = None
         self._output_mode = AudioOutputMode.STEREO
 
@@ -102,10 +103,18 @@ class NullAudioBackend:
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
 
+    def set_error_callback(self, callback: Callable[[], None]) -> None:
+        self._error_callback = callback
+
     def finish(self) -> None:
         self._status = PlaybackStatus.STOPPED
         if self._finished_callback is not None:
             self._finished_callback()
+
+    def fail(self) -> None:
+        self._status = PlaybackStatus.ERROR
+        if self._error_callback is not None:
+            self._error_callback()
 
 
 def create_desktop_audio_backend(

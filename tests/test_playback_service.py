@@ -25,6 +25,13 @@ class MissingFileBackend(NullAudioBackend):
         raise FileNotFoundError(source.uri)
 
 
+class FirstFileMissingBackend(NullAudioBackend):
+    def load(self, source: AudioSource) -> None:
+        if "missing" in source.uri:
+            raise FileNotFoundError(source.uri)
+        super().load(source)
+
+
 def test_enqueue_and_play_replaces_current_track() -> None:
     controller = PlaybackController(
         queue=PlaybackQueue([make_track("old")]),
@@ -414,20 +421,37 @@ def test_missing_file_becomes_actionable_playback_error() -> None:
     assert "not found" in state.error_message
 
 
-def test_retry_and_skip_are_available_after_load_error() -> None:
+def test_load_error_automatically_continues_with_next_valid_track() -> None:
     first = make_track("missing")
     second = make_track("next")
     service = PlaybackService(
         PlaybackController(
             queue=PlaybackQueue([first, second]),
-            audio_backend=MissingFileBackend(),
+            audio_backend=FirstFileMissingBackend(),
             source_resolver=FakeSourceResolver(),
         )
     )
-    service.play()
+    state = service.play()
 
-    assert service.retry().status == PlaybackStatus.ERROR
-    assert service.next_track().current_track == second
+    assert state.status == PlaybackStatus.PLAYING
+    assert state.current_track == second
+
+
+def test_asynchronous_backend_error_continues_with_next_track() -> None:
+    backend = NullAudioBackend()
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=backend,
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    service.play_playlist([make_track("1"), make_track("2")], 0)
+
+    backend.fail()
+
+    assert service.state.status == PlaybackStatus.PLAYING
+    assert service.state.current_track == make_track("2")
 
 
 def test_missing_session_file_does_not_break_restore() -> None:

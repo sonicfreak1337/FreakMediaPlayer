@@ -27,9 +27,11 @@ class QtAudioBackend:
         self._player.setAudioOutput(self._audio_output)
         self._equalizer_preset = EQUALIZER_PRESETS[0]
         self._finished_callback: Callable[[], None] | None = None
+        self._error_callback: Callable[[], None] | None = None
         self._output_device_id: str | None = None
         self._output_mode = AudioOutputMode.STEREO
         self._player.mediaStatusChanged.connect(self._handle_media_status_changed)
+        self._player.errorOccurred.connect(self._handle_error)
 
     def load(self, source: AudioSource) -> None:
         self._player.setSource(QUrl.fromUserInput(source.uri))
@@ -118,6 +120,13 @@ class QtAudioBackend:
 
     def set_finished_callback(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
+
+    def set_error_callback(self, callback: Callable[[], None]) -> None:
+        self._error_callback = callback
+
+    def _handle_error(self, _error: QMediaPlayer.Error, _message: str) -> None:
+        if self._error_callback is not None:
+            self._error_callback()
 
     def _handle_media_status_changed(self, status: QMediaPlayer.MediaStatus) -> None:
         if (
