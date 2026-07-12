@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Activated the Player heart button with immediate SQLite persistence and favorite
+  markers in both library and playlist, integrated with the favorite filter.
 - Added multiple named persistent playlists with active-list restoration and
   create, open, duplicate, rename, clear and delete workflows.
 - Added visible Available/Missing/Unreadable library status, a unique source-path

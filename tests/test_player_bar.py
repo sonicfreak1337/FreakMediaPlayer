@@ -1,10 +1,14 @@
+from typing import cast
+
 from PySide6.QtWidgets import QApplication
 
+from freak_media_player.models.media import Artist, ProviderIdentity, Track
 from freak_media_player.models.playback import PlaybackState, PlaybackStatus
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
 from freak_media_player.providers.registry import ProviderRegistry
+from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.widgets.player_bar import PlayerBar
 
@@ -108,3 +112,48 @@ def test_playback_error_shows_message_and_direct_actions() -> None:
     assert messages == [
         "Playback error: The audio file is damaged or unsupported."
     ]
+
+
+class FakeFavoriteService:
+    def __init__(self) -> None:
+        self.favorite_ids: set[str] = set()
+
+    def is_favorite(self, track_id: str) -> bool:
+        return track_id in self.favorite_ids
+
+    def set_favorite(self, track_id: str, favorite: bool) -> None:
+        if favorite:
+            self.favorite_ids.add(track_id)
+        else:
+            self.favorite_ids.discard(track_id)
+
+
+def test_favorite_button_toggles_current_track_immediately() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=NullAudioBackend(),
+            source_resolver=ProviderRegistry(),
+        )
+    )
+    favorites = FakeFavoriteService()
+    player_bar = PlayerBar(service, cast(LocalLibraryService, favorites))
+    player_bar._refresh_timer.stop()
+    track = Track(
+        id="favorite",
+        provider_identity=ProviderIdentity(provider_id="test", item_id="favorite.mp3"),
+        title="Favorite",
+        artist=Artist(name="Artist"),
+    )
+    service.enqueue_and_play(track)
+    player_bar.refresh()
+
+    player_bar._favorite_button.click()
+    app.processEvents()
+
+    assert favorites.favorite_ids == {track.id}
+    assert player_bar._favorite_button.isChecked() is True
+    assert player_bar._favorite_button.toolTip() == (
+        "Remove current track from favorites"
+    )

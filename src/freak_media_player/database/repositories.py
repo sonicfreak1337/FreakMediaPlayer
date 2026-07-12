@@ -144,6 +144,12 @@ class SQLiteTrackRepository:
         ).fetchall()
         return {str(row["track_id"]) for row in rows}
 
+    def is_favorite(self, track_id: str) -> bool:
+        row = self._connection.execute(
+            "SELECT 1 FROM favorite_tracks WHERE track_id = ?", (track_id,)
+        ).fetchone()
+        return row is not None
+
     def set_favorite(self, track_id: str, favorite: bool) -> None:
         if favorite:
             self._connection.execute(

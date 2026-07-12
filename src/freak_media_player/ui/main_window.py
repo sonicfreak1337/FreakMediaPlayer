@@ -179,7 +179,10 @@ class MainWindow(QMainWindow):
         return geometry_restored and state_restored
 
     def _build_layout(self) -> None:
-        player_panel = PlayerBar(playback_service=self._playback_service)
+        player_panel = PlayerBar(
+            playback_service=self._playback_service,
+            local_library_service=self._local_library_service,
+        )
         player_panel.set_module_menu(self._module_menu)
         library_panel = LocalTracksPanel(
             "Local Library",
@@ -191,6 +194,7 @@ class MainWindow(QMainWindow):
             playlist_service=self._playlist_service,
             playback_service=self._playback_service,
             show_title=False,
+            local_library_service=self._local_library_service,
         )
         equalizer_panel = EqualizerPanel(
             equalizer_service=self._equalizer_service,
@@ -199,6 +203,8 @@ class MainWindow(QMainWindow):
         library_panel.tracks_add_requested.connect(playlist_panel.add_track_ids)
         library_panel.track_relocated.connect(lambda _track: playlist_panel.refresh())
         player_panel.remove_current_requested.connect(playlist_panel.remove_current_track)
+        player_panel.favorite_changed.connect(lambda _track_id, _favorite: library_panel.refresh())
+        player_panel.favorite_changed.connect(lambda _track_id, _favorite: playlist_panel.refresh())
         for panel in (player_panel, library_panel, playlist_panel, equalizer_panel):
             panel.status_message.connect(self.show_status_message)
 

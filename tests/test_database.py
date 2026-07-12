@@ -136,9 +136,11 @@ def test_track_repository_persists_favorites() -> None:
 
     repository.set_favorite("track-1", True)
     assert repository.list_favorite_ids() == {"track-1"}
+    assert repository.is_favorite("track-1") is True
 
     repository.set_favorite("track-1", False)
     assert repository.list_favorite_ids() == set()
+    assert repository.is_favorite("track-1") is False
 
 
 def test_track_repository_updates_source_and_enforces_unique_provider_item() -> None:

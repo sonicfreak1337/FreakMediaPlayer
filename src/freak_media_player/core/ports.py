@@ -74,6 +74,9 @@ class TrackRepository(Protocol):
     def list_favorite_ids(self) -> set[str]:
         ...
 
+    def is_favorite(self, track_id: str) -> bool:
+        ...
+
     def set_favorite(self, track_id: str, favorite: bool) -> None:
         ...
 

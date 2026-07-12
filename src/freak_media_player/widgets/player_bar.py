@@ -19,7 +19,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from freak_media_player.models.media import Track
 from freak_media_player.models.playback import PlaybackStatus, RepeatMode
+from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.ui.assets import clear_themed_icon, set_themed_icon
 from freak_media_player.ui.skins import skin_color
@@ -66,10 +68,16 @@ class MiniSpectrum(QWidget):
 class PlayerBar(QWidget):
     remove_current_requested = Signal()
     status_message = Signal(str)
+    favorite_changed = Signal(str, bool)
 
-    def __init__(self, playback_service: PlaybackService) -> None:
+    def __init__(
+        self,
+        playback_service: PlaybackService,
+        local_library_service: LocalLibraryService | None = None,
+    ) -> None:
         super().__init__()
         self._playback_service = playback_service
+        self._local_library_service = local_library_service
         self._title_label = QLabel("Nothing playing")
         self._artist_label = QLabel("Queue is empty")
         self._album_label = QLabel("Import music into the Local Library")
@@ -85,11 +93,14 @@ class PlayerBar(QWidget):
         self._volume_slider = ClickableSlider(Qt.Orientation.Horizontal)
         self._volume_label = QLabel("100%")
         self._modules_button = QToolButton()
+        self._favorite_button = QToolButton()
         self._cover = ClippedArtwork(100, 5)
         self._cover_track_id: str | None = None
         self._track_display_initialized = False
         self._last_status: PlaybackStatus | None = None
         self._last_error_message: str | None = None
+        self._favorite_track_id: str | None = None
+        self._favorite_state = False
         self._last_repeat_mode: RepeatMode | None = None
         self._last_shuffle_enabled: bool | None = None
         self._last_volume_percent = -1
@@ -214,15 +225,16 @@ class PlayerBar(QWidget):
         self._set_icon(self._modules_button, "queue_icon.png", 22)
         self._modules_button.setEnabled(False)
         utility.addWidget(self._modules_button)
-        favorite = self._text_button(
+        self._favorite_button = self._text_button(
             "♡",
-            "Favorites are not available yet",
-            lambda: None,
+            "Add current track to favorites",
+            self._toggle_favorite,
             "utilityButton",
         )
-        self._set_icon(favorite, "favorite_icon.png", 22)
-        favorite.setEnabled(False)
-        utility.addWidget(favorite)
+        self._favorite_button.setCheckable(True)
+        self._set_icon(self._favorite_button, "favorite_icon.png", 22)
+        self._favorite_button.setEnabled(False)
+        utility.addWidget(self._favorite_button)
         settings = self._icon_button(
             "settings_icon.png",
             "Settings",
@@ -337,6 +349,7 @@ class PlayerBar(QWidget):
         self._update_playback_modes(state.repeat_mode, state.shuffle_enabled)
         self._update_volume_controls()
         track = state.current_track
+        self._update_favorite_button(track)
         track_id = track.id if track is not None else None
         if not self._track_display_initialized or track_id != self._cover_track_id:
             if track is None:
@@ -433,6 +446,46 @@ class PlayerBar(QWidget):
         self._playback_service.set_volume(next_volume)
         self._sync_volume_slider(next_volume)
         self._update_volume_controls()
+
+    def _toggle_favorite(self) -> None:
+        track = self._playback_service.state.current_track
+        if track is None or self._local_library_service is None:
+            return
+        favorite = not self._favorite_state
+        self._local_library_service.set_favorite(track.id, favorite)
+        self._favorite_state = favorite
+        self._sync_favorite_button()
+        self.favorite_changed.emit(track.id, favorite)
+        self.status_message.emit(
+            "Added current track to favorites."
+            if favorite
+            else "Removed current track from favorites."
+        )
+
+    def _update_favorite_button(self, track: Track | None) -> None:
+        track_id = track.id if track is not None else None
+        if track_id != self._favorite_track_id:
+            self._favorite_track_id = track_id
+            self._favorite_state = bool(
+                track_id is not None
+                and self._local_library_service is not None
+                and self._local_library_service.is_favorite(track_id)
+            )
+        self._sync_favorite_button()
+
+    def _sync_favorite_button(self) -> None:
+        enabled = (
+            self._favorite_track_id is not None
+            and self._local_library_service is not None
+        )
+        self._favorite_button.setEnabled(enabled)
+        self._favorite_button.setChecked(self._favorite_state)
+        self._favorite_button.setText("♥" if self._favorite_state else "♡")
+        self._favorite_button.setToolTip(
+            "Remove current track from favorites"
+            if self._favorite_state
+            else "Add current track to favorites"
+        )
 
     def _set_volume_from_slider(self, value: int) -> None:
         self._playback_service.set_volume(value / VOLUME_SCALE)

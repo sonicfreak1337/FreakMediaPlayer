@@ -167,6 +167,13 @@ def test_library_filters_combine_and_reset_with_search() -> None:
     service.favorite_ids = {second.id}
     panel = LocalTracksPanel("Local Library", cast(LocalLibraryService, service))
 
+    favorite_row = next(
+        row
+        for row in range(panel._table.rowCount())
+        if panel._table.item(row, 0).text() == "Favorite Doom"
+    )
+    assert panel._table.item(favorite_row, 6).text() == "♥"
+
     panel._genre_filter.setCurrentIndex(panel._genre_filter.findData("Doom"))
     panel._favorite_filter.setCurrentIndex(panel._favorite_filter.findData(True))
     panel._search.setText("favorite")

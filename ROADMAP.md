@@ -72,8 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **SOLL – Favoriten:** Den bereits sichtbaren Herz-Button aktivieren und Favoriten
-  in Bibliothek und Wiedergabeliste darstellen und filtern.
 - **SOLL – M3U/M3U8:** Wiedergabelisten mit lokalen Pfaden importieren und
   exportieren; relative und absolute Pfade korrekt behandeln.
 - **SOLL – Metadaten bearbeiten:** Titel, Interpret, Album, Jahr, Genre sowie

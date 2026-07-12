@@ -129,6 +129,9 @@ class LocalLibraryService:
     def list_favorite_track_ids(self) -> set[str]:
         return self._track_repository.list_favorite_ids()
 
+    def is_favorite(self, track_id: str) -> bool:
+        return self._track_repository.is_favorite(track_id)
+
     def set_favorite(self, track_id: str, favorite: bool) -> None:
         self._track_repository.set_favorite(track_id, favorite)
 

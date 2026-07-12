@@ -52,7 +52,8 @@ ALBUM_COLUMN = 2
 YEAR_COLUMN = 3
 LENGTH_COLUMN = 4
 STATUS_COLUMN = 5
-SOURCE_COLUMN = 6
+FAVORITE_COLUMN = 6
+SOURCE_COLUMN = 7
 
 
 class LocalTracksPanel(QWidget):
@@ -108,6 +109,7 @@ class LocalTracksPanel(QWidget):
 
     def _apply_search(self) -> None:
         favorite_ids = self._local_library_service.list_favorite_track_ids()
+        self._favorite_ids = favorite_ids
         filtered = self._search_service.filter_library(
             self._all_tracks,
             LibraryFilters(
@@ -227,9 +229,18 @@ class LocalTracksPanel(QWidget):
             for button in buttons:
                 header.addWidget(button)
 
-        self._table.setColumnCount(7)
+        self._table.setColumnCount(8)
         self._table.setHorizontalHeaderLabels(
-            ["Title", "Artist", "Album", "Year", "Length", "Status", "Source"]
+            [
+                "Title",
+                "Artist",
+                "Album",
+                "Year",
+                "Length",
+                "Status",
+                "Favorite",
+                "Source",
+            ]
         )
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -247,6 +258,7 @@ class LocalTracksPanel(QWidget):
         self._table.setColumnWidth(YEAR_COLUMN, 52)
         self._table.setColumnWidth(LENGTH_COLUMN, 60)
         self._table.setColumnWidth(STATUS_COLUMN, 86)
+        self._table.setColumnWidth(FAVORITE_COLUMN, 68)
         self._table.setColumnHidden(SOURCE_COLUMN, True)
         self._table.sortItems(TITLE_COLUMN, Qt.SortOrder.AscendingOrder)
         self._table.itemDoubleClicked.connect(self._add_item_to_playlist)
@@ -541,6 +553,8 @@ class LocalTracksPanel(QWidget):
         file_status = self._search_service.file_status(track)
         status = QTableWidgetItem(file_status.title())
         status.setToolTip(track.provider_identity.item_id)
+        favorite = QTableWidgetItem("♥" if track.id in self._favorite_ids else "")
+        favorite.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         length = QTableWidgetItem(
             self._format_duration(int(track.duration.total_seconds()))
             if track.duration is not None
@@ -552,6 +566,7 @@ class LocalTracksPanel(QWidget):
         self._table.setItem(row, YEAR_COLUMN, year)
         self._table.setItem(row, LENGTH_COLUMN, length)
         self._table.setItem(row, STATUS_COLUMN, status)
+        self._table.setItem(row, FAVORITE_COLUMN, favorite)
         self._table.setItem(row, SOURCE_COLUMN, source)
 
     def _relocate_selected_track(self) -> None:

@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from freak_media_player.models.media import Track
+from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.ui.assets import set_themed_icon
@@ -47,7 +48,8 @@ ARTIST_COLUMN = 2
 LENGTH_COLUMN = 3
 ALBUM_COLUMN = 4
 YEAR_COLUMN = 5
-SOURCE_COLUMN = 6
+FAVORITE_COLUMN = 6
+SOURCE_COLUMN = 7
 PLAYING_HIGHLIGHT_REFRESH_MS = 250
 
 
@@ -59,11 +61,13 @@ class PlaylistPanel(QWidget):
         playlist_service: PlaylistService,
         playback_service: PlaybackService,
         show_title: bool = True,
+        local_library_service: LocalLibraryService | None = None,
     ) -> None:
         super().__init__()
         self._playlist_service = playlist_service
         self._playback_service = playback_service
         self._show_title = show_title
+        self._local_library_service = local_library_service
         self._tracks: list[Track] = []
         self._playing_row: int | None = None
         self._table = PlaylistTrackTable()
@@ -175,9 +179,9 @@ class PlaylistPanel(QWidget):
             for button in buttons:
                 header.addWidget(button)
 
-        self._table.setColumnCount(7)
+        self._table.setColumnCount(8)
         self._table.setHorizontalHeaderLabels(
-            ["#", "Title", "Artist", "Length", "Album", "Year", "Source"]
+            ["#", "Title", "Artist", "Length", "Album", "Year", "Favorite", "Source"]
         )
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -191,6 +195,7 @@ class PlaylistPanel(QWidget):
         self._table.setColumnWidth(LENGTH_COLUMN, 66)
         self._table.setColumnHidden(ALBUM_COLUMN, True)
         self._table.setColumnHidden(YEAR_COLUMN, True)
+        self._table.setColumnWidth(FAVORITE_COLUMN, 68)
         self._table.setColumnHidden(SOURCE_COLUMN, True)
         self._table.horizontalHeader().setMinimumHeight(34)
         self._table.verticalHeader().setDefaultSectionSize(35)
@@ -348,10 +353,15 @@ class PlaylistPanel(QWidget):
 
     def _show_tracks(self, tracks: list[Track]) -> None:
         self._tracks = tracks
+        favorite_ids = (
+            self._local_library_service.list_favorite_track_ids()
+            if self._local_library_service is not None
+            else set()
+        )
         self._playing_row = None
         self._table.setRowCount(len(tracks))
         for row, track in enumerate(tracks):
-            self._set_row(row, track)
+            self._set_row(row, track, favorite_ids)
         self._playback_service.sync_playlist(tracks)
         self._sync_playing_highlight()
         total_seconds = sum(
@@ -366,7 +376,7 @@ class PlaylistPanel(QWidget):
             self._table if tracks else self._empty_state
         )
 
-    def _set_row(self, row: int, track: Track) -> None:
+    def _set_row(self, row: int, track: Track, favorite_ids: set[str]) -> None:
         order = QTableWidgetItem(str(row + 1))
         order.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         title = QTableWidgetItem(track.title)
@@ -384,12 +394,15 @@ class PlaylistPanel(QWidget):
             else ""
         )
         source = QTableWidgetItem(track.provider_identity.item_id)
+        favorite = QTableWidgetItem("♥" if track.id in favorite_ids else "")
+        favorite.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self._table.setItem(row, ORDER_COLUMN, order)
         self._table.setItem(row, TITLE_COLUMN, title)
         self._table.setItem(row, ARTIST_COLUMN, artist)
         self._table.setItem(row, LENGTH_COLUMN, length)
         self._table.setItem(row, ALBUM_COLUMN, album)
         self._table.setItem(row, YEAR_COLUMN, year)
+        self._table.setItem(row, FAVORITE_COLUMN, favorite)
         self._table.setItem(row, SOURCE_COLUMN, source)
 
     def _play_item(self, item: QTableWidgetItem) -> None:

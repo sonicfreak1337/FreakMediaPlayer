@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 from freak_media_player.models.media import Artist, ProviderIdentity, Track
 from freak_media_player.models.playback import PlaybackState
 from freak_media_player.models.playlist import NamedPlaylist
+from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.ui.theme import PLAYING_ROW_BACKGROUND
@@ -50,6 +51,14 @@ class FakePlaybackService:
 
     def current_playlist_index(self) -> int | None:
         return self.playing_index
+
+
+class FakeFavoriteLibraryService:
+    def __init__(self, favorite_ids: set[str]) -> None:
+        self.favorite_ids = favorite_ids
+
+    def list_favorite_track_ids(self) -> set[str]:
+        return self.favorite_ids
 
 
 def make_track(track_id: str) -> Track:
@@ -146,3 +155,18 @@ def test_playlist_selector_opens_named_playlist() -> None:
     app.processEvents()
 
     assert playlist_service.active_playlist_id() == "workout"
+
+
+def test_playlist_marks_favorite_tracks() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    track = make_track("favorite")
+    panel = PlaylistPanel(
+        playlist_service=cast(PlaylistService, FakePlaylistService([track])),
+        playback_service=cast(PlaybackService, FakePlaybackService(None)),
+        local_library_service=cast(
+            LocalLibraryService, FakeFavoriteLibraryService({track.id})
+        ),
+    )
+    panel._highlight_timer.stop()
+
+    assert panel._table.item(0, 6).text() == "♥"
