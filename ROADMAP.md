@@ -51,40 +51,6 @@ Die wichtigsten zusätzlichen Vorschläge nutzen bereits vorhandene Vorarbeit: D
 Datenbankschema kennt Favoriten, Bewertungen, Wiedergabeverlauf und Queue-Einträge,
 während Favoriten- und Einstellungsbuttons in der Oberfläche schon vorgesehen sind.
 
-## 0.9.1 – Wiedergabe und Windows-Integration abrunden
-
-Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorhersehbar.
-
-### Featureliste
-
-
-### Stabilität und Technik
-
-- Wechsel, Verlust und Wiederkehr des Audio-Ausgabegeräts robust behandeln.
-- Unterstützte Dateiformate sowie Sonderfälle bei Dauer, Seek und Metadaten mit
-  echten Testdateien abdecken.
-- Decoder, DSP, Visualizer-Sample-Tap und AudioSink von der bisher festen
-  Stereoannahme lösen. Kanalzahl und Kanallayout müssen durch die gesamte Pipeline
-  erhalten oder an genau einer definierten Stelle konvertiert werden.
-- Mono, Stereo, 5.1 und 7.1 mit Kanal-Identifikationstönen und echten
-  Mehrkanal-Testdateien prüfen. Equalizer, Lautstärke, Seek, Pause und Titelwechsel
-  müssen in jedem unterstützten Modus hörbar und ohne Kanalfehler funktionieren.
-- Fokusführung, Tooltips, Skalierung und Kontrast für 100 %, 125 %, 150 % und 200 %
-  DPI prüfen.
-- Leerlauf-, Wiedergabe- und Visualizer-Last auf typischer Hardware messen und
-  dokumentierte Zielwerte festhalten.
-
-Abnahme:
-
-- Audio-Gerätewechsel und Decoderfehler führen nicht zum Anwendungsabsturz.
-- Mono und Stereo funktionieren auf jedem unterstützten Ausgabegerät; 5.1 und 7.1
-  werden auf geeigneter Hardware mit korrekter Windows-Kanalkonfiguration und
-  eindeutigem Lautsprechertest nachgewiesen.
-- Ein Wechsel des Ausgabemodus startet den Audiopfad kontrolliert neu, behält den
-  aktuellen Titel und setzt die Wiedergabe nahe der vorherigen Position fort.
-- Die wichtigsten Bedienabläufe funktionieren vollständig mit Maus und Tastatur.
-- Ein definierter Format- und Windows-Smoke-Test ist reproduzierbar bestanden.
-
 ## 0.9.2 – Release Candidate vorbereiten
 
 Ziel: Aus dem Entwicklungsstand wird ein wartbares Produkt, das auf einem sauberen

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.1 - Unreleased
+## 0.9.1 - 2026-07-12
 
 - Activated a persistent Settings dialog for audio output, paused session restore,
   end-of-track behavior, layout restore and Visualizer performance.
