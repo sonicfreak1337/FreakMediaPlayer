@@ -22,6 +22,7 @@ from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
+from freak_media_player.services.search_service import SearchService
 from freak_media_player.ui.constants import (
     WINDOW_MINIMUM_HEIGHT,
     WINDOW_MINIMUM_WIDTH,
@@ -54,12 +55,14 @@ class MainWindow(QMainWindow):
         playlist_service: PlaylistService,
         equalizer_service: EqualizerService,
         skin_manager: SkinManager | None = None,
+        search_service: SearchService | None = None,
     ) -> None:
         super().__init__()
         self._playback_service = playback_service
         self._local_library_service = local_library_service
         self._playlist_service = playlist_service
         self._equalizer_service = equalizer_service
+        self._search_service = search_service
         self._skin_manager = skin_manager
         self._module_menu = QMenu("Module", self)
         self._module_docks: dict[str, QDockWidget] = {}
@@ -182,6 +185,7 @@ class MainWindow(QMainWindow):
             "Local Library",
             local_library_service=self._local_library_service,
             show_title=False,
+            search_service=self._search_service,
         )
         playlist_panel = PlaylistPanel(
             playlist_service=self._playlist_service,

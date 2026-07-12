@@ -62,3 +62,35 @@ def test_library_import_emits_concise_status_message() -> None:
     panel._import_paths([Path("track.mp3")])
 
     assert messages == ["Imported 1 track."]
+
+
+def test_library_search_filters_immediately_and_can_be_cleared() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = FakeLocalLibraryService()
+    first = make_track()
+    second = Track(
+        id="track-2",
+        provider_identity=ProviderIdentity(
+            provider_id="test", item_id="different-file.flac"
+        ),
+        title="Different Song",
+        artist=Artist(name="Another Artist"),
+        genre="Doom",
+    )
+    service.tracks = [first, second]
+    panel = LocalTracksPanel(
+        "Local Library",
+        cast(LocalLibraryService, service),
+    )
+
+    panel._search.setText("doom different-file")
+    app.processEvents()
+
+    assert panel._table.rowCount() == 1
+    assert panel._table.item(0, 0).text() == "Different Song"
+    assert "2 total" in panel._summary_label.text()
+
+    panel._search.clear()
+    app.processEvents()
+
+    assert panel._table.rowCount() == 2

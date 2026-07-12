@@ -35,6 +35,7 @@ def run_application() -> int:
         playlist_service=context.playlist_service,
         equalizer_service=context.equalizer_service,
         skin_manager=skin_manager,
+        search_service=context.search_service,
     )
     plugin_manager = PluginManager(
         PluginContext(

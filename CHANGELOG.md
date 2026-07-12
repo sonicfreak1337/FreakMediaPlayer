@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Added an instant imported-library search for title, artist, album, genre, year
+  and filename, including multi-term matching and a clear no-results state.
 - Expanded stability coverage for empty and changed playlists, stale sessions,
   repeated decoder restarts and clean worker-thread shutdown.
 - Added concise transient status-bar feedback for imports, playback errors,

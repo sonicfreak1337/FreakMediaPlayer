@@ -72,8 +72,6 @@ verwalten.
 
 ### Featureliste
 
-- **MUSS – Bibliothekssuche:** Sichtbare Sofortsuche nach Titel, Interpret, Album,
-  Genre, Jahr und Dateiname auf dem vorhandenen `SearchService` aufbauen.
 - **MUSS – Filter:** Kombinierbare Filter für Interpret, Album, Genre, Jahr,
   Favoriten und Dateistatus; Filter mit einem Klick zurücksetzen.
 - **MUSS – Verwaltete Musikordner:** Ordner als Bibliotheksquellen hinzufügen,

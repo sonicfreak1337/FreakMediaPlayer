@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QStackedWidget,
     QStyle,
     QTableWidget,
@@ -22,6 +23,7 @@ from PySide6.QtWidgets import (
 
 from freak_media_player.models.media import Track
 from freak_media_player.services.local_library_service import LocalLibraryService
+from freak_media_player.services.search_service import SearchService
 from freak_media_player.ui.assets import set_themed_icon
 from freak_media_player.widgets.track_table import TRACK_ID_ROLE, TrackTableWidget
 
@@ -42,11 +44,15 @@ class LocalTracksPanel(QWidget):
         title: str,
         local_library_service: LocalLibraryService,
         show_title: bool = True,
+        search_service: SearchService | None = None,
     ) -> None:
         super().__init__()
         self._title = title
         self._show_title = show_title
         self._local_library_service = local_library_service
+        self._search_service = search_service or SearchService(())
+        self._all_tracks: list[Track] = []
+        self._search = QLineEdit()
         self._table = TrackTableWidget()
         self._content_stack = QStackedWidget()
         self._empty_state = QLabel(
@@ -62,7 +68,13 @@ class LocalTracksPanel(QWidget):
         self.refresh()
 
     def refresh(self) -> None:
-        tracks = self._local_library_service.list_tracks()
+        self._all_tracks = self._local_library_service.list_tracks()
+        self._apply_search()
+
+    def _apply_search(self) -> None:
+        tracks = self._search_service.search_library(
+            self._all_tracks, self._search.text()
+        )
         sort_column = self._table.horizontalHeader().sortIndicatorSection()
         sort_order = self._table.horizontalHeader().sortIndicatorOrder()
         self._table.setSortingEnabled(False)
@@ -77,8 +89,15 @@ class LocalTracksPanel(QWidget):
             for track in tracks
             if track.duration is not None
         )
-        self._summary_label.setText(
-            f"{len(tracks)} tracks, {self._format_duration(total_seconds)} total duration"
+        summary = f"{len(tracks)} tracks, {self._format_duration(total_seconds)} total duration"
+        if self._search.text().strip():
+            summary += f" — {len(self._all_tracks)} total"
+        self._summary_label.setText(summary)
+        self._empty_state.setText(
+            "No tracks match your search. Clear or change the search text."
+            if self._all_tracks and not tracks
+            else "Your library is empty.\nImport audio files with +, add a folder with "
+            "the folder button, or drag files here."
         )
         self._content_stack.setCurrentWidget(
             self._table if tracks else self._empty_state
@@ -132,7 +151,14 @@ class LocalTracksPanel(QWidget):
                 self._remove_selected_track,
             ),
         ]
-        self._header_controls.extend(buttons)
+        self._search.setObjectName("librarySearch")
+        self._search.setPlaceholderText(
+            "Search title, artist, album, genre, year or filename"
+        )
+        self._search.setClearButtonEnabled(True)
+        self._search.setMinimumWidth(260)
+        self._search.textChanged.connect(self._apply_search)
+        self._header_controls.extend([self._search, *buttons])
         if self._show_title:
             header.addStretch(1)
             for button in buttons:
