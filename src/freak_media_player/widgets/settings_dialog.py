@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtWidgets import (
@@ -24,6 +25,7 @@ from freak_media_player.config.settings import PlayerPreferences
 from freak_media_player.models.playback import AudioOutputDevice, AudioOutputMode
 from freak_media_player.services.backup_service import BackupService
 from freak_media_player.services.diagnostic_service import DiagnosticService
+from freak_media_player.services.maintenance_service import MaintenanceService
 from freak_media_player.widgets.about_dialog import AboutDialog
 from freak_media_player.widgets.diagnostics_dialog import DiagnosticsDialog
 
@@ -36,6 +38,8 @@ class SettingsDialog(QDialog):
         parent: QWidget | None = None,
         backup_service: BackupService | None = None,
         diagnostic_service: DiagnosticService | None = None,
+        maintenance_service: MaintenanceService | None = None,
+        reset_layout: Callable[[], object] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Freak Media Player Settings")
@@ -46,6 +50,8 @@ class SettingsDialog(QDialog):
         self._audio_devices = audio_devices
         self._backup_service = backup_service
         self._diagnostic_service = diagnostic_service
+        self._maintenance_service = maintenance_service
+        self._reset_layout = reset_layout
         self._restore_session = QCheckBox("Restore last track and position (paused)")
         self._continue_after_track = QCheckBox("Continue with the next playlist track")
         self._restore_layout = QCheckBox("Restore window and module layout")
@@ -99,7 +105,14 @@ class SettingsDialog(QDialog):
         interface_form.addRow("Visualizer performance", self._visualizer_quality)
         layout.addWidget(interface)
 
-        if self._backup_service is not None or self._diagnostic_service is not None:
+        if any(
+            (
+                self._backup_service,
+                self._diagnostic_service,
+                self._maintenance_service,
+                self._reset_layout,
+            )
+        ):
             data = QGroupBox("Local data")
             data_layout = QHBoxLayout(data)
             if self._backup_service is not None:
@@ -117,6 +130,21 @@ class SettingsDialog(QDialog):
             about.clicked.connect(self._open_about)
             data_layout.addWidget(about)
             layout.addWidget(data)
+        if self._maintenance_service is not None or self._reset_layout is not None:
+            maintenance = QGroupBox("Maintenance")
+            maintenance_layout = QHBoxLayout(maintenance)
+            if self._reset_layout is not None:
+                reset_layout_button = QPushButton("Reset layout")
+                reset_layout_button.clicked.connect(self._perform_layout_reset)
+                maintenance_layout.addWidget(reset_layout_button)
+            if self._maintenance_service is not None:
+                rebuild = QPushButton("Rebuild library index")
+                reset_settings = QPushButton("Reset settings…")
+                rebuild.clicked.connect(self._rebuild_library_index)
+                reset_settings.clicked.connect(self._reset_all_settings)
+                maintenance_layout.addWidget(rebuild)
+                maintenance_layout.addWidget(reset_settings)
+            layout.addWidget(maintenance)
 
         note = QLabel("Changes apply immediately and are used on the next start.")
         note.setWordWrap(True)
@@ -225,3 +253,33 @@ class SettingsDialog(QDialog):
 
     def _open_about(self) -> None:
         AboutDialog(self).exec()
+
+    def _perform_layout_reset(self) -> None:
+        if self._reset_layout is not None:
+            self._reset_layout()
+            QMessageBox.information(self, "Layout reset", "Default layout restored.")
+
+    def _rebuild_library_index(self) -> None:
+        if self._maintenance_service is None:
+            return
+        count = self._maintenance_service.rebuild_library_index()
+        QMessageBox.information(
+            self, "Index rebuilt", f"Refreshed metadata for {count} local tracks."
+        )
+
+    def _reset_all_settings(self) -> None:
+        if self._maintenance_service is None:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Reset all settings?",
+            "Playback, folders, layout and interface settings will return to defaults. "
+            "Library tracks and playlists are kept.",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._maintenance_service.reset_settings()
+        QMessageBox.information(
+            self, "Settings reset", "Settings reset. Restart the application."
+        )
+        self.reject()

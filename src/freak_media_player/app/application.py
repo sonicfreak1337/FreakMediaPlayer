@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
+from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
-from freak_media_player.app.bootstrap import build_app_context
+from freak_media_player.app.bootstrap import AppContext, build_app_context
 from freak_media_player.config.paths import AppPathResolver
 from freak_media_player.config.settings import AppSettings
 from freak_media_player.plugins.base import PluginContext
@@ -16,6 +18,7 @@ from freak_media_player.services.settings_service import SettingsService
 from freak_media_player.ui.main_window import MainWindow
 from freak_media_player.ui.skins import SkinManager
 from freak_media_player.utils.logging import configure_logging
+from freak_media_player.widgets.first_start_dialog import SKIPPED, FirstStartDialog
 
 
 def run_application() -> int:
@@ -30,6 +33,8 @@ def run_application() -> int:
         context.settings_service,
     )
     skin_manager.initialize(AppSettings(database_path=context.app_paths.database_path))
+    _run_first_start(context)
+    command_line_track_id = _import_command_line_files(context, sys.argv[1:])
     window = MainWindow(
         playback_service=context.playback_service,
         local_library_service=context.local_library_service,
@@ -40,6 +45,7 @@ def run_application() -> int:
         settings_service=context.settings_service,
         backup_service=context.backup_service,
         diagnostic_service=context.diagnostic_service,
+        maintenance_service=context.maintenance_service,
     )
     plugin_manager = PluginManager(
         PluginContext(
@@ -67,8 +73,67 @@ def run_application() -> int:
     )
     qt_app.aboutToQuit.connect(plugin_manager.deactivate_all)
     window.show()
+    if command_line_track_id is not None:
+        tracks = context.playlist_service.list_tracks()
+        start_index = next(
+            (
+                index
+                for index, track in enumerate(tracks)
+                if track.id == command_line_track_id
+            ),
+            None,
+        )
+        if start_index is not None:
+            context.playback_service.play_playlist(tracks, start_index)
 
     return qt_app.exec()
+
+
+def _run_first_start(context: AppContext) -> None:
+    settings = context.settings_service
+    if settings.first_start_completed():
+        return
+    dialog = FirstStartDialog(context.playback_service.available_output_devices())
+    result = dialog.exec()
+    if result == QDialog.DialogCode.Rejected:
+        return
+    if result != SKIPPED:
+        choices = dialog.choices()
+        preferences = replace(
+            settings.load_player_preferences(),
+            restore_session=choices.restore_session,
+            audio_device_id=choices.audio_device_id,
+        )
+        try:
+            context.playback_service.set_output_device(choices.audio_device_id)
+        except ValueError as error:
+            QMessageBox.warning(dialog, "Audio output", str(error))
+            preferences = replace(preferences, audio_device_id=None)
+        settings.save_player_preferences(preferences)
+        if choices.music_folder is not None:
+            try:
+                context.local_library_service.add_music_folder(choices.music_folder)
+            except (OSError, ValueError) as error:
+                QMessageBox.warning(dialog, "Music folder", str(error))
+    settings.complete_first_start()
+
+
+def _import_command_line_files(
+    context: AppContext, arguments: list[str]
+) -> str | None:
+    paths = [Path(argument) for argument in arguments]
+    supported = [
+        path
+        for path in paths
+        if path.is_file()
+        and path.suffix.casefold()
+        in context.local_library_service.supported_extensions()
+    ]
+    if not supported:
+        return None
+    tracks = context.local_library_service.import_paths(supported)
+    context.playlist_service.add_track_ids([track.id for track in tracks])
+    return tracks[0].id if tracks else None
 
 
 def _reset_window_layout(

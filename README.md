@@ -136,6 +136,19 @@ Run this on Windows to create the desktop executable:
 
 The generated executable is written to `dist\FreakMediaPlayer\FreakMediaPlayer.exe`.
 
+Run `build_portable.bat` for an isolated portable package below
+`release\FreakMediaPlayer-Portable`. Its `portable.flag` keeps database, settings,
+logs and skins inside the package's `data` folder.
+
+The executable accepts supported audio paths as command-line arguments. For a
+per-user Windows `Open with` registration without administrator rights, run:
+
+```powershell
+.\scripts\register_file_associations.ps1 -ExecutablePath .\FreakMediaPlayer.exe
+```
+
+Use `scripts\unregister_file_associations.ps1` before removing that registration.
+
 For fast development iterations, run:
 
 ```powershell
@@ -184,6 +197,11 @@ database schema, local data paths, active audio output and recent errors. Runtim
 logs rotate below `%LOCALAPPDATA%\FreakMediaPlayer\logs`; personal home paths are
 masked in the on-screen error summary. `About…` lists the core runtime components
 and their license families.
+
+On first start, a skippable setup asks for a music folder, audio output and
+session-restore preference. Settings also contains safe maintenance actions for
+restoring the default layout, rebuilding local metadata and resetting settings
+without deleting library or playlist data.
 
 ## Local Data
 

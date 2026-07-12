@@ -16,6 +16,9 @@ class InMemorySettingsRepository:
     def set(self, key: str, value: str) -> None:
         self.values[key] = value
 
+    def clear(self) -> None:
+        self.values.clear()
+
 
 def test_settings_service_persists_defaults() -> None:
     repository = InMemorySettingsRepository()
@@ -26,6 +29,18 @@ def test_settings_service_persists_defaults() -> None:
 
     assert settings.database_path == Path("app.sqlite3")
     assert repository.values["settings.theme_name"] == "freaky"
+
+
+def test_settings_service_tracks_first_start_and_resets_all_values() -> None:
+    repository = InMemorySettingsRepository()
+    service = SettingsService(repository=repository)
+
+    assert service.first_start_completed() is False
+    service.complete_first_start()
+    assert service.first_start_completed() is True
+    service.reset_all()
+
+    assert repository.values == {}
 
 
 def test_settings_service_reads_saved_values() -> None:

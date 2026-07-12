@@ -24,6 +24,7 @@ from freak_media_player.services.backup_service import BackupService
 from freak_media_player.services.diagnostic_service import DiagnosticService
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
+from freak_media_player.services.maintenance_service import MaintenanceService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.services.search_service import SearchService
@@ -66,6 +67,7 @@ class MainWindow(QMainWindow):
         settings_service: SettingsService | None = None,
         backup_service: BackupService | None = None,
         diagnostic_service: DiagnosticService | None = None,
+        maintenance_service: MaintenanceService | None = None,
     ) -> None:
         super().__init__()
         self._playback_service = playback_service
@@ -77,6 +79,7 @@ class MainWindow(QMainWindow):
         self._settings_service = settings_service
         self._backup_service = backup_service
         self._diagnostic_service = diagnostic_service
+        self._maintenance_service = maintenance_service
         self._module_menu = QMenu("Module", self)
         self._module_docks: dict[str, QDockWidget] = {}
         self._shortcuts: list[QShortcut] = []
@@ -297,6 +300,8 @@ class MainWindow(QMainWindow):
             self,
             backup_service=self._backup_service,
             diagnostic_service=self._diagnostic_service,
+            maintenance_service=self._maintenance_service,
+            reset_layout=self.layout_reset_requested.emit,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return

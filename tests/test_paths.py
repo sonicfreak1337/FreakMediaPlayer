@@ -1,13 +1,16 @@
 from pathlib import Path
-from unittest.mock import patch
 
 from freak_media_player.config.paths import AppPathResolver
 
 
-def test_path_resolver_uses_local_app_data(tmp_path: Path) -> None:
-    with patch.dict("os.environ", {"LOCALAPPDATA": str(tmp_path)}):
-        paths = AppPathResolver().resolve()
+def test_path_resolver_uses_isolated_explicit_data_directory(
+    tmp_path: Path, monkeypatch
+) -> None:
+    portable_data = tmp_path / "portable-data"
+    monkeypatch.setenv("FREAK_MEDIA_PLAYER_DATA_DIR", str(portable_data))
 
-        assert paths.data_dir == tmp_path / "FreakMediaPlayer"
-        assert paths.database_path == paths.data_dir / "freak_media_player.sqlite3"
-        assert paths.skins_dir == paths.data_dir / "skins"
+    paths = AppPathResolver().resolve()
+
+    assert paths.data_dir == portable_data
+    assert paths.database_path.parent == portable_data
+    assert paths.logs_dir == portable_data / "logs"

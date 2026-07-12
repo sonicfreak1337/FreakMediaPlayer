@@ -58,16 +58,6 @@ Windows-System zuverlässig installiert und diagnostiziert werden kann.
 
 ### Featureliste
 
-- **SOLL – Erster-Start-Assistent:** Kurz Musikordner, Audioausgabe und
-  Sitzungsverhalten abfragen; jeder Schritt bleibt überspringbar.
-- **SOLL – Dateizuordnung:** Während der Installation optional unterstützte
-  Audiodateien mit Freak Media Player öffnen beziehungsweise an die aktive
-  Wiedergabeliste übergeben.
-- **SOLL – Wartungsfunktionen:** Standardlayout wiederherstellen, Bibliotheksindex
-  neu aufbauen und Einstellungen mit klarer Bestätigung zurücksetzen.
-- **OPTIONAL – Portable Ausgabe:** Zusätzlich zur Installation ein klar
-  gekennzeichnetes portables Paket bereitstellen, dessen Datenablage nicht mit der
-  installierten Variante kollidiert.
 
 ### Release-Qualität und Technik
 

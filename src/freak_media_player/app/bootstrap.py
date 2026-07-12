@@ -19,6 +19,7 @@ from freak_media_player.services.backup_service import BackupService
 from freak_media_player.services.diagnostic_service import DiagnosticService
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
+from freak_media_player.services.maintenance_service import MaintenanceService
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.services.search_service import SearchService
@@ -37,6 +38,7 @@ class AppContext:
     diagnostic_service: DiagnosticService
     equalizer_service: EqualizerService
     local_library_service: LocalLibraryService
+    maintenance_service: MaintenanceService
     playback_service: PlaybackService
     playlist_service: PlaylistService
     provider_registry: ProviderRegistry
@@ -59,6 +61,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         track_repository=database.tracks,
         settings_service=settings_service,
     )
+    maintenance_service = MaintenanceService(settings_service, local_library_service)
     indexed_version = database.settings.get(LOCAL_METADATA_INDEX_KEY)
     if indexed_version != str(LOCAL_METADATA_INDEX_VERSION):
         local_library_service.refresh_metadata()
@@ -132,6 +135,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         diagnostic_service=diagnostic_service,
         equalizer_service=equalizer_service,
         local_library_service=local_library_service,
+        maintenance_service=maintenance_service,
         playback_service=playback_service,
         playlist_service=playlist_service,
         provider_registry=provider_registry,

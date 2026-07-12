@@ -38,6 +38,7 @@ ACTIVE_PLAYLIST_KEY = "playlist.active_id"
 PLAYER_PREFERENCES_KEY = "player.preferences"
 VISUALIZER_QUALITIES = frozenset({"eco", "balanced", "smooth"})
 AUDIO_OUTPUT_MODES = frozenset({"mono", "stereo", "5.1", "7.1"})
+FIRST_START_COMPLETED_KEY = "onboarding.completed"
 
 
 class SettingsService:
@@ -58,6 +59,15 @@ class SettingsService:
         settings = self._migrator.from_mapping(data)
         self.save(settings)
         return settings
+
+    def first_start_completed(self) -> bool:
+        return self._repository.get(FIRST_START_COMPLETED_KEY) == "True"
+
+    def complete_first_start(self) -> None:
+        self._repository.set(FIRST_START_COMPLETED_KEY, "True")
+
+    def reset_all(self) -> None:
+        self._repository.clear()
 
     def save(self, settings: AppSettings) -> None:
         values = asdict(settings)

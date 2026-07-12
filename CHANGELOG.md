@@ -7,6 +7,11 @@
 - Added Diagnostics and About dialogs with schema/path/audio information, sanitized
   recent errors, runtime component versions and license families.
 - Added rotating local log files with bounded size and three retained archives.
+- Added a skippable first-start setup for music folder, audio output and session
+  behavior, plus safe layout/index/settings maintenance actions.
+- Added command-line audio opening and per-user Windows `Open with` registration
+  scripts for all supported formats.
+- Added a portable build whose marker keeps runtime data isolated beside the EXE.
 
 ## 0.9.1 - 2026-07-12
 

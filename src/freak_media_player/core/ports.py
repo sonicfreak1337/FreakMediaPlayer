@@ -156,6 +156,9 @@ class SettingsRepository(Protocol):
     def set(self, key: str, value: str) -> None:
         ...
 
+    def clear(self) -> None:
+        ...
+
 
 class AudioSourceResolver(Protocol):
     def resolve_audio_source(self, track: Track) -> AudioSource:

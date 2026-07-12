@@ -64,6 +64,10 @@ class SQLiteSettingsRepository:
         )
         self._connection.commit()
 
+    def clear(self) -> None:
+        self._connection.execute("DELETE FROM settings")
+        self._connection.commit()
+
 
 class SQLiteTrackRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
