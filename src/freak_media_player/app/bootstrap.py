@@ -16,6 +16,7 @@ from freak_media_player.player.queue import PlaybackQueue
 from freak_media_player.providers.local_files import LocalFileProvider
 from freak_media_player.providers.registry import ProviderRegistry
 from freak_media_player.services.backup_service import BackupService
+from freak_media_player.services.diagnostic_service import DiagnosticService
 from freak_media_player.services.equalizer_service import EqualizerService
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
@@ -33,6 +34,7 @@ class AppContext:
     audio_samples: AudioSampleBuffer
     backup_service: BackupService
     database: DatabaseSession
+    diagnostic_service: DiagnosticService
     equalizer_service: EqualizerService
     local_library_service: LocalLibraryService
     playback_service: PlaybackService
@@ -114,6 +116,9 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         session_changed=settings_service.save_playback_session,
         playback_modes_changed=settings_service.save_playback_modes,
     )
+    diagnostic_service = DiagnosticService(
+        app_paths, database.connection, playback_service
+    )
     equalizer_service = EqualizerService(
         audio_backend=selected_audio_backend,
         preset_changed=settings_service.save_equalizer_preset,
@@ -124,6 +129,7 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         audio_samples=audio_samples,
         backup_service=backup_service,
         database=database,
+        diagnostic_service=diagnostic_service,
         equalizer_service=equalizer_service,
         local_library_service=local_library_service,
         playback_service=playback_service,

@@ -23,6 +23,9 @@ from PySide6.QtWidgets import (
 from freak_media_player.config.settings import PlayerPreferences
 from freak_media_player.models.playback import AudioOutputDevice, AudioOutputMode
 from freak_media_player.services.backup_service import BackupService
+from freak_media_player.services.diagnostic_service import DiagnosticService
+from freak_media_player.widgets.about_dialog import AboutDialog
+from freak_media_player.widgets.diagnostics_dialog import DiagnosticsDialog
 
 
 class SettingsDialog(QDialog):
@@ -32,6 +35,7 @@ class SettingsDialog(QDialog):
         audio_devices: list[AudioOutputDevice],
         parent: QWidget | None = None,
         backup_service: BackupService | None = None,
+        diagnostic_service: DiagnosticService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Freak Media Player Settings")
@@ -41,6 +45,7 @@ class SettingsDialog(QDialog):
         self._audio_mode = QComboBox()
         self._audio_devices = audio_devices
         self._backup_service = backup_service
+        self._diagnostic_service = diagnostic_service
         self._restore_session = QCheckBox("Restore last track and position (paused)")
         self._continue_after_track = QCheckBox("Continue with the next playlist track")
         self._restore_layout = QCheckBox("Restore window and module layout")
@@ -94,15 +99,23 @@ class SettingsDialog(QDialog):
         interface_form.addRow("Visualizer performance", self._visualizer_quality)
         layout.addWidget(interface)
 
-        if self._backup_service is not None:
+        if self._backup_service is not None or self._diagnostic_service is not None:
             data = QGroupBox("Local data")
             data_layout = QHBoxLayout(data)
-            export_button = QPushButton("Export backup…")
-            restore_button = QPushButton("Restore backup…")
-            export_button.clicked.connect(self._export_backup)
-            restore_button.clicked.connect(self._restore_backup)
-            data_layout.addWidget(export_button)
-            data_layout.addWidget(restore_button)
+            if self._backup_service is not None:
+                export_button = QPushButton("Export backup…")
+                restore_button = QPushButton("Restore backup…")
+                export_button.clicked.connect(self._export_backup)
+                restore_button.clicked.connect(self._restore_backup)
+                data_layout.addWidget(export_button)
+                data_layout.addWidget(restore_button)
+            if self._diagnostic_service is not None:
+                diagnostics = QPushButton("Diagnostics…")
+                diagnostics.clicked.connect(self._open_diagnostics)
+                data_layout.addWidget(diagnostics)
+            about = QPushButton("About…")
+            about.clicked.connect(self._open_about)
+            data_layout.addWidget(about)
             layout.addWidget(data)
 
         note = QLabel("Changes apply immediately and are used on the next start.")
@@ -205,3 +218,10 @@ class SettingsDialog(QDialog):
             "Restart Freak Media Player before continuing.",
         )
         self.reject()
+
+    def _open_diagnostics(self) -> None:
+        if self._diagnostic_service is not None:
+            DiagnosticsDialog(self._diagnostic_service, self).exec()
+
+    def _open_about(self) -> None:
+        AboutDialog(self).exec()

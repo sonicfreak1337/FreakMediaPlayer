@@ -4,6 +4,9 @@
 
 - Added validated local backup packages for library data, playlists, favorites and
   settings, plus integrity-checked restore with an automatic pre-restore backup.
+- Added Diagnostics and About dialogs with schema/path/audio information, sanitized
+  recent errors, runtime component versions and license families.
+- Added rotating local log files with bounded size and three retained archives.
 
 ## 0.9.1 - 2026-07-12
 

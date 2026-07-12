@@ -7,6 +7,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from freak_media_player.app.bootstrap import build_app_context
+from freak_media_player.config.paths import AppPathResolver
 from freak_media_player.config.settings import AppSettings
 from freak_media_player.plugins.base import PluginContext
 from freak_media_player.plugins.manager import PluginManager
@@ -18,7 +19,7 @@ from freak_media_player.utils.logging import configure_logging
 
 
 def run_application() -> int:
-    configure_logging()
+    configure_logging(logs_dir=AppPathResolver().resolve().logs_dir)
     qt_app = QApplication(sys.argv)
     qt_app.setApplicationName("Freak Media Player")
 
@@ -38,6 +39,7 @@ def run_application() -> int:
         search_service=context.search_service,
         settings_service=context.settings_service,
         backup_service=context.backup_service,
+        diagnostic_service=context.diagnostic_service,
     )
     plugin_manager = PluginManager(
         PluginContext(

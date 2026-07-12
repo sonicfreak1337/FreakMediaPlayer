@@ -58,10 +58,6 @@ Windows-System zuverlässig installiert und diagnostiziert werden kann.
 
 ### Featureliste
 
-- **MUSS – Diagnoseansicht:** App-Version, Datenbankversion, Datenpfade,
-  Audioausgabe und letzte Fehler anzeigen sowie Protokollordner öffnen können.
-- **MUSS – Über/About-Dialog:** Version, Projektinformationen, Lizenzen und
-  mitgelieferte Drittanbieterkomponenten auffindbar machen.
 - **SOLL – Erster-Start-Assistent:** Kurz Musikordner, Audioausgabe und
   Sitzungsverhalten abfragen; jeder Schritt bleibt überspringbar.
 - **SOLL – Dateizuordnung:** Während der Installation optional unterstützte
@@ -77,9 +73,6 @@ Windows-System zuverlässig installiert und diagnostiziert werden kann.
 
 - Einstellungen und Bibliotheksdaten vor riskanten Migrationen sichern und bei
   Fehlern verständlich reagieren.
-- Rotierende Logdateien, aussagekräftige Fehlermeldungen und eine leicht auffindbare
-  Diagnoseinformation bereitstellen; keine persönlichen Dateipfade ungefragt in
-  Berichte übernehmen.
 - Reproduzierbaren Release-Build auf einem sauberen System prüfen.
 - Installations- oder portable Release-Verteilung festlegen, inklusive sauberer
   Deinstallation beziehungsweise klar dokumentierter Datenablage.

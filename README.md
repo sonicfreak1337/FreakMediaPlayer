@@ -177,6 +177,14 @@ pytest
 - `Ctrl+Shift+V`: Toggle Visualizer
 - `Delete`: Remove selected active-playlist rows
 
+## Diagnostics and support
+
+Open Player Settings and choose `Diagnostics…` to inspect the application version,
+database schema, local data paths, active audio output and recent errors. Runtime
+logs rotate below `%LOCALAPPDATA%\FreakMediaPlayer\logs`; personal home paths are
+masked in the on-screen error summary. `About…` lists the core runtime components
+and their license families.
+
 ## Local Data
 
 Runtime data is stored under the current Windows user profile:
