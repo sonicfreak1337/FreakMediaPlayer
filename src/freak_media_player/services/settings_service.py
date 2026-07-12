@@ -31,6 +31,7 @@ PLAYBACK_SESSION_KEY = "player.last_session"
 PLAYBACK_MODES_KEY = "player.playback_modes"
 WINDOW_LAYOUT_KEY = "window.layout"
 MUSIC_FOLDERS_KEY = "library.music_folders"
+ACTIVE_PLAYLIST_KEY = "playlist.active_id"
 
 
 class SettingsService:
@@ -203,6 +204,13 @@ class SettingsService:
                 separators=(",", ":"),
             ),
         )
+
+    def load_active_playlist_id(self, default: str) -> str:
+        value = self._repository.get(ACTIVE_PLAYLIST_KEY)
+        return value.strip() if value is not None and value.strip() else default
+
+    def save_active_playlist_id(self, playlist_id: str) -> None:
+        self._repository.set(ACTIVE_PLAYLIST_KEY, playlist_id)
 
     def load_equalizer_preset(self, default: EqualizerPreset) -> EqualizerPreset:
         """Load the last complete EQ state, falling back if storage is malformed."""

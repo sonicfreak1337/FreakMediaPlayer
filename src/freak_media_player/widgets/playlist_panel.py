@@ -15,8 +15,12 @@ from PySide6.QtGui import (
     QShowEvent,
 )
 from PySide6.QtWidgets import (
+    QComboBox,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
+    QMenu,
+    QMessageBox,
     QStackedWidget,
     QStyle,
     QTableWidget,
@@ -63,6 +67,8 @@ class PlaylistPanel(QWidget):
         self._tracks: list[Track] = []
         self._playing_row: int | None = None
         self._table = PlaylistTrackTable()
+        self._playlist_selector = QComboBox()
+        self._playlist_actions = QToolButton()
         self._content_stack = QStackedWidget()
         self._empty_state = QLabel(
             "Your playlist is empty.\nSelect tracks in the Local Library and use "
@@ -80,6 +86,7 @@ class PlaylistPanel(QWidget):
         self._build_layout()
         self._connect_interactions()
         self._configure_highlight_timer()
+        self._refresh_playlist_selector()
         self.refresh()
 
     @property
@@ -145,7 +152,24 @@ class PlaylistPanel(QWidget):
                 self._remove_selected,
             ),
         ]
-        self._header_controls.extend(buttons)
+        self._playlist_selector.setObjectName("playlistSelector")
+        self._playlist_selector.setMinimumWidth(170)
+        self._playlist_actions.setText("Playlist actions")
+        self._playlist_actions.setObjectName("playlistActionsButton")
+        actions_menu = QMenu(self._playlist_actions)
+        actions_menu.addAction("New playlist…", self._create_playlist)
+        actions_menu.addAction("Duplicate playlist…", self._duplicate_playlist)
+        actions_menu.addAction("Rename playlist…", self._rename_playlist)
+        actions_menu.addSeparator()
+        actions_menu.addAction("Clear playlist…", self._clear_playlist)
+        actions_menu.addAction("Delete playlist…", self._delete_playlist)
+        self._playlist_actions.setMenu(actions_menu)
+        self._playlist_actions.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup
+        )
+        self._header_controls.extend(
+            [self._playlist_selector, self._playlist_actions, *buttons]
+        )
         if self._show_title:
             header.addStretch(1)
             for button in buttons:
@@ -189,10 +213,105 @@ class PlaylistPanel(QWidget):
         self._empty_state.setContentsMargins(36, 24, 36, 24)
 
     def _connect_interactions(self) -> None:
+        self._playlist_selector.currentIndexChanged.connect(
+            self._switch_selected_playlist
+        )
         self._delete_shortcut.activated.connect(self._remove_selected)
         self._table.itemDoubleClicked.connect(self._play_item)
         self._table.track_ids_dropped.connect(self.add_track_ids)
         self._table.rows_move_requested.connect(self._move_rows)
+
+    def _refresh_playlist_selector(self) -> None:
+        self._playlist_selector.blockSignals(True)
+        self._playlist_selector.clear()
+        for playlist in self._playlist_service.list_playlists():
+            self._playlist_selector.addItem(playlist.name, playlist.playlist_id)
+        index = self._playlist_selector.findData(
+            self._playlist_service.active_playlist_id()
+        )
+        self._playlist_selector.setCurrentIndex(max(0, index))
+        self._playlist_selector.blockSignals(False)
+
+    def _switch_selected_playlist(self, index: int) -> None:
+        playlist_id = self._playlist_selector.itemData(index)
+        if not isinstance(playlist_id, str):
+            return
+        self._show_tracks(self._playlist_service.switch_playlist(playlist_id))
+        self.status_message.emit(
+            f"Opened playlist “{self._playlist_selector.itemText(index)}”."
+        )
+
+    def _create_playlist(self) -> None:
+        name, accepted = QInputDialog.getText(self, "New playlist", "Playlist name")
+        if not accepted:
+            return
+        try:
+            playlist = self._playlist_service.create_playlist(name)
+        except ValueError as error:
+            self.status_message.emit(str(error))
+            return
+        self._refresh_playlist_selector()
+        self._show_tracks([])
+        self.status_message.emit(f"Created playlist “{playlist.name}”.")
+
+    def _duplicate_playlist(self) -> None:
+        current_name = self._playlist_selector.currentText()
+        name, accepted = QInputDialog.getText(
+            self, "Duplicate playlist", "New playlist name", text=f"{current_name} Copy"
+        )
+        if not accepted:
+            return
+        try:
+            playlist = self._playlist_service.duplicate_active_playlist(name)
+        except ValueError as error:
+            self.status_message.emit(str(error))
+            return
+        self._refresh_playlist_selector()
+        self.refresh()
+        self.status_message.emit(f"Duplicated playlist as “{playlist.name}”.")
+
+    def _rename_playlist(self) -> None:
+        name, accepted = QInputDialog.getText(
+            self,
+            "Rename playlist",
+            "Playlist name",
+            text=self._playlist_selector.currentText(),
+        )
+        if not accepted:
+            return
+        try:
+            playlist = self._playlist_service.rename_active_playlist(name)
+        except ValueError as error:
+            self.status_message.emit(str(error))
+            return
+        self._refresh_playlist_selector()
+        self.status_message.emit(f"Renamed playlist to “{playlist.name}”.")
+
+    def _clear_playlist(self) -> None:
+        answer = QMessageBox.question(
+            self,
+            "Clear playlist",
+            "Remove every track from this playlist? Library files are kept.",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._playlist_service.clear()
+        self._show_tracks([])
+        self.status_message.emit("Playlist cleared and saved.")
+
+    def _delete_playlist(self) -> None:
+        answer = QMessageBox.question(
+            self,
+            "Delete playlist",
+            "Delete this playlist? Library files are kept.",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        deleted_name = self._playlist_selector.currentText()
+        self._playlist_service.delete_active_playlist()
+        self._refresh_playlist_selector()
+        self.refresh()
+        self.status_message.emit(f"Deleted playlist “{deleted_name}”.")
 
     def _configure_highlight_timer(self) -> None:
         self._highlight_timer.setInterval(PLAYING_HIGHLIGHT_REFRESH_MS)

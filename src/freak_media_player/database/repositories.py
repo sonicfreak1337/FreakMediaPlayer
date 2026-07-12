@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 from freak_media_player.models.media import Album, Artist, ProviderIdentity, Track
+from freak_media_player.models.playlist import NamedPlaylist
 
 
 class SQLiteSettingsRepository:
@@ -174,9 +175,7 @@ class SQLitePlaylistRepository:
             """
             INSERT INTO playlists (id, name)
             VALUES (?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                name = excluded.name,
-                updated_at = CURRENT_TIMESTAMP
+            ON CONFLICT(id) DO NOTHING
             """,
             (playlist_id, name),
         )
@@ -227,6 +226,43 @@ class SQLitePlaylistRepository:
                 "UPDATE playlists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (playlist_id,),
             )
+
+    def list_playlists(self) -> list[NamedPlaylist]:
+        rows = self._connection.execute(
+            """
+            SELECT id, name, description
+            FROM playlists
+            ORDER BY name COLLATE NOCASE, created_at
+            """
+        ).fetchall()
+        return [
+            NamedPlaylist(
+                playlist_id=str(row["id"]),
+                name=str(row["name"]),
+                description=str(row["description"]),
+            )
+            for row in rows
+        ]
+
+    def rename(self, playlist_id: str, name: str) -> None:
+        cursor = self._connection.execute(
+            """
+            UPDATE playlists
+            SET name = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (name, playlist_id),
+        )
+        if cursor.rowcount != 1:
+            raise KeyError(playlist_id)
+        self._connection.commit()
+
+    def delete(self, playlist_id: str) -> bool:
+        cursor = self._connection.execute(
+            "DELETE FROM playlists WHERE id = ?", (playlist_id,)
+        )
+        self._connection.commit()
+        return cursor.rowcount > 0
 
 
 def _track_from_row(row: sqlite3.Row) -> Track:

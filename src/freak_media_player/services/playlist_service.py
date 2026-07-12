@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from uuid import uuid4
 
 from freak_media_player.core.ports import PlaylistRepository, TrackRepository
 from freak_media_player.models.media import Track
+from freak_media_player.models.playlist import NamedPlaylist
+from freak_media_player.services.settings_service import SettingsService
 
 DEFAULT_PLAYLIST_ID = "active-playlist"
 DEFAULT_PLAYLIST_NAME = "Playlist"
@@ -16,13 +19,78 @@ class PlaylistService:
         self,
         playlist_repository: PlaylistRepository,
         track_repository: TrackRepository,
+        settings_service: SettingsService | None = None,
     ) -> None:
         self._playlist_repository = playlist_repository
         self._track_repository = track_repository
+        self._settings_service = settings_service
         self._playlist_repository.ensure(DEFAULT_PLAYLIST_ID, DEFAULT_PLAYLIST_NAME)
+        saved_id = (
+            settings_service.load_active_playlist_id(DEFAULT_PLAYLIST_ID)
+            if settings_service is not None
+            else DEFAULT_PLAYLIST_ID
+        )
+        available_ids = {
+            playlist.playlist_id for playlist in self._playlist_repository.list_playlists()
+        }
+        self._active_playlist_id = (
+            saved_id if saved_id in available_ids else DEFAULT_PLAYLIST_ID
+        )
+        self._persist_active_playlist()
 
     def list_tracks(self) -> list[Track]:
-        return self._playlist_repository.list_tracks(DEFAULT_PLAYLIST_ID)
+        return self._playlist_repository.list_tracks(self._active_playlist_id)
+
+    def list_playlists(self) -> list[NamedPlaylist]:
+        return self._playlist_repository.list_playlists()
+
+    def active_playlist_id(self) -> str:
+        return self._active_playlist_id
+
+    def create_playlist(self, name: str) -> NamedPlaylist:
+        clean_name = self._validate_unique_name(name)
+        playlist = NamedPlaylist(f"playlist-{uuid4().hex}", clean_name)
+        self._playlist_repository.ensure(playlist.playlist_id, playlist.name)
+        self._active_playlist_id = playlist.playlist_id
+        self._persist_active_playlist()
+        return playlist
+
+    def switch_playlist(self, playlist_id: str) -> list[Track]:
+        if playlist_id not in {
+            playlist.playlist_id for playlist in self.list_playlists()
+        }:
+            raise KeyError(playlist_id)
+        self._active_playlist_id = playlist_id
+        self._persist_active_playlist()
+        return self.list_tracks()
+
+    def duplicate_active_playlist(self, name: str | None = None) -> NamedPlaylist:
+        source = self._active_playlist()
+        clean_name = self._validate_unique_name(name or f"{source.name} Copy")
+        tracks = self.list_tracks()
+        duplicate = self.create_playlist(clean_name)
+        self._playlist_repository.replace_tracks(duplicate.playlist_id, tracks)
+        return duplicate
+
+    def rename_active_playlist(self, name: str) -> NamedPlaylist:
+        clean_name = self._validate_unique_name(
+            name, exclude_id=self._active_playlist_id
+        )
+        self._playlist_repository.rename(self._active_playlist_id, clean_name)
+        return NamedPlaylist(self._active_playlist_id, clean_name)
+
+    def delete_active_playlist(self) -> NamedPlaylist:
+        deleted_id = self._active_playlist_id
+        self._playlist_repository.delete(deleted_id)
+        remaining = self.list_playlists()
+        if not remaining:
+            self._playlist_repository.ensure(
+                DEFAULT_PLAYLIST_ID, DEFAULT_PLAYLIST_NAME
+            )
+            remaining = self.list_playlists()
+        self._active_playlist_id = remaining[0].playlist_id
+        self._persist_active_playlist()
+        return remaining[0]
 
     def add_track_ids(
         self,
@@ -72,7 +140,36 @@ class PlaylistService:
         self._save([])
 
     def _save(self, tracks: list[Track]) -> None:
-        self._playlist_repository.replace_tracks(DEFAULT_PLAYLIST_ID, tracks)
+        self._playlist_repository.replace_tracks(self._active_playlist_id, tracks)
+
+    def _active_playlist(self) -> NamedPlaylist:
+        return next(
+            playlist
+            for playlist in self.list_playlists()
+            if playlist.playlist_id == self._active_playlist_id
+        )
+
+    def _validate_unique_name(
+        self, name: str, exclude_id: str | None = None
+    ) -> str:
+        clean_name = " ".join(name.split())
+        if not clean_name:
+            raise ValueError("Playlist name cannot be empty.")
+        if len(clean_name) > 100:
+            raise ValueError("Playlist name cannot exceed 100 characters.")
+        if any(
+            playlist.name.casefold() == clean_name.casefold()
+            and playlist.playlist_id != exclude_id
+            for playlist in self.list_playlists()
+        ):
+            raise ValueError("A playlist with that name already exists.")
+        return clean_name
+
+    def _persist_active_playlist(self) -> None:
+        if self._settings_service is not None:
+            self._settings_service.save_active_playlist_id(
+                self._active_playlist_id
+            )
 
     def _clamp_position(self, position: int | None, length: int) -> int:
         if position is None:

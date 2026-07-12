@@ -139,3 +139,12 @@ def test_settings_service_round_trips_unique_music_folders(tmp_path: Path) -> No
     service.save_music_folders([first, second, first])
 
     assert service.load_music_folders() == [first, second]
+
+
+def test_settings_service_round_trips_active_playlist() -> None:
+    repository = InMemorySettingsRepository()
+    service = SettingsService(repository=repository)
+
+    service.save_active_playlist_id("playlist-42")
+
+    assert service.load_active_playlist_id("active-playlist") == "playlist-42"

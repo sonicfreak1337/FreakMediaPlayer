@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication
 
 from freak_media_player.models.media import Artist, ProviderIdentity, Track
 from freak_media_player.models.playback import PlaybackState
+from freak_media_player.models.playlist import NamedPlaylist
 from freak_media_player.services.playback_service import PlaybackService
 from freak_media_player.services.playlist_service import PlaylistService
 from freak_media_player.ui.theme import PLAYING_ROW_BACKGROUND
@@ -16,8 +17,20 @@ from freak_media_player.widgets.track_table import PLAYING_ROLE
 class FakePlaylistService:
     def __init__(self, tracks: list[Track]) -> None:
         self._tracks = tracks
+        self._playlists = [NamedPlaylist("active-playlist", "Playlist")]
+        self._active_id = "active-playlist"
 
     def list_tracks(self) -> list[Track]:
+        return self._tracks
+
+    def list_playlists(self) -> list[NamedPlaylist]:
+        return self._playlists
+
+    def active_playlist_id(self) -> str:
+        return self._active_id
+
+    def switch_playlist(self, playlist_id: str) -> list[Track]:
+        self._active_id = playlist_id
         return self._tracks
 
     def remove_positions(self, positions: list[int]) -> list[Track]:
@@ -115,3 +128,21 @@ def test_playlist_empty_state_explains_how_to_add_tracks() -> None:
     app.processEvents()
 
     assert panel._content_stack.currentWidget() is panel._table
+
+
+def test_playlist_selector_opens_named_playlist() -> None:
+    app = QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    playlist_service = FakePlaylistService([make_track("1")])
+    playlist_service._playlists.append(NamedPlaylist("workout", "Workout"))
+    panel = PlaylistPanel(
+        playlist_service=cast(PlaylistService, playlist_service),
+        playback_service=cast(PlaybackService, FakePlaybackService(None)),
+    )
+    panel._highlight_timer.stop()
+
+    panel._playlist_selector.setCurrentIndex(
+        panel._playlist_selector.findData("workout")
+    )
+    app.processEvents()
+
+    assert playlist_service.active_playlist_id() == "workout"

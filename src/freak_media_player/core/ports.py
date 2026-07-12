@@ -8,6 +8,7 @@ from typing import Protocol
 from freak_media_player.models.equalizer import EqualizerPreset
 from freak_media_player.models.media import AudioSource, Track
 from freak_media_player.models.playback import PlaybackStatus
+from freak_media_player.models.playlist import NamedPlaylist
 
 
 class AudioBackend(Protocol):
@@ -88,6 +89,15 @@ class PlaylistRepository(Protocol):
         ...
 
     def replace_tracks(self, playlist_id: str, tracks: Sequence[Track]) -> None:
+        ...
+
+    def list_playlists(self) -> list[NamedPlaylist]:
+        ...
+
+    def rename(self, playlist_id: str, name: str) -> None:
+        ...
+
+    def delete(self, playlist_id: str) -> bool:
         ...
 
 
