@@ -44,7 +44,12 @@ def run_application() -> int:
     )
     plugin_manager.register(VisualizerPlugin())
     plugin_manager.activate_all()
+    if (saved_layout := context.settings_service.load_window_layout()) is not None:
+        window.restore_layout(*saved_layout)
     qt_app.aboutToQuit.connect(lambda: context.playback_service.checkpoint(force=True))
+    qt_app.aboutToQuit.connect(
+        lambda: context.settings_service.save_window_layout(*window.capture_layout())
+    )
     qt_app.aboutToQuit.connect(plugin_manager.deactivate_all)
     window.show()
 

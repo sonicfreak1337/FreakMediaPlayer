@@ -58,8 +58,6 @@ Entwicklungsphase.
 
 ### Featureliste
 
-- **MUSS – Layout-Wiederherstellung:** Position, Größe, Sichtbarkeit und Dock-Zustand
-  aller Module über Neustarts hinweg speichern.
 - **SOLL – Layout zurücksetzen:** Einen sichtbaren Befehl anbieten, der das
   Standardlayout wiederherstellt, falls ein Modul außerhalb des sichtbaren
   Bildschirmbereichs liegt.

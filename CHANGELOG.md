@@ -2,6 +2,8 @@
 
 ## 0.8.0 - 2026-07-12
 
+- Persisted and restored the main-window geometry plus every core and plugin
+  module's size, position, visibility and docked or floating state.
 - Completed session restoration for volume, equalizer, skin, active playlist,
   paused track position, Shuffle and Repeat without automatic playback.
 - Added explicit Delete-key removal for selected active-playlist rows.

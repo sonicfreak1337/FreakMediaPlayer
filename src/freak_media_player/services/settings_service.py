@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import math
 from dataclasses import asdict
@@ -28,6 +29,7 @@ PLAYBACK_VOLUME_KEY = "player.volume"
 EQUALIZER_PRESET_KEY = "equalizer.current_preset"
 PLAYBACK_SESSION_KEY = "player.last_session"
 PLAYBACK_MODES_KEY = "player.playback_modes"
+WINDOW_LAYOUT_KEY = "window.layout"
 
 
 class SettingsService:
@@ -142,6 +144,35 @@ class SettingsService:
         self._repository.set(
             PLAYBACK_MODES_KEY,
             json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+        )
+
+    def load_window_layout(self) -> tuple[bytes, bytes] | None:
+        raw_layout = self._repository.get(WINDOW_LAYOUT_KEY)
+        if raw_layout is None:
+            return None
+        try:
+            data = json.loads(raw_layout)
+            geometry = base64.b64decode(data["geometry"], validate=True)
+            window_state = base64.b64decode(data["window_state"], validate=True)
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            json.JSONDecodeError,
+        ):
+            return None
+        if not geometry or not window_state:
+            return None
+        return geometry, window_state
+
+    def save_window_layout(self, geometry: bytes, window_state: bytes) -> None:
+        data = {
+            "geometry": base64.b64encode(geometry).decode("ascii"),
+            "window_state": base64.b64encode(window_state).decode("ascii"),
+        }
+        self._repository.set(
+            WINDOW_LAYOUT_KEY,
+            json.dumps(data, ensure_ascii=True, separators=(",", ":")),
         )
 
     def load_equalizer_preset(self, default: EqualizerPreset) -> EqualizerPreset:

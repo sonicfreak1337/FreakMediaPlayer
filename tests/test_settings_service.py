@@ -107,3 +107,24 @@ def test_settings_service_repairs_invalid_playback_modes() -> None:
     service = SettingsService(repository=repository)
 
     assert service.load_playback_modes() == (RepeatMode.OFF, False)
+
+
+def test_settings_service_round_trips_binary_window_layout() -> None:
+    repository = InMemorySettingsRepository()
+    service = SettingsService(repository=repository)
+    geometry = b"\x00window-geometry\xff"
+    window_state = b"\x00dock-state\xfe"
+
+    service.save_window_layout(geometry, window_state)
+
+    assert service.load_window_layout() == (geometry, window_state)
+
+
+def test_settings_service_ignores_invalid_window_layout() -> None:
+    repository = InMemorySettingsRepository()
+    repository.values["window.layout"] = (
+        '{"geometry":"not base64!","window_state":"also invalid!"}'
+    )
+    service = SettingsService(repository=repository)
+
+    assert service.load_window_layout() is None

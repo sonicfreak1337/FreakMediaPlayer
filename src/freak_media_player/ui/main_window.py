@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QByteArray, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QDockWidget,
@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from freak_media_player.ui.skins import SkinManager
 
 CORE_MODULE_HEIGHTS = [165, 325, 260]
+LAYOUT_STATE_VERSION = 1
 
 
 class MainWindow(QMainWindow):
@@ -155,6 +156,21 @@ class MainWindow(QMainWindow):
     def remove_module(self, object_name: str) -> None:
         """Forget a plugin module after its dock has been deactivated."""
         self._module_docks.pop(object_name, None)
+
+    def capture_layout(self) -> tuple[bytes, bytes]:
+        """Capture main-window geometry and every registered dock's state."""
+        return (
+            bytes(self.saveGeometry().data()),
+            bytes(self.saveState(LAYOUT_STATE_VERSION).data()),
+        )
+
+    def restore_layout(self, geometry: bytes, window_state: bytes) -> bool:
+        """Restore geometry after all core and plugin docks have been registered."""
+        geometry_restored = self.restoreGeometry(QByteArray(geometry))
+        state_restored = self.restoreState(
+            QByteArray(window_state), LAYOUT_STATE_VERSION
+        )
+        return geometry_restored and state_restored
 
     def _build_layout(self) -> None:
         player_panel = PlayerBar(playback_service=self._playback_service)
