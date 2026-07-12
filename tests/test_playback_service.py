@@ -206,6 +206,25 @@ def test_finished_track_automatically_starts_next_playlist_track() -> None:
     assert service.state.current_track.id == "2"
 
 
+def test_play_next_track_runs_before_normal_playlist_order() -> None:
+    backend = NullAudioBackend()
+    service = PlaybackService(
+        PlaybackController(
+            queue=PlaybackQueue(),
+            audio_backend=backend,
+            source_resolver=FakeSourceResolver(),
+        )
+    )
+    service.play_playlist([make_track("1"), make_track("2")], 0)
+    service.enqueue_next([make_track("urgent")])
+
+    backend.finish()
+    assert service.state.current_track.id == "urgent"
+    backend.finish()
+
+    assert service.state.current_track.id == "2"
+
+
 def test_finished_track_can_stop_instead_of_continuing() -> None:
     backend = NullAudioBackend()
     service = PlaybackService(

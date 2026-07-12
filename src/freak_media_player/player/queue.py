@@ -18,6 +18,7 @@ class PlaybackQueue:
         self._current_index: int | None = None
         self._shuffle_enabled = False
         self._shuffle_cycle = shuffle_cycle or ShuffleCycle()
+        self._play_next: list[Track] = []
 
     def add(self, track: Track) -> None:
         self._tracks.append(track)
@@ -63,7 +64,14 @@ class PlaybackQueue:
     def current_index(self) -> int | None:
         return self._current_index
 
+    def current_playlist_track(self) -> Track | None:
+        if self._current_index is None:
+            return None
+        return self._tracks[self._current_index]
+
     def next(self) -> Track | None:
+        if self._play_next:
+            return self._play_next.pop(0)
         if self._shuffle_enabled:
             next_index = self._shuffle_cycle.next_index(self._current_index)
             return self._select(next_index) if next_index is not None else None
@@ -92,6 +100,7 @@ class PlaybackQueue:
 
     def clear(self) -> None:
         self._tracks.clear()
+        self._play_next.clear()
         self._current_index = None
         self._shuffle_cycle.clear()
 
@@ -102,6 +111,41 @@ class PlaybackQueue:
 
     def track_count(self) -> int:
         return len(self._tracks)
+
+    def enqueue_next(self, tracks: Iterable[Track]) -> None:
+        self._play_next.extend(tracks)
+
+    def play_next_tracks(self) -> list[Track]:
+        return list(self._play_next)
+
+    def remove_play_next(self, positions: Iterable[int]) -> list[Track]:
+        for position in sorted(set(positions), reverse=True):
+            if 0 <= position < len(self._play_next):
+                self._play_next.pop(position)
+        return self.play_next_tracks()
+
+    def move_play_next(self, positions: Iterable[int], target: int) -> list[Track]:
+        selected = sorted(
+            {
+                position
+                for position in positions
+                if 0 <= position < len(self._play_next)
+            }
+        )
+        if not selected:
+            return self.play_next_tracks()
+        moving = [self._play_next[position] for position in selected]
+        for position in reversed(selected):
+            self._play_next.pop(position)
+        adjusted_target = max(
+            0,
+            min(
+                target - sum(position < target for position in selected),
+                len(self._play_next),
+            ),
+        )
+        self._play_next[adjusted_target:adjusted_target] = moving
+        return self.play_next_tracks()
 
     def _find_track_index(self, track_id: str | None) -> int | None:
         if track_id is None:

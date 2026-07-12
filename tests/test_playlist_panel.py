@@ -45,12 +45,30 @@ class FakePlaylistService:
 class FakePlaybackService:
     def __init__(self, playing_index: int | None) -> None:
         self.playing_index = playing_index
+        self.up_next: list[Track] = []
 
     def sync_playlist(self, _tracks: list[Track]) -> PlaybackState:
         return PlaybackState()
 
     def current_playlist_index(self) -> int | None:
         return self.playing_index
+
+    def play_next_tracks(self) -> list[Track]:
+        return list(self.up_next)
+
+    def enqueue_next(self, tracks: list[Track]) -> list[Track]:
+        self.up_next.extend(tracks)
+        return self.play_next_tracks()
+
+    def remove_play_next(self, positions: list[int]) -> list[Track]:
+        for position in sorted(positions, reverse=True):
+            self.up_next.pop(position)
+        return self.play_next_tracks()
+
+    def move_play_next(self, positions: list[int], target: int) -> list[Track]:
+        track = self.up_next.pop(positions[0])
+        self.up_next.insert(target, track)
+        return self.play_next_tracks()
 
 
 class FakeFavoriteLibraryService:
@@ -170,3 +188,22 @@ def test_playlist_marks_favorite_tracks() -> None:
     panel._highlight_timer.stop()
 
     assert panel._table.item(0, 6).text() == "♥"
+
+
+def test_playlist_panel_manages_visible_play_next_queue() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    tracks = [make_track("1"), make_track("2")]
+    playback = FakePlaybackService(None)
+    panel = PlaylistPanel(
+        playlist_service=cast(PlaylistService, FakePlaylistService(tracks)),
+        playback_service=cast(PlaybackService, playback),
+    )
+    panel._table.selectRow(1)
+
+    panel._enqueue_selected_next()
+
+    assert [track.id for track in playback.up_next] == ["2"]
+    assert panel._play_next_list.item(0).text() == "Track 2 — Artist"
+    panel._play_next_list.setCurrentRow(0)
+    panel._remove_play_next()
+    assert playback.up_next == []

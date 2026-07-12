@@ -40,6 +40,27 @@ def test_queue_moves_backward_and_forward_in_playlist_order() -> None:
     assert queue.previous().id == "2"
 
 
+def test_play_next_tracks_precede_playlist_without_moving_playlist_anchor() -> None:
+    queue = PlaybackQueue([make_track("1"), make_track("2")])
+    queue.select(0)
+    queue.enqueue_next([make_track("urgent"), make_track("also-urgent")])
+
+    assert queue.next().id == "urgent"
+    assert queue.current_index() == 0
+    assert queue.next().id == "also-urgent"
+    assert queue.next().id == "2"
+
+
+def test_play_next_tracks_can_be_reordered_and_removed() -> None:
+    queue = PlaybackQueue()
+    queue.enqueue_next([make_track("1"), make_track("2"), make_track("3")])
+
+    queue.move_play_next([2], 0)
+    queue.remove_play_next([1])
+
+    assert [track.id for track in queue.play_next_tracks()] == ["3", "2"]
+
+
 def test_replace_preserves_current_track_by_id() -> None:
     queue = PlaybackQueue([make_track("1"), make_track("2")])
     queue.select(1)

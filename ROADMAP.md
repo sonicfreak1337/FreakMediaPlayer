@@ -57,9 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **MUSS – „Als Nächstes abspielen“:** Eine temporäre Queue vor der normalen
-  Wiedergabelistenreihenfolge einführen; Einträge anzeigen, umsortieren und
-  entfernen. Das vorhandene `queue_items`-Schema kann dafür genutzt werden.
 - **MUSS – Fehlerfortsetzung:** Bei einem unspielbaren Titel automatisch zum
   nächsten gültigen Queue- oder Playlist-Eintrag wechseln, ohne Endlosschleife.
 - **SOLL – Windows-Medientasten:** Play/Pause, Vor und Zurück unterstützen, sofern

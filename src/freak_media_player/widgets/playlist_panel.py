@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
     QLabel,
+    QListWidget,
     QMenu,
     QMessageBox,
     QStackedWidget,
@@ -81,6 +82,9 @@ class PlaylistPanel(QWidget):
             "the add button, double-click a track, or drag it here."
         )
         self._summary_label = QLabel()
+        self._play_next_label = QLabel("Up next (0)")
+        self._play_next_list = QListWidget()
+        self._play_next_ids: tuple[str, ...] = ()
         self._header_controls: list[QWidget] = []
         self._delete_shortcut = QShortcut(
             QKeySequence(Qt.Key.Key_Delete), self._table
@@ -142,6 +146,11 @@ class PlaylistPanel(QWidget):
             title.setObjectName("panelTitle")
             header.addWidget(title)
         buttons = [
+            self._build_button(
+                QStyle.StandardPixmap.SP_MediaSkipForward,
+                "Play selected next",
+                self._enqueue_selected_next,
+            ),
             self._build_button(
                 QStyle.StandardPixmap.SP_ArrowUp,
                 "Move selected up",
@@ -207,6 +216,36 @@ class PlaylistPanel(QWidget):
 
         if self._show_title:
             layout.addLayout(header)
+        play_next = QHBoxLayout()
+        play_next.setContentsMargins(10, 4, 10, 4)
+        play_next.addWidget(self._play_next_label)
+        play_next.addWidget(self._play_next_list, 1)
+        play_next.addWidget(
+            self._build_button(
+                QStyle.StandardPixmap.SP_ArrowUp,
+                "Move Up Next selection up",
+                self._move_play_next_up,
+            )
+        )
+        play_next.addWidget(
+            self._build_button(
+                QStyle.StandardPixmap.SP_ArrowDown,
+                "Move Up Next selection down",
+                self._move_play_next_down,
+            )
+        )
+        play_next.addWidget(
+            self._build_button(
+                QStyle.StandardPixmap.SP_TrashIcon,
+                "Remove selection from Up Next",
+                self._remove_play_next,
+            )
+        )
+        self._play_next_list.setMaximumHeight(88)
+        self._play_next_list.setSelectionMode(
+            QListWidget.SelectionMode.ExtendedSelection
+        )
+        layout.addLayout(play_next)
         self._configure_empty_state()
         self._content_stack.addWidget(self._table)
         self._content_stack.addWidget(self._empty_state)
@@ -455,6 +494,46 @@ class PlaylistPanel(QWidget):
             self._playback_service.play_playlist(self._tracks, item.row())
             self._sync_playing_highlight()
 
+    def _enqueue_selected_next(self) -> None:
+        tracks = [self._tracks[row] for row in self._selected_rows()]
+        if not tracks:
+            return
+        self._playback_service.enqueue_next(tracks)
+        self._refresh_play_next(force=True)
+        self.status_message.emit(
+            f"Queued {len(tracks)} track{'s' if len(tracks) != 1 else ''} to play next."
+        )
+
+    def _remove_play_next(self) -> None:
+        positions = sorted({index.row() for index in self._play_next_list.selectedIndexes()})
+        if positions:
+            self._playback_service.remove_play_next(positions)
+            self._refresh_play_next(force=True)
+
+    def _move_play_next_up(self) -> None:
+        positions = sorted({index.row() for index in self._play_next_list.selectedIndexes()})
+        if positions and positions[0] > 0:
+            self._playback_service.move_play_next(positions, positions[0] - 1)
+            self._refresh_play_next(force=True)
+
+    def _move_play_next_down(self) -> None:
+        positions = sorted({index.row() for index in self._play_next_list.selectedIndexes()})
+        if positions and positions[-1] < self._play_next_list.count() - 1:
+            self._playback_service.move_play_next(positions, positions[-1] + 2)
+            self._refresh_play_next(force=True)
+
+    def _refresh_play_next(self, *, force: bool = False) -> None:
+        tracks = self._playback_service.play_next_tracks()
+        track_ids = tuple(track.id for track in tracks)
+        if not force and track_ids == self._play_next_ids:
+            return
+        self._play_next_ids = track_ids
+        self._play_next_list.clear()
+        self._play_next_list.addItems(
+            [f"{track.title} — {track.artist.name}" for track in tracks]
+        )
+        self._play_next_label.setText(f"Up next ({len(tracks)})")
+
     def _remove_selected(self) -> None:
         rows = self._selected_rows()
         if rows:
@@ -484,6 +563,7 @@ class PlaylistPanel(QWidget):
         return sorted({item.row() for item in self._table.selectedItems()})
 
     def _sync_playing_highlight(self) -> None:
+        self._refresh_play_next()
         playing_row = self._playback_service.current_playlist_index()
         if playing_row is not None and not 0 <= playing_row < self._table.rowCount():
             playing_row = None

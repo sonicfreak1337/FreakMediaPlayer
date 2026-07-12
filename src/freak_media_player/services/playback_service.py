@@ -135,6 +135,18 @@ class PlaybackService:
     def set_continue_after_track(self, enabled: bool) -> None:
         self._controller.set_continue_after_track(enabled)
 
+    def enqueue_next(self, tracks: list[Track]) -> list[Track]:
+        return self._controller.enqueue_next(tracks)
+
+    def play_next_tracks(self) -> list[Track]:
+        return self._controller.play_next_tracks()
+
+    def remove_play_next(self, positions: list[int]) -> list[Track]:
+        return self._controller.remove_play_next(positions)
+
+    def move_play_next(self, positions: list[int], target: int) -> list[Track]:
+        return self._controller.move_play_next(positions, target)
+
     def checkpoint(self, *, force: bool = False) -> None:
         """Persist the current track and position at a bounded write frequency."""
         if self._session_changed is None:

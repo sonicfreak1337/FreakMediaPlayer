@@ -8,6 +8,8 @@
   explicit follow-default option and safe fallback for unavailable saved devices.
 - Added device-validated Mono, Stereo, 5.1 and 7.1 output with deterministic,
   peak-stable upmix/downmix matrices and multichannel Visualizer sample capture.
+- Added a visible temporary Up Next queue that can be filled from playlist
+  selections, reordered and cleared without changing saved playlist order.
 - Added documented window-wide shortcuts for transport, volume, mute, Shuffle,
   Repeat, library search and core module visibility.
 

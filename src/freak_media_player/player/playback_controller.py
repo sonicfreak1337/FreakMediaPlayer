@@ -32,6 +32,7 @@ class PlaybackController:
         self._source_resolver = source_resolver
         self._state = PlaybackState()
         self._loaded_track_id: str | None = None
+        self._current_is_play_next = False
         self._continue_after_track = True
         self._audio_backend.set_finished_callback(self._handle_finished)
 
@@ -46,7 +47,7 @@ class PlaybackController:
         )
 
     def current_playlist_index(self) -> int | None:
-        if self._state.current_track is None:
+        if self._state.current_track is None or self._current_is_play_next:
             return None
         return self._queue.current_index()
 
@@ -56,6 +57,7 @@ class PlaybackController:
     def restore(self, track: Track, position_ms: int) -> PlaybackState:
         """Load a previous session without automatically starting playback."""
         self._queue.select_track(track.id)
+        self._current_is_play_next = False
         try:
             source = self._source_resolver.resolve_audio_source(track)
             self._audio_backend.load(source)
@@ -75,6 +77,7 @@ class PlaybackController:
     def play_now(self, track: Track) -> PlaybackState:
         self._queue.replace([track])
         self._queue.select(0)
+        self._current_is_play_next = False
         self._state = self._idle_state()
         return self._start_track(track)
 
@@ -83,11 +86,19 @@ class PlaybackController:
         track = self._queue.select(start_index)
         if track is None:
             return self.state
+        self._current_is_play_next = False
         self._state = self._idle_state()
         return self._start_track(track)
 
     def sync_playlist(self, tracks: list[Track]) -> PlaybackState:
         current_track = self._state.current_track
+        if self._current_is_play_next:
+            anchor = self._queue.current_playlist_track()
+            self._queue.replace(
+                tracks,
+                current_track_id=anchor.id if anchor is not None else None,
+            )
+            return self.state
         current_track_id = current_track.id if current_track is not None else None
         self._queue.replace(tracks, current_track_id=current_track_id)
         if current_track is not None and not any(
@@ -127,11 +138,13 @@ class PlaybackController:
         return self._start_track(track)
 
     def next_track(self) -> PlaybackState:
+        is_play_next = bool(self._queue.play_next_tracks())
         track = self._queue.next()
         if track is None and self._state.repeat_mode == RepeatMode.ALL:
             track = self._queue.select(0)
         if track is None:
             return self.stop()
+        self._current_is_play_next = is_play_next
         return self._start_track(track)
 
     def previous_track(self) -> PlaybackState:
@@ -140,6 +153,7 @@ class PlaybackController:
             track = self._queue.select(self._queue.track_count() - 1)
         if track is None:
             return self.state
+        self._current_is_play_next = False
         return self._start_track(track)
 
     def set_shuffle_enabled(self, enabled: bool) -> PlaybackState:
@@ -181,6 +195,7 @@ class PlaybackController:
     def stop(self) -> PlaybackState:
         self._audio_backend.stop()
         self._loaded_track_id = None
+        self._current_is_play_next = False
         self._state = self._idle_state()
         return self.state
 
@@ -230,6 +245,19 @@ class PlaybackController:
 
     def set_continue_after_track(self, enabled: bool) -> None:
         self._continue_after_track = enabled
+
+    def enqueue_next(self, tracks: list[Track]) -> list[Track]:
+        self._queue.enqueue_next(tracks)
+        return self._queue.play_next_tracks()
+
+    def play_next_tracks(self) -> list[Track]:
+        return self._queue.play_next_tracks()
+
+    def remove_play_next(self, positions: list[int]) -> list[Track]:
+        return self._queue.remove_play_next(positions)
+
+    def move_play_next(self, positions: list[int], target: int) -> list[Track]:
+        return self._queue.move_play_next(positions, target)
 
     def _start_track(self, track: Track) -> PlaybackState:
         try:
