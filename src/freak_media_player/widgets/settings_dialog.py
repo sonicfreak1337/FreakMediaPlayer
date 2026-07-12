@@ -36,7 +36,6 @@ class SettingsDialog(QDialog):
         self._continue_after_track = QCheckBox("Continue with the next playlist track")
         self._restore_layout = QCheckBox("Restore window and module layout")
         self._visualizer_quality = QComboBox()
-        self._notifications = QCheckBox("Enable track-change notifications")
         self._build_layout(audio_devices)
         self._load(preferences)
 
@@ -47,7 +46,6 @@ class SettingsDialog(QDialog):
             continue_after_track=self._continue_after_track.isChecked(),
             restore_layout=self._restore_layout.isChecked(),
             visualizer_quality=str(self._visualizer_quality.currentData()),
-            enable_notifications=self._notifications.isChecked(),
             audio_device_id=device_id if isinstance(device_id, str) else None,
             audio_output_mode=str(self._audio_mode.currentData()),
         )
@@ -85,7 +83,6 @@ class SettingsDialog(QDialog):
         self._visualizer_quality.addItem("Balanced", "balanced")
         self._visualizer_quality.addItem("Smooth (up to 60 FPS)", "smooth")
         interface_form.addRow("Visualizer performance", self._visualizer_quality)
-        interface_form.addRow(self._notifications)
         layout.addWidget(interface)
 
         note = QLabel("Changes apply immediately and are used on the next start.")
@@ -103,7 +100,6 @@ class SettingsDialog(QDialog):
         self._restore_session.setChecked(preferences.restore_session)
         self._continue_after_track.setChecked(preferences.continue_after_track)
         self._restore_layout.setChecked(preferences.restore_layout)
-        self._notifications.setChecked(preferences.enable_notifications)
         quality_index = self._visualizer_quality.findData(
             preferences.visualizer_quality
         )

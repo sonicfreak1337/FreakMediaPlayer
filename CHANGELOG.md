@@ -3,7 +3,7 @@
 ## 0.9.1 - Unreleased
 
 - Activated a persistent Settings dialog for audio output, paused session restore,
-  end-of-track behavior, layout restore, Visualizer performance and notifications.
+  end-of-track behavior, layout restore and Visualizer performance.
 - Added live enumeration and selection of Windows audio output devices with an
   explicit follow-default option and safe fallback for unavailable saved devices.
 - Added device-validated Mono, Stereo, 5.1 and 7.1 output with deterministic,

@@ -14,7 +14,6 @@ class AppSettings:
     version: int = CURRENT_SETTINGS_VERSION
     database_path: Path = Path("freak_media_player.sqlite3")
     theme_name: str = "freaky"
-    enable_notifications: bool = True
 
 
 @dataclass(frozen=True)
@@ -23,7 +22,6 @@ class PlayerPreferences:
     continue_after_track: bool = True
     restore_layout: bool = True
     visualizer_quality: str = "balanced"
-    enable_notifications: bool = True
     audio_device_id: str | None = None
     audio_output_mode: str = "stereo"
 
@@ -47,7 +45,6 @@ class SettingsMigrator:
             version=int(data.get("version", 0)),
             database_path=Path(str(data.get("database_path", "freak_media_player.sqlite3"))),
             theme_name=str(data.get("theme_name", "dark")),
-            enable_notifications=self._to_bool(data.get("enable_notifications", True)),
         )
         return self.migrate(settings)
 

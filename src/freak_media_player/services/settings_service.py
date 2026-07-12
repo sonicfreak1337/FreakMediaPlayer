@@ -28,7 +28,6 @@ from freak_media_player.models.playback import RepeatMode
 SETTINGS_VERSION_KEY = "settings.version"
 DATABASE_PATH_KEY = "settings.database_path"
 THEME_NAME_KEY = "settings.theme_name"
-NOTIFICATIONS_KEY = "settings.enable_notifications"
 PLAYBACK_VOLUME_KEY = "player.volume"
 EQUALIZER_PRESET_KEY = "equalizer.current_preset"
 PLAYBACK_SESSION_KEY = "player.last_session"
@@ -55,8 +54,6 @@ class SettingsService:
             "version": self._repository.get(SETTINGS_VERSION_KEY) or defaults.version,
             "database_path": self._repository.get(DATABASE_PATH_KEY) or defaults.database_path,
             "theme_name": self._repository.get(THEME_NAME_KEY) or defaults.theme_name,
-            "enable_notifications": self._repository.get(NOTIFICATIONS_KEY)
-            or defaults.enable_notifications,
         }
         settings = self._migrator.from_mapping(data)
         self.save(settings)
@@ -67,7 +64,6 @@ class SettingsService:
         self._repository.set(SETTINGS_VERSION_KEY, str(values["version"]))
         self._repository.set(DATABASE_PATH_KEY, str(values["database_path"]))
         self._repository.set(THEME_NAME_KEY, str(values["theme_name"]))
-        self._repository.set(NOTIFICATIONS_KEY, str(values["enable_notifications"]))
 
     def set_theme_name(self, theme_name: str) -> AppSettings:
         current = self.load(AppSettings())
@@ -75,7 +71,6 @@ class SettingsService:
             version=current.version,
             database_path=current.database_path,
             theme_name=theme_name,
-            enable_notifications=current.enable_notifications,
         )
         self.save(updated)
         return updated
@@ -86,7 +81,6 @@ class SettingsService:
             version=current.version,
             database_path=database_path,
             theme_name=current.theme_name,
-            enable_notifications=current.enable_notifications,
         )
         self.save(updated)
         return updated
@@ -240,9 +234,6 @@ class SettingsService:
                 ),
                 restore_layout=self._preference_bool(data, "restore_layout", True),
                 visualizer_quality=quality,
-                enable_notifications=self._preference_bool(
-                    data, "enable_notifications", True
-                ),
                 audio_device_id=device_id or None,
                 audio_output_mode=(
                     str(data.get("audio_output_mode", "stereo"))
@@ -259,9 +250,6 @@ class SettingsService:
         self._repository.set(
             PLAYER_PREFERENCES_KEY,
             json.dumps(data, ensure_ascii=False, separators=(",", ":")),
-        )
-        self._repository.set(
-            NOTIFICATIONS_KEY, str(preferences.enable_notifications)
         )
 
     def _preference_bool(

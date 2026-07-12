@@ -35,7 +35,6 @@ def test_settings_service_reads_saved_values() -> None:
         AppSettings(
             database_path=Path("custom.sqlite3"),
             theme_name="midnight",
-            enable_notifications=False,
         )
     )
 
@@ -43,7 +42,6 @@ def test_settings_service_reads_saved_values() -> None:
 
     assert settings.database_path == Path("custom.sqlite3")
     assert settings.theme_name == "midnight"
-    assert settings.enable_notifications is False
 
 
 def test_settings_service_round_trips_volume_and_complete_equalizer_state() -> None:
@@ -158,7 +156,6 @@ def test_settings_service_round_trips_player_preferences() -> None:
         continue_after_track=False,
         restore_layout=False,
         visualizer_quality="eco",
-        enable_notifications=False,
         audio_device_id="speakers-42",
         audio_output_mode="7.1",
     )

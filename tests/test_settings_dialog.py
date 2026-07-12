@@ -12,7 +12,6 @@ def test_settings_dialog_round_trips_preferences() -> None:
         continue_after_track=False,
         restore_layout=False,
         visualizer_quality="eco",
-        enable_notifications=False,
         audio_device_id="headphones",
     )
     dialog = SettingsDialog(
@@ -21,7 +20,7 @@ def test_settings_dialog_round_trips_preferences() -> None:
     )
 
     assert dialog.preferences() == preferences
-    assert len(dialog.findChildren(QCheckBox)) == 4
+    assert len(dialog.findChildren(QCheckBox)) == 3
     assert len(dialog.findChildren(QComboBox)) == 3
     dialog.close()
 

@@ -57,8 +57,6 @@ Ziel: Die Kernwiedergabe verhält sich unter realen Windows-Bedingungen vorherse
 
 ### Featureliste
 
-- **SOLL – Benachrichtigung bei Titelwechsel:** Optional Titel, Interpret und Cover
-  als native Windows-Benachrichtigung anzeigen.
 - **SOLL – Cover-Auswahl:** Ein abweichendes lokales Cover pro Album oder Titel
   auswählen und auf die automatische Erkennung zurücksetzen können.
 - **OPTIONAL – Infobereich:** Konfigurierbares Minimieren in den Windows-Tray mit
