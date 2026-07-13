@@ -22,3 +22,13 @@ def test_builds_bundle_brand_assets_and_windows_icon() -> None:
     assert (project_root / "src/freak_media_player/assets/icons/repeat_all_on.png").exists()
     assert (project_root / "src/freak_media_player/assets/icons/repeat_one_on.png").exists()
     assert (project_root / "src/freak_media_player/assets/icons/shuffle_off.png").exists()
+
+
+def test_portable_build_requires_qt_multimedia_runtime() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    portable_script = (project_root / "build_portable.bat").read_text(encoding="utf-8")
+
+    assert "Qt6Multimedia.dll" in portable_script
+    assert "QtMultimedia.pyd" in portable_script
+    assert "windowsmediaplugin.dll" in portable_script
+    assert "ffmpegmediaplugin.dll" in portable_script

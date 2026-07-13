@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import queue
 from collections.abc import Callable
 from pathlib import Path
@@ -45,6 +46,7 @@ MIN_VOLUME = 0.0
 MAX_VOLUME = 1.0
 OUTPUT_PUMP_INTERVAL_MS = 10
 DECODE_QUEUE_CAPACITY = 16
+LOGGER = logging.getLogger(__name__)
 
 SinkFactory = Callable[[QAudioFormat], QAudioSink]
 
@@ -103,7 +105,7 @@ class DawAudioBackend(QObject):
         if self._sink is None:
             self._restart_pipeline(self._base_position_ms, start_output=True)
         elif self._output_device is None and self._sink is not None:
-            self._output_device = self._sink.start()
+            self._start_sink()
         elif self._sink is not None and self._sink.state() == QtAudio.State.SuspendedState:
             self._sink.resume()
         self._status = PlaybackStatus.BUFFERING
@@ -266,7 +268,7 @@ class DawAudioBackend(QObject):
         self._create_sink()
         self._start_worker(position_ms)
         if start_output and self._sink is not None:
-            self._output_device = self._sink.start()
+            self._start_sink()
 
     def _prepare_pipeline(self, position_ms: int) -> None:
         self._stop_worker()
@@ -290,6 +292,9 @@ class DawAudioBackend(QObject):
         )
 
     def _pump_output(self) -> None:
+        if self._sink is not None and self._is_fatal_sink_error(self._sink.error()):
+            self._fail_output(self._sink.error())
+            return
         if (
             self._status not in {PlaybackStatus.PLAYING, PlaybackStatus.BUFFERING}
             or self._sink is None
@@ -363,13 +368,88 @@ class DawAudioBackend(QObject):
         self._sink = self._sink_factory(audio_format)
         self._sink.setVolume(self._volume)
 
+    def _start_sink(self) -> None:
+        if self._sink is None:
+            raise RuntimeError("The Windows audio output could not be created.")
+        sink = self._sink
+        output_device = sink.start()
+        error = sink.error()
+        if output_device is None or self._is_fatal_sink_error(error):
+            message = self._sink_error_message(error)
+            self._stop_worker()
+            self._reset_output()
+            self._clear_messages()
+            raise RuntimeError(message)
+        self._output_device = output_device
+        state_changed = getattr(sink, "stateChanged", None)
+        if state_changed is not None:
+            state_changed.connect(self._handle_sink_state_changed)
+        LOGGER.info(
+            "Audio output started: %s (%s, %d Hz, %d channels)",
+            self._selected_output_device().description(),
+            self._output_mode.value,
+            OUTPUT_SAMPLE_RATE,
+            self._output_mode.channels,
+        )
+
     def _default_sink_factory(self, audio_format: QAudioFormat) -> QAudioSink:
         output = self._selected_output_device()
+        if output.isNull():
+            raise RuntimeError(
+                "Windows reports no audio output device. Connect or enable an output "
+                "device and try again."
+            )
         if not output.isFormatSupported(audio_format):
             raise RuntimeError(
                 f"Audio device does not support 48 kHz {self._output_mode.value} PCM."
             )
         return QAudioSink(output, audio_format, self)
+
+    def _handle_sink_state_changed(self, state: QtAudio.State) -> None:
+        if self._sink is None or state != QtAudio.State.StoppedState:
+            return
+        error = self._sink.error()
+        if self._is_fatal_sink_error(error):
+            self._fail_output(error)
+
+    def _fail_output(self, error: QtAudio.Error) -> None:
+        if self._status == PlaybackStatus.ERROR:
+            return
+        message = self._sink_error_message(error)
+        LOGGER.error("%s", message)
+        self._status = PlaybackStatus.ERROR
+        self._error_message = message
+        self._set_sample_playback_active(False)
+        self._stop_worker()
+        self._reset_output()
+        self._clear_messages()
+        if self._error_callback is not None:
+            self._error_callback()
+
+    @staticmethod
+    def _is_fatal_sink_error(error: QtAudio.Error) -> bool:
+        return error in {
+            QtAudio.Error.OpenError,
+            QtAudio.Error.IOError,
+            QtAudio.Error.FatalError,
+        }
+
+    @staticmethod
+    def _sink_error_message(error: QtAudio.Error) -> str:
+        return {
+            QtAudio.Error.OpenError: (
+                "Windows could not open the selected audio output. Choose another "
+                "output in Settings or check the Windows volume mixer."
+            ),
+            QtAudio.Error.IOError: (
+                "Windows stopped accepting audio data. Reconnect the output device "
+                "or choose another output in Settings."
+            ),
+            QtAudio.Error.FatalError: (
+                "The Windows audio output failed. Restart the output device or choose "
+                "another output in Settings."
+            ),
+        }.get(error, "Windows did not provide a writable audio output.")
 
     def _selected_output_device(self) -> QAudioDevice:
         if self._output_device_id is not None:

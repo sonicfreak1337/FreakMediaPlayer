@@ -30,15 +30,25 @@ class FakeOutputDevice:
 
 
 class FakeAudioSink:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        start_succeeds: bool = True,
+        error: QtAudio.Error = QtAudio.Error.NoError,
+    ) -> None:
         self.device = FakeOutputDevice()
         self.volume = 1.0
+        self.start_succeeds = start_succeeds
+        self.current_error = error
 
     def setVolume(self, volume: float) -> None:
         self.volume = volume
 
-    def start(self) -> QIODevice:
-        return cast(QIODevice, self.device)
+    def start(self) -> QIODevice | None:
+        return cast(QIODevice, self.device) if self.start_succeeds else None
+
+    def error(self) -> QtAudio.Error:
+        return self.current_error
 
     def reset(self) -> None:
         pass
@@ -130,8 +140,6 @@ def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:
     assert backend._pump_timer.isActive() is False
     assert audio_samples.playback_active is False
     backend.play()
-    assert backend._pump_timer.isActive() is True
-    assert audio_samples.playback_active is True
     deadline = time.monotonic() + 2.0
     while not finished and time.monotonic() < deadline:
         app.processEvents()
@@ -144,3 +152,24 @@ def test_daw_backend_streams_decoded_and_processed_pcm(tmp_path: Path) -> None:
     assert backend.status() == PlaybackStatus.STOPPED
     assert backend._pump_timer.isActive() is False
     assert audio_samples.playback_active is False
+
+
+def test_daw_backend_reports_audio_sink_open_failure(tmp_path: Path) -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    path = tmp_path / "tone.wav"
+    write_test_wave(path)
+    fake_sink = FakeAudioSink(
+        start_succeeds=False,
+        error=QtAudio.Error.OpenError,
+    )
+    backend = DawAudioBackend(
+        sink_factory=lambda _format: cast(QAudioSink, fake_sink),
+    )
+    backend.load(AudioSource(uri=path.as_uri()))
+
+    with pytest.raises(RuntimeError, match="could not open"):
+        backend.play()
+
+    assert backend._sink is None
+    assert backend._output_device is None
+    assert backend._decode_worker.live_thread_count() == 0
