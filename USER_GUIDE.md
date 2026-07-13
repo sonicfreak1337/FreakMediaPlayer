@@ -4,7 +4,8 @@
 
 The optional first-start dialog selects a music folder, audio output and session
 restore behavior. Installed mode stores data below
-`%LOCALAPPDATA%\FreakMediaPlayer`. Portable mode is selected by `portable.flag`
+`%LOCALAPPDATA%\FreakMediaPlayer` on Windows or
+`${XDG_DATA_HOME:-$HOME/.local/share}/freak-media-player` on Linux. Portable mode is selected by `portable.flag`
 beside the executable and stores everything below its local `data` directory.
 
 ## Library and import
@@ -24,9 +25,9 @@ mute, Shuffle and Repeat. Unreadable titles are skipped with a bounded retry pat
 
 ## Audio output
 
-Settings lists Windows output devices and only the Mono, Stereo, 5.1 and 7.1 modes
+Settings lists system output devices and only the Mono, Stereo, 5.1 and 7.1 modes
 reported as supported. Changing mode restarts near the previous position. Surround
-mapping and downmix behavior are documented in README. Use Windows speaker tests
+mapping and downmix behavior are documented in README. Use the operating system's speaker tests
 to verify physical channel wiring before multichannel playback.
 
 ## Equalizer, Visualizer, skins and layout
@@ -95,5 +96,5 @@ versions and license families. See `KNOWN_ISSUES.md` before reporting a problem.
 
 ## Keyboard shortcuts
 
-See the complete shortcut table in README. Windows media Play/Pause, Stop,
+See the complete shortcut table in README. Media Play/Pause, Stop,
 Previous and Next are supported through Qt without global keyboard hooks.

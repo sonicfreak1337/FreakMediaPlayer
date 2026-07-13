@@ -58,7 +58,7 @@ class FirstStartDialog(QDialog):
         browse.clicked.connect(self._browse_folder)
         folder_row.addWidget(browse)
         form.addRow("Music folder", folder_row)
-        self._audio_device.addItem("Follow Windows default", None)
+        self._audio_device.addItem("Follow system default", None)
         for device in audio_devices:
             self._audio_device.addItem(device.description, device.device_id)
         form.addRow("Audio output", self._audio_device)

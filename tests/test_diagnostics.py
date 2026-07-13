@@ -45,7 +45,7 @@ def test_diagnostic_snapshot_contains_runtime_and_sanitized_errors(
     assert snapshot.audio_output == "Default audio output (stereo)"
     assert snapshot.recent_errors
     assert str(Path.home()) not in snapshot.recent_errors[-1]
-    assert "%USERPROFILE%" in snapshot.recent_errors[-1]
+    assert "~" in snapshot.recent_errors[-1]
 
 
 def test_diagnostics_and_about_dialogs_expose_support_information(

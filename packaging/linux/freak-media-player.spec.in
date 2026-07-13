@@ -1,0 +1,40 @@
+Name:           freak-media-player
+Version:        @VERSION@
+Release:        1%{?dist}
+Summary:        Native desktop player for local audio and internet radio
+License:        Proprietary and bundled third-party licenses
+BuildArch:      @ARCH@
+Source0:        %{name}-%{version}.tar.gz
+Requires:       glibc, libglvnd-glx, libxkbcommon-x11
+
+%description
+Freak Media Player is an offline-first desktop music player with local-library,
+playlist, equalizer, visualizer and internet-radio support.
+
+%prep
+%setup -q -c -T
+tar -xzf %{SOURCE0}
+
+%install
+mkdir -p %{buildroot}/opt/%{name}
+cp -a FreakMediaPlayer/. %{buildroot}/opt/%{name}/
+mkdir -p %{buildroot}/usr/bin
+ln -s /opt/%{name}/FreakMediaPlayer %{buildroot}/usr/bin/freak-media-player
+mkdir -p %{buildroot}/usr/share/applications
+install -m 0644 freak-media-player.desktop %{buildroot}/usr/share/applications/freak-media-player.desktop
+mkdir -p %{buildroot}/usr/share/icons/hicolor/256x256/apps
+install -m 0644 freak-media-player.png %{buildroot}/usr/share/icons/hicolor/256x256/apps/freak-media-player.png
+mkdir -p %{buildroot}/usr/share/doc/%{name}
+install -m 0644 README.md THIRD_PARTY_NOTICES.md %{buildroot}/usr/share/doc/%{name}/
+
+%files
+/opt/%{name}
+/usr/bin/freak-media-player
+/usr/share/applications/freak-media-player.desktop
+/usr/share/icons/hicolor/256x256/apps/freak-media-player.png
+%doc /usr/share/doc/%{name}/README.md
+%doc /usr/share/doc/%{name}/THIRD_PARTY_NOTICES.md
+
+%changelog
+* Mon Jul 13 2026 Freak Media Player contributors - 1.1.0-1
+- Linux release for version 1.1

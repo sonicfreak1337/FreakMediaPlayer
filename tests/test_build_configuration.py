@@ -22,3 +22,15 @@ def test_builds_bundle_brand_assets_and_windows_icon() -> None:
     assert (project_root / "src/freak_media_player/assets/icons/repeat_all_on.png").exists()
     assert (project_root / "src/freak_media_player/assets/icons/repeat_one_on.png").exists()
     assert (project_root / "src/freak_media_player/assets/icons/shuffle_off.png").exists()
+
+
+def test_linux_build_produces_common_distribution_packages() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    build_script = (project_root / "build_linux.sh").read_text(encoding="utf-8")
+
+    assert "pyinstaller" in build_script
+    assert "dpkg-deb" in build_script
+    assert "rpmbuild" in build_script
+    assert "tar.gz" in build_script
+    assert (project_root / "packaging/linux/freak-media-player.desktop").exists()
+    assert (project_root / "packaging/linux/install.sh").exists()

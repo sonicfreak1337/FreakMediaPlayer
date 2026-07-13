@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 Linux build
+
+- Added native Linux application data paths following the XDG Base Directory
+  convention, while retaining explicit and portable data-directory overrides.
+- Added reproducible PyInstaller packaging for x86-64 and ARM64 Linux hosts with
+  Debian, RPM and distribution-neutral tarball outputs.
+- Added console installation, desktop-menu registration, icons, audio MIME
+  associations and system-wide or per-user installation for portable archives.
+- Replaced Windows-specific runtime labels with platform-neutral audio and support
+  text without changing the 1.1 player feature set.
+
 ## 1.1.0 - 2026-07-13
 
 - Replaced the flat preset list with linked Genre and Subgenre selectors.

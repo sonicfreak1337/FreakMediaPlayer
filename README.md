@@ -30,10 +30,10 @@ Current version: `1.1.0`
 - Manual playlist ordering through drag and drop or move controls
 - Playback for common local formats supported by the bundled FFmpeg libraries
 - Streaming local decoding through PyAV/FFmpeg with bounded memory usage
-- Selectable Windows audio device and Mono, Stereo, 5.1 or 7.1 PCM output through
+- Selectable system audio device and Mono, Stereo, 5.1 or 7.1 PCM output through
   Qt AudioSink when supported by the device
 - Play, pause, stop, previous, next, seek, volume, and mute controls
-- Hook-free Qt handling for Windows play/pause, stop, previous and next media keys
+- Hook-free Qt handling for play/pause, stop, previous and next media keys
 - Non-repeating playlist shuffle with previous/next history
 - Repeat All and Repeat One playback modes
 - Automatic playback of the next playlist title
@@ -59,7 +59,7 @@ Current version: `1.1.0`
 - Versioned settings and database migrations
 - Validated `.freakbackup` export and restore for the complete local database,
   with an automatic safety backup before replacement
-- Windows executable build script
+- Windows builds plus `.deb`, `.rpm` and portable `.tar.gz` Linux packages
 
 ## Architecture
 
@@ -87,7 +87,8 @@ remains available.
 
 Use the `SKIN` dropdown in the title bar to switch immediately between Freaky,
 Fastilicious and installed user skins. The selection persists across launches.
-Custom skin folders live below `%LOCALAPPDATA%\FreakMediaPlayer\skins` and can
+Custom skin folders live below the platform data directory (`%LOCALAPPDATA%\FreakMediaPlayer\skins`
+on Windows or `~/.local/share/freak-media-player/skins` on Linux) and can
 override the complete QSS, semantic colors and any packaged image or icon while
 retaining safe fallbacks. See [`docs/SKINS.md`](docs/SKINS.md) for the manifest,
 asset convention and a ready-to-copy example. The built-in Visualizer follows
@@ -96,7 +97,7 @@ skin changes by selecting Abyssal Cataclysm or Fire of Chaos automatically.
 ## Equalizer
 
 Since version `0.5.0`, decoded PCM audio passes through a real parametric equalizer
-before it reaches the Windows output device. Each band is a stateful peaking
+before it reaches the native output device. Each band is a stateful peaking
 filter with frequency, gain and Q controls. The displayed response curve uses
 the same coefficients as the audio processor.
 
@@ -113,7 +114,7 @@ PyAV handles local decoding, SciPy applies cascaded second-order filters, and Qt
 ## Audio output and channel mapping
 
 The Settings dialog lists only the Mono, Stereo, 5.1 and 7.1 configurations that
-the selected Windows device reports as supported. Changing device or speaker mode
+the selected audio device reports as supported. Changing device or speaker mode
 restarts the stream near its previous position; an unavailable saved mode safely
 falls back to Stereo.
 
@@ -201,6 +202,51 @@ stores the received audio bytes.
 
 ## Build
 
+### Linux 1.1
+
+Build on a current x86-64 or ARM64 Linux host with Python 3.11+, the project build
+dependencies and the packaging tools available on that distribution:
+
+```bash
+python3 -m venv .venv-build
+. .venv-build/bin/activate
+python -m pip install --upgrade pip
+python -m pip install '.[build]'
+./build_linux.sh
+```
+
+The script always creates a portable `.tar.gz` below `dist/linux`. It additionally
+creates a `.deb` when `dpkg-deb` is installed and an `.rpm` when `rpmbuild` is
+installed. PyInstaller must run natively on Linux; a Windows build cannot be
+cross-compiled into a Linux executable.
+
+Install the resulting package with the normal command for the distribution:
+
+```bash
+# Debian, Ubuntu, Linux Mint, Pop!_OS
+sudo apt install ./dist/linux/freak-media-player_1.1.0_amd64.deb
+
+# Fedora, RHEL, Rocky Linux, AlmaLinux
+sudo dnf install ./dist/linux/freak-media-player-1.1.0-1.*.rpm
+
+# openSUSE
+sudo zypper install ./dist/linux/freak-media-player-1.1.0-1.*.rpm
+
+# Distribution-neutral archive (system-wide)
+tar -xzf dist/linux/FreakMediaPlayer-1.1.0-linux-x86_64.tar.gz
+cd FreakMediaPlayer-1.1.0-linux-x86_64
+./install.sh
+
+# Or install the archive only for the current user
+./install.sh --user
+```
+
+After installation, start it from the desktop application menu or with
+`freak-media-player`. Package-manager installs can be removed with
+`apt remove freak-media-player` or `dnf remove freak-media-player`.
+
+### Windows
+
 Run this on Windows to create the desktop executable:
 
 ```powershell
@@ -268,7 +314,7 @@ pytest
 
 Open Player Settings and choose `Diagnostics…` to inspect the application version,
 database schema, local data paths, active audio output and recent errors. Runtime
-logs rotate below `%LOCALAPPDATA%\FreakMediaPlayer\logs`; personal home paths are
+logs rotate below the platform data directory; personal home paths are
 masked in the on-screen error summary. `About…` lists the core runtime components
 and their license families.
 
@@ -279,10 +325,11 @@ without deleting library or playlist data.
 
 ## Local Data
 
-Runtime data is stored under the current Windows user profile:
+Runtime data is stored per user:
 
 ```text
-%LOCALAPPDATA%\FreakMediaPlayer\
+Windows: %LOCALAPPDATA%\FreakMediaPlayer\
+Linux:   ${XDG_DATA_HOME:-$HOME/.local/share}/freak-media-player/
 ```
 
 The SQLite database is created there automatically on startup.

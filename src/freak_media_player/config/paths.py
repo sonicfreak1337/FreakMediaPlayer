@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 APP_DIRECTORY_NAME = "FreakMediaPlayer"
+LINUX_APP_DIRECTORY_NAME = "freak-media-player"
 DATABASE_FILE_NAME = "freak_media_player.sqlite3"
 SKINS_DIRECTORY_NAME = "skins"
 LOGS_DIRECTORY_NAME = "logs"
@@ -39,6 +40,11 @@ class AppPathResolver:
         if getattr(sys, "frozen", False) and (executable_dir / "portable.flag").is_file():
             return executable_dir / "data"
         local_app_data = os.environ.get("LOCALAPPDATA")
-        if local_app_data:
-            return Path(local_app_data) / APP_DIRECTORY_NAME
-        return Path.home() / "AppData" / "Local" / APP_DIRECTORY_NAME
+        if sys.platform == "win32":
+            if local_app_data:
+                return Path(local_app_data) / APP_DIRECTORY_NAME
+            return Path.home() / "AppData" / "Local" / APP_DIRECTORY_NAME
+        xdg_data_home = os.environ.get("XDG_DATA_HOME")
+        if xdg_data_home:
+            return Path(xdg_data_home) / LINUX_APP_DIRECTORY_NAME
+        return Path.home() / ".local" / "share" / LINUX_APP_DIRECTORY_NAME

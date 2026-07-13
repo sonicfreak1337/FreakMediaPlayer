@@ -5,15 +5,15 @@
 - Radio Browser does not consistently provide normalized city data; country, region,
   station-name and free-text discovery remain available when city metadata is absent.
 - System proxy discovery is used for directory, playlist and logo HTTP requests.
-  FFmpeg stream proxy behavior can additionally depend on its Windows build and the
+  FFmpeg stream proxy behavior can additionally depend on its platform build and the
   proxy protocol in use.
 - AAC+ uses FFmpeg's shared AAC decoder. A final release smoke test with at least one
   real HE-AAC station remains recommended because the bundled encoder cannot create a
   self-contained HE-AAC fixture for automated tests.
-- 5.1 and 7.1 availability depends on the selected Windows device, driver and
-  Windows speaker configuration. Unsupported modes are hidden.
-- File association is an optional per-user `Open with` registration script rather
-  than a system-wide installer change.
+- 5.1 and 7.1 availability depends on the selected audio device, driver and
+  operating-system speaker configuration. Unsupported modes are hidden.
+- Windows file association remains an optional per-user `Open with` registration
+  script. Linux packages register supported audio MIME types through their desktop file.
 - A restored backup or full settings reset requires an application restart.
 - The portable build must remain writable if its local `data` directory is used.
 - Track-change notifications, tray behavior and the experimental Up Next controls

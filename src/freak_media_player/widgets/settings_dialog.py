@@ -78,9 +78,9 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         audio = QGroupBox("Audio output")
         audio_form = QFormLayout(audio)
-        self._audio_device.addItem("Follow Windows default", None)
+        self._audio_device.addItem("Follow system default", None)
         for device in audio_devices:
-            suffix = " (Windows default)" if device.is_default else ""
+            suffix = " (system default)" if device.is_default else ""
             self._audio_device.addItem(
                 f"{device.description}{suffix}", device.device_id
             )
@@ -88,7 +88,7 @@ class SettingsDialog(QDialog):
         self._audio_device.currentIndexChanged.connect(self._refresh_output_modes)
         audio_form.addRow("Speaker configuration", self._audio_mode)
         explanation = QLabel(
-            "Only configurations supported by the selected Windows device are shown."
+            "Only configurations supported by the selected audio device are shown."
         )
         explanation.setWordWrap(True)
         audio_form.addRow(explanation)

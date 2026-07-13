@@ -48,10 +48,10 @@ class DiagnosticService:
             ),
             None,
         )
-        description = device.description if device is not None else "Windows default"
+        description = device.description if device is not None else "System default"
         audio_output = f"{description} ({self._playback_service.output_mode().value})"
         home = str(Path.home())
-        errors = tuple(error.replace(home, "%USERPROFILE%") for error in recent_errors())
+        errors = tuple(error.replace(home, "~") for error in recent_errors())
         return DiagnosticSnapshot(
             app_version=__version__,
             database_version=schema_version,

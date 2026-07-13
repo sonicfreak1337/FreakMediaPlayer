@@ -19,7 +19,7 @@ class AboutDialog(QDialog):
         title = QLabel(f"<h2>Freak Media Player {__version__}</h2>")
         layout.addWidget(title)
         description = QLabel(
-            "A native, offline-first Windows music player for local audio files."
+            "A native, offline-first desktop music player for local audio files."
         )
         description.setWordWrap(True)
         layout.addWidget(description)

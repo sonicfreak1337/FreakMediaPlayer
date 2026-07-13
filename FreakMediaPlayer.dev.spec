@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all
@@ -59,7 +60,7 @@ executable = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
-    icon=str(app_assets / "app_logo.ico"),
+    icon=str(app_assets / "app_logo.ico") if sys.platform == "win32" else None,
 )
 
 collection = COLLECT(

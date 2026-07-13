@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+if [ -x "/opt/freak-media-player/FreakMediaPlayer" ]; then
+    exec /opt/freak-media-player/FreakMediaPlayer "$@"
+fi
+
+USER_APP="$HOME/.local/opt/freak-media-player/FreakMediaPlayer"
+if [ -x "$USER_APP" ]; then
+    exec "$USER_APP" "$@"
+fi
+
+echo "Freak Media Player installation not found." >&2
+exit 127

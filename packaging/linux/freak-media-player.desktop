@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Freak Media Player
+Comment=Play and organize local music and internet radio
+Exec=freak-media-player %F
+Icon=freak-media-player
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+MimeType=audio/mpeg;audio/flac;audio/ogg;audio/x-wav;audio/mp4;audio/aac;audio/x-ms-wma;audio/opus;
+StartupNotify=true
+StartupWMClass=Freak Media Player
