@@ -13,6 +13,7 @@ from freak_media_player.models.playback import (
     PlaybackState,
     PlaybackStatus,
     RepeatMode,
+    StreamBufferProfile,
 )
 from freak_media_player.player.queue import PlaybackQueue
 
@@ -33,6 +34,7 @@ class PlaybackController:
         self._state = PlaybackState()
         self._loaded_track_id: str | None = None
         self._current_is_play_next = False
+        self._current_is_transient = False
         self._continue_after_track = True
         self._audio_backend.set_finished_callback(self._handle_finished)
         self._audio_backend.set_error_callback(self._handle_backend_error)
@@ -40,8 +42,8 @@ class PlaybackController:
     @property
     def state(self) -> PlaybackState:
         backend_status = self._audio_backend.status()
-        if backend_status == PlaybackStatus.ERROR:
-            return self._snapshot(status=PlaybackStatus.ERROR)
+        if backend_status in {PlaybackStatus.ERROR, PlaybackStatus.BUFFERING}:
+            return self._snapshot(status=backend_status)
         return self._snapshot(
             status=self._state.status,
             error_message=self._state.error_message,
@@ -79,6 +81,14 @@ class PlaybackController:
         self._queue.replace([track])
         self._queue.select(0)
         self._current_is_play_next = False
+        self._current_is_transient = False
+        self._state = self._idle_state()
+        return self._start_track(track)
+
+    def play_transient(self, track: Track) -> PlaybackState:
+        """Play a source without replacing the user's persistent playlist."""
+        self._current_is_play_next = True
+        self._current_is_transient = True
         self._state = self._idle_state()
         return self._start_track(track)
 
@@ -88,6 +98,7 @@ class PlaybackController:
         if track is None:
             return self.state
         self._current_is_play_next = False
+        self._current_is_transient = False
         self._state = self._idle_state()
         return self._start_with_error_skip(track)
 
@@ -146,6 +157,7 @@ class PlaybackController:
         if track is None:
             return self.stop()
         self._current_is_play_next = is_play_next
+        self._current_is_transient = False
         return self._start_with_error_skip(track)
 
     def previous_track(self) -> PlaybackState:
@@ -155,6 +167,7 @@ class PlaybackController:
         if track is None:
             return self.state
         self._current_is_play_next = False
+        self._current_is_transient = False
         return self._start_track(track)
 
     def set_shuffle_enabled(self, enabled: bool) -> PlaybackState:
@@ -197,6 +210,7 @@ class PlaybackController:
         self._audio_backend.stop()
         self._loaded_track_id = None
         self._current_is_play_next = False
+        self._current_is_transient = False
         self._state = self._idle_state()
         return self.state
 
@@ -217,6 +231,12 @@ class PlaybackController:
 
     def duration_ms(self) -> int:
         return self._audio_backend.duration_ms()
+
+    def stream_title(self) -> str:
+        return self._audio_backend.stream_title()
+
+    def set_stream_buffer_profile(self, profile: StreamBufferProfile) -> None:
+        self._audio_backend.set_stream_buffer_profile(profile)
 
     def set_volume(self, volume: float) -> PlaybackState:
         self._audio_backend.set_volume(volume)
@@ -291,6 +311,9 @@ class PlaybackController:
         self.next_track()
 
     def _handle_backend_error(self) -> None:
+        if self._current_is_transient:
+            self._state = self._snapshot(status=PlaybackStatus.ERROR)
+            return
         LOGGER.error("Audio backend failed; continuing with the next queued track")
         self.next_track()
 

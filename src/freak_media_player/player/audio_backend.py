@@ -12,6 +12,7 @@ from freak_media_player.models.playback import (
     AudioOutputDevice,
     AudioOutputMode,
     PlaybackStatus,
+    StreamBufferProfile,
 )
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 
@@ -35,6 +36,7 @@ class NullAudioBackend:
         self._error_callback: Callable[[], None] | None = None
         self._output_device_id: str | None = None
         self._output_mode = AudioOutputMode.STEREO
+        self._stream_buffer_profile = StreamBufferProfile.NORMAL
 
     def load(self, source: AudioSource) -> None:
         self._source = source
@@ -78,6 +80,12 @@ class NullAudioBackend:
 
     def error_message(self) -> str | None:
         return None
+
+    def stream_title(self) -> str:
+        return ""
+
+    def set_stream_buffer_profile(self, profile: StreamBufferProfile) -> None:
+        self._stream_buffer_profile = profile
 
     def available_output_devices(self) -> list[AudioOutputDevice]:
         return [

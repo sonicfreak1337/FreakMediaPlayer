@@ -7,10 +7,61 @@ from freak_media_player.models.playback import PlaybackState, PlaybackStatus
 from freak_media_player.player.audio_backend import NullAudioBackend
 from freak_media_player.player.playback_controller import PlaybackController
 from freak_media_player.player.queue import PlaybackQueue
+from freak_media_player.plugins.internet_radio.models import RadioStation
+from freak_media_player.plugins.internet_radio.provider import InternetRadioProvider
 from freak_media_player.providers.registry import ProviderRegistry
 from freak_media_player.services.local_library_service import LocalLibraryService
 from freak_media_player.services.playback_service import PlaybackService
-from freak_media_player.widgets.player_bar import PlayerBar
+from freak_media_player.widgets.player_bar import PlayerBar, split_stream_title
+
+
+class MetadataBackend(NullAudioBackend):
+    def __init__(self) -> None:
+        super().__init__()
+        self.title = ""
+
+    def stream_title(self) -> str:
+        return self.title
+
+
+def test_radio_song_metadata_keeps_station_visible_in_player() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    backend = MetadataBackend()
+    provider = InternetRadioProvider()
+    station = RadioStation(
+        "radio",
+        "Freak Metal Radio",
+        "https://radio.example/live",
+        country="Germany",
+    )
+    track = provider.register_station(station)
+    service = PlaybackService(
+        PlaybackController(PlaybackQueue(), backend, ProviderRegistry([provider]))
+    )
+    player_bar = PlayerBar(service)
+    player_bar._refresh_timer.stop()
+    service.play_transient(track)
+
+    backend.title = "Dark Artist - Night Song"
+    player_bar.refresh()
+
+    assert player_bar._title_label.text() == "Night Song"
+    assert player_bar._artist_label.text() == "Dark Artist"
+    assert player_bar._album_label.text() == "Station: Freak Metal Radio"
+
+    backend.title = ""
+    player_bar.refresh()
+    assert player_bar._title_label.text() == "Freak Metal Radio"
+    assert player_bar._album_label.text() == "Germany"
+
+
+def test_stream_title_parser_accepts_common_dash_variants() -> None:
+    assert split_stream_title("Artist - Title") == ("Artist", "Title")
+    assert split_stream_title("Artist – Title") == ("Artist", "Title")
+    assert split_stream_title("Only a programme name") == (
+        "Live Radio",
+        "Only a programme name",
+    )
 
 
 def test_shuffle_button_exposes_enabled_state() -> None:

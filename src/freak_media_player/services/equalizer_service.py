@@ -8,6 +8,7 @@ from dataclasses import replace
 from freak_media_player.core.equalizer_math import response_db
 from freak_media_player.core.ports import AudioBackend
 from freak_media_player.models.equalizer import (
+    EQUALIZER_GENRES,
     EQUALIZER_PRESETS,
     EqualizerBand,
     EqualizerPreset,
@@ -19,6 +20,7 @@ from freak_media_player.models.equalizer import (
 
 CUSTOM_PRESET_ID = "custom"
 CUSTOM_PRESET_NAME = "Custom"
+CUSTOM_GENRE_NAME = "Custom"
 
 
 class EqualizerService:
@@ -33,6 +35,16 @@ class EqualizerService:
 
     def presets(self) -> tuple[EqualizerPreset, ...]:
         return EQUALIZER_PRESETS
+
+    def genres(self) -> tuple[str, ...]:
+        return EQUALIZER_GENRES
+
+    def presets_for_genre(self, genre: str) -> tuple[EqualizerPreset, ...]:
+        return tuple(preset for preset in EQUALIZER_PRESETS if preset.genre == genre)
+
+    def preset_genre(self, preset_id: str) -> str | None:
+        preset = self._presets.get(preset_id)
+        return preset.genre if preset is not None else None
 
     def current_preset(self) -> EqualizerPreset:
         return self._audio_backend.equalizer_preset()

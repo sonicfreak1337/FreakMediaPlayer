@@ -3,7 +3,7 @@
 A modular Winamp-inspired desktop music player focused on local playback through
 version 1.0, with a provider-based architecture for external sources after 1.0.
 
-Current version: `1.0.0`
+Current version: `1.1.0`
 
 ## Current Features
 
@@ -22,6 +22,10 @@ Current version: `1.0.0`
 - Position-locked, desktop-detachable modules for Library, Playlist, Equalizer,
   Player and Visualizer (use the explicit title-bar undock button)
 - Close and restore optional modules through the `Module` menu; Player stays open
+- Open the fully optional Internet Radio module only when needed; it supports
+  paginated station search, filters, favorites, history and custom HTTP(S) streams
+- Resolve bounded PLS/M3U station playlists, preserve HLS for FFmpeg, display
+  available live stream titles and retry interrupted radio connections up to three times
 - Drag and drop from the library into a chosen playlist position
 - Manual playlist ordering through drag and drop or move controls
 - Playback for common local formats supported by the bundled FFmpeg libraries
@@ -41,7 +45,7 @@ Current version: `1.0.0`
 - Sortable library columns and explicit playlist ordering
 - Remove one or more selected local tracks from the library
 - Remove playlist entries without deleting library tracks
-- Audible parametric equalizer with metal-subgenre presets and Custom mode
+- Audible parametric equalizer with a two-stage genre/subgenre catalog and Custom mode
 - DAW-style response graph with frequency, gain, Q, enable, and preamp controls
 - Dockable audio-reactive visualizer with fifteen animated presets
 - Live-switchable skin system with the default Freaky design and the black-metal,
@@ -96,6 +100,13 @@ before it reaches the Windows output device. Each band is a stateful peaking
 filter with frequency, gain and Q controls. The displayed response curve uses
 the same coefficients as the audio processor.
 
+Preset selection is split into **Genre** and **Subgenre**. The bundled catalog
+covers 12 broad groups and more than 100 style-specific starting curves, from Pop,
+Rock, Metal and Electronic through Jazz, Classical, Country, Reggae, Latin and
+soundtracks. Manual edits move the selection to Custom without losing the curve.
+All musical presets use broad bands and automatic preamp headroom; their curves
+are tonal starting points rather than corrective rules for every recording.
+
 PyAV handles local decoding, SciPy applies cascaded second-order filters, and Qt
 `QAudioSink` writes the final configured PCM stream to the native audio device.
 
@@ -126,6 +137,67 @@ mandalas, perspective grids, particle orbits and animated solar corona effects.
 Rendering stays inactive without playback, targets 60 FPS while the application
 is focused and automatically reduces its refresh rate in the background.
 The module can be toggled through `Module > Visualizer` or `Ctrl+Shift+V`.
+
+## Optional Internet Radio
+
+Open `Module > Internet Radio…` or press `Ctrl+Shift+R`. The plugin is lazy: its
+separate window, private database and network search are not opened until this
+command is used. The window never joins or changes the player's dock layout.
+Radio playback is transient and leaves the active local playlist unchanged.
+The main Player controls play/pause, stop, volume, mute and audio output; decoded
+radio PCM also uses the selected channel mode, equalizer and Visualizer.
+
+Station discovery queries the public Radio Browser directory over HTTPS. Playing
+a station connects directly to the station's HTTP(S) stream. The plugin requests
+no account or device location and sends no telemetry. Radio favorites, the latest
+200 history entries and manually entered stream URLs are stored locally in
+`data/plugins/internet-radio.sqlite3`; no audio is recorded. Closing the window keeps
+the launcher available in the Module menu, while never opening it leaves local-player
+data and workflows unchanged.
+
+PLS and ordinary M3U links are resolved with bounded size and nesting limits;
+HLS/M3U8 remains in FFmpeg's streaming pipeline. When supplied by a station, live
+stream titles replace the static station title. Failed radio connections are
+classified (timeout, DNS, TLS, playlist, codec and common HTTP failures) and use
+three cancellable retries with increasing delays. Stop or switching away from
+radio cancels pending retries immediately.
+
+The automated local-server matrix decodes real generated MP3, AAC, Ogg Vorbis,
+Opus and HLS streams over HTTP in addition to testing ICY metadata changes,
+playlist redirects, bounded probing, stalled-stream cleanup and logo delivery;
+public stations remain excluded from automated tests. AAC+ uses the same bundled
+FFmpeg AAC decoder and remains part of the public-network release smoke test.
+
+When a station publishes ICY/stream song information, the main Player shows the
+current title and artist while keeping `Station: <name>` visible underneath. If
+metadata stops or is unavailable, it falls back to the station name and country.
+
+Small, Normal and Stable buffer profiles are persisted by the plugin and apply
+from the next connection. When Radio Browser supplies a distinct fallback URL,
+retries advance to it before reusing the previous endpoint. Favorites and custom
+stations can be transferred as a lossless JSON collection or a standard UTF-8
+M3U8 playlist. The normal `.freakbackup` package includes and validates the
+optional radio database whenever it exists.
+
+The separate radio window restores its last search, country, region, language,
+tag, codec, minimum/maximum bitrate, reachability and sorting filters. Selecting
+a result shows its complete available station details and provides separate copy
+actions for name, homepage and stream URL. Station logos use an asynchronous local
+cache limited to HTTPS/HTTP image responses, 2 MiB per image, seven days and
+24 MiB total; the cache can be cleared directly from the radio window.
+Listening-history writes and all station-logo network requests can be disabled
+independently in the radio window; existing history remains explicitly clearable.
+The complete plugin can be disabled in Player Settings for the next start; when
+disabled it registers no provider, menu action, window, database or network work.
+
+Country, region and language fields accept up to four comma-separated alternatives;
+tag values are combined as required tags. Batched searches are capped at sixteen
+directory requests, deduplicate stable station IDs and apply global sorting and
+pagination afterward. The result status includes per-country counts for the loaded
+page, while Random requests a fresh result from the active server-side filter set.
+History entries can be removed individually. Custom streams can be added, edited,
+deleted and tested asynchronously with a bounded 1 KiB connection probe that never
+stores the received audio bytes.
 
 ## Build
 
@@ -189,6 +261,7 @@ pytest
 - `Ctrl+F`: Show the library and focus search
 - `Ctrl+1`, `Ctrl+2`, `Ctrl+3`: Toggle Library, Playlist and Equalizer
 - `Ctrl+Shift+V`: Toggle Visualizer
+- `Ctrl+Shift+R`: Open Internet Radio
 - `Delete`: Remove selected active-playlist rows
 
 ## Diagnostics and support
@@ -220,6 +293,7 @@ See `CHANGELOG.md`.
 
 ## Roadmap
 
-The release plan through the stable local-player milestone 1.0 is documented in
-[`ROADMAP.md`](ROADMAP.md). External audio sources are explicitly scheduled only
-after version 1.0.
+The completed release plan through the stable local-player milestone 1.0 is
+documented in [`ROADMAP.md`](ROADMAP.md). Development after 1.0 starts with the
+directly integrated internet-radio plugin described in
+[`docs/INTERNET_RADIO_ROADMAP.md`](docs/INTERNET_RADIO_ROADMAP.md).

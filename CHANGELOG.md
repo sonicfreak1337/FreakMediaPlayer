@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.1.0 - 2026-07-13
+
+- Replaced the flat preset list with linked Genre and Subgenre selectors.
+- Expanded the equalizer to more than 100 researched, headroom-safe tonal presets
+  across 12 common genre families while retaining existing preset identifiers.
+- Kept manual band and preamp edits in a dedicated Custom group and added model,
+  grouping, restoration and UI-selection test coverage.
+
+- Added the fully optional, independently windowed Internet Radio plugin backed by
+  the replaceable Radio Browser station-directory adapter.
+- Added transient HTTP(S) radio playback through the central output, channel mixer,
+  equalizer and Visualizer pipeline without replacing the local playlist.
+- Added paginated combined search, bounded multi-value filters, sorting, popular,
+  new/updated and random discovery, offline local views and persistent filter state.
+- Added separate radio favorites, bounded/optional listening history, custom stream
+  editing/testing, JSON/M3U8 transfer and validated `.freakbackup` integration.
+- Added PLS/M3U resolution, HLS, ICY song metadata, fallback endpoints, three buffer
+  profiles, bounded reconnects, diagnostics and size-/age-limited logo caching.
+- Added explicit next-start plugin enable/disable preference and clean lifecycle
+  teardown that stops only active radio playback and leaves local data untouched.
+- Added local-server integration coverage for MP3, AAC, Ogg Vorbis, Opus, HLS,
+  ICY metadata changes, redirects, stalled streams and decoder thread cleanup.
+
 ## 1.0.0 - 2026-07-13
 
 - Locked every module against drag-and-drop repositioning while retaining explicit

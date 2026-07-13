@@ -24,6 +24,7 @@ class PlayerPreferences:
     visualizer_quality: str = "balanced"
     audio_device_id: str | None = None
     audio_output_mode: str = "stereo"
+    internet_radio_enabled: bool = True
 
 
 class SettingsMigrationError(RuntimeError):

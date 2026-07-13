@@ -22,4 +22,10 @@ class DecodeFailed:
     message: str
 
 
-PipelineMessage = PcmChunk | DecodeFinished | DecodeFailed
+@dataclass(frozen=True)
+class StreamMetadataChanged:
+    generation: int
+    title: str
+
+
+PipelineMessage = PcmChunk | DecodeFinished | DecodeFailed | StreamMetadataChanged

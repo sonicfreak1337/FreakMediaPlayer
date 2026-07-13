@@ -18,3 +18,11 @@ The packaged dependency directories retain license files supplied by their wheel
 distributions. This notice does not replace those license texts. User-created
 skins and user-owned audio files are not part of the application distribution.
 
+## Optional network services
+
+The Internet Radio plugin can query the public Radio Browser service
+(`https://www.radio-browser.info/`) for station metadata and then connects directly
+to the stream and logo URLs selected by the user. Radio Browser, station metadata,
+logos and audio streams are not bundled with Freak Media Player. Their availability,
+content and individual terms remain the responsibility of their respective service
+and station operators.

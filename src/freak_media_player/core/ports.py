@@ -11,6 +11,7 @@ from freak_media_player.models.playback import (
     AudioOutputDevice,
     AudioOutputMode,
     PlaybackStatus,
+    StreamBufferProfile,
 )
 from freak_media_player.models.playlist import NamedPlaylist
 
@@ -53,6 +54,12 @@ class AudioBackend(Protocol):
         ...
 
     def error_message(self) -> str | None:
+        ...
+
+    def stream_title(self) -> str:
+        ...
+
+    def set_stream_buffer_profile(self, profile: StreamBufferProfile) -> None:
         ...
 
     def available_output_devices(self) -> list[AudioOutputDevice]:

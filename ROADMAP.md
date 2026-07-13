@@ -60,7 +60,8 @@ Metadaten, Nutzungsbedingungen und optionale Abhängigkeiten behandelt werden.
 
 Mögliche spätere Schritte, noch ohne feste Reihenfolge:
 
-- direkte Stream-URLs und Webradio
+- direkte Stream-URLs und Webradio; die konkrete Planung steht in
+  [`docs/INTERNET_RADIO_ROADMAP.md`](docs/INTERNET_RADIO_ROADMAP.md)
 - externe Musikkataloge und Musikdienste
 - YouTube Music oder vergleichbare Anbieter, soweit technisch und rechtlich
   tragfähig

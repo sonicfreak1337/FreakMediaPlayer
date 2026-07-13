@@ -1,6 +1,6 @@
 # Release Checklist
 
-Final 1.0.0 Windows artifact smoke test: **passed on 2026-07-13**. The executable
+Final 1.1.0 Windows artifact smoke test: **passed on 2026-07-13**. The executable
 hash is recorded in `SHA256SUMS.txt`.
 
 ## Automated gate
@@ -24,6 +24,22 @@ hash is recorded in `SHA256SUMS.txt`.
 9. Export backup, mutate data, restore and restart; confirm recovery and safety copy.
 10. Open Diagnostics/log folder and verify About/license information.
 11. Test command-line audio opening, portable mode and file-association removal.
+
+## Internet Radio plugin 1.0 gate
+
+Automated coverage uses only local servers and generated media. Before distributing
+a Windows build, perform this short public-network smoke test:
+
+1. Enable and disable Internet Radio in Settings and restart after each change.
+2. Open the separate radio window and confirm the player dock layout never changes.
+3. Play one MP3, AAC/AAC+, Ogg/Opus and HLS station where currently available.
+4. Confirm ICY song/artist plus the permanent station name in the main Player.
+5. Switch stations repeatedly; test Pause, Stop, mute, output device, EQ and Visualizer.
+6. Disconnect/reconnect the network and confirm bounded retries and offline local views.
+7. Exercise favorites, individual/complete history deletion, own URL test/edit,
+   JSON/M3U8 transfer, logo-cache clearing and `.freakbackup` restore.
+8. Leave a stable station playing through standby/wakeup and a multi-hour session;
+   confirm no stuck decoder thread or permanently blocked playback state.
 
 ## Upgrade and removal
 

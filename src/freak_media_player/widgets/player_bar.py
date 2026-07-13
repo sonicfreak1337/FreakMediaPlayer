@@ -31,6 +31,16 @@ from freak_media_player.widgets.seek_slider import SeekSlider
 
 POSITION_REFRESH_MS = 500
 VOLUME_SCALE = 100
+RADIO_PROVIDER_ID = "internet-radio"
+
+
+def split_stream_title(value: str) -> tuple[str, str]:
+    """Return artist/title while preserving stations that publish only one field."""
+    for separator in (" - ", " – ", " — "):
+        artist, found, title = value.partition(separator)
+        if found and artist.strip() and title.strip():
+            return artist.strip(), title.strip()
+    return "Live Radio", value.strip()
 
 
 class MiniSpectrum(QWidget):
@@ -107,6 +117,7 @@ class PlayerBar(QWidget):
         self._last_volume_percent = -1
         self._last_position_seconds = -1
         self._last_duration_seconds = -1
+        self._last_live_state: bool | None = None
         self._mini_spectrum = MiniSpectrum()
         self._refresh_timer = QTimer(self)
         self.setObjectName("playerPanel")
@@ -366,16 +377,41 @@ class PlayerBar(QWidget):
             self._cover_track_id = track_id
             self._track_display_initialized = True
 
+        stream_title = self._playback_service.stream_title()
+        is_radio = (
+            track is not None
+            and track.provider_identity.provider_id == RADIO_PROVIDER_ID
+        )
+        if is_radio and track is not None:
+            if stream_title:
+                artist, title = split_stream_title(stream_title)
+                self._title_label.setText(title)
+                self._artist_label.setText(artist)
+                self._album_label.setText(f"Station: {track.title}")
+            else:
+                self._title_label.setText(track.title)
+                self._artist_label.setText("Live Radio")
+                country = track.album.title if track.album is not None else "Internet Radio"
+                self._album_label.setText(country)
+
         position_ms = self._playback_service.position_ms()
         duration_ms = self._playback_service.duration_ms()
         position_seconds = max(0, position_ms // 1000)
         duration_seconds = max(0, duration_ms // 1000)
+        is_live = track is not None and duration_ms <= 0
         if position_seconds != self._last_position_seconds:
             self._position_label.setText(self._format_time(position_ms))
             self._last_position_seconds = position_seconds
-        if duration_seconds != self._last_duration_seconds:
-            self._duration_label.setText(self._format_time(duration_ms))
+        if (
+            duration_seconds != self._last_duration_seconds
+            or is_live != self._last_live_state
+        ):
+            self._duration_label.setText(
+                "LIVE" if is_live else self._format_time(duration_ms)
+            )
             self._last_duration_seconds = duration_seconds
+            self._last_live_state = is_live
+        self._seek_slider.setEnabled(duration_ms > 0)
         if not self._seek_slider.isSliderDown():
             maximum = max(0, duration_ms)
             value = min(position_ms, maximum)
@@ -512,7 +548,7 @@ class PlayerBar(QWidget):
     def _update_play_pause_button(self, status: PlaybackStatus) -> None:
         if status == self._last_status:
             return
-        is_playing = status == PlaybackStatus.PLAYING
+        is_playing = status in {PlaybackStatus.PLAYING, PlaybackStatus.BUFFERING}
         self._play_pause_button.setText("Ⅱ" if is_playing else "▶")
         if is_playing:
             self._set_icon(self._play_pause_button, "pause_icon.png", 31)

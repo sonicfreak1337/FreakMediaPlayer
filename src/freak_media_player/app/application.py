@@ -10,8 +10,9 @@ from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
 from freak_media_player.app.bootstrap import AppContext, build_app_context
 from freak_media_player.config.paths import AppPathResolver
-from freak_media_player.config.settings import AppSettings
+from freak_media_player.config.settings import AppSettings, PlayerPreferences
 from freak_media_player.plugins.base import PluginContext
+from freak_media_player.plugins.internet_radio import InternetRadioPlugin
 from freak_media_player.plugins.manager import PluginManager
 from freak_media_player.plugins.visualizer import VisualizerPlugin
 from freak_media_player.services.settings_service import SettingsService
@@ -53,9 +54,13 @@ def run_application() -> int:
             main_window=window,
             audio_samples=context.audio_samples,
             visualizer_quality=context.settings_service.load_player_preferences().visualizer_quality,
+            provider_registry=context.provider_registry,
+            playback_service=context.playback_service,
+            settings_service=context.settings_service,
+            plugin_data_dir=context.app_paths.data_dir / "plugins",
         )
     )
-    plugin_manager.register(VisualizerPlugin())
+    _register_plugins(plugin_manager, context.settings_service.load_player_preferences())
     plugin_manager.activate_all()
     default_layout = window.capture_layout()
     window.layout_reset_requested.connect(
@@ -76,17 +81,22 @@ def run_application() -> int:
     if command_line_track_id is not None:
         tracks = context.playlist_service.list_tracks()
         start_index = next(
-            (
-                index
-                for index, track in enumerate(tracks)
-                if track.id == command_line_track_id
-            ),
+            (index for index, track in enumerate(tracks) if track.id == command_line_track_id),
             None,
         )
         if start_index is not None:
             context.playback_service.play_playlist(tracks, start_index)
 
     return qt_app.exec()
+
+
+def _register_plugins(
+    plugin_manager: PluginManager,
+    preferences: PlayerPreferences,
+) -> None:
+    plugin_manager.register(VisualizerPlugin())
+    if preferences.internet_radio_enabled:
+        plugin_manager.register(InternetRadioPlugin())
 
 
 def _run_first_start(context: AppContext) -> None:
@@ -118,16 +128,13 @@ def _run_first_start(context: AppContext) -> None:
     settings.complete_first_start()
 
 
-def _import_command_line_files(
-    context: AppContext, arguments: list[str]
-) -> str | None:
+def _import_command_line_files(context: AppContext, arguments: list[str]) -> str | None:
     paths = [Path(argument) for argument in arguments]
     supported = [
         path
         for path in paths
         if path.is_file()
-        and path.suffix.casefold()
-        in context.local_library_service.supported_extensions()
+        and path.suffix.casefold() in context.local_library_service.supported_extensions()
     ]
     if not supported:
         return None

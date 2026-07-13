@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 
 from freak_media_player.database.repositories import SQLiteSettingsRepository
+from freak_media_player.plugins.internet_radio.models import RadioStation
+from freak_media_player.plugins.internet_radio.storage import RadioStorage
 from freak_media_player.services.backup_service import BackupService
 from tests.test_database import make_connection
 
@@ -55,3 +57,27 @@ def test_restore_rejects_invalid_package_without_replacing_database(
         BackupService(connection, tmp_path / "data").restore_backup(invalid)
 
     assert settings.get("example") == "preserved"
+
+
+def test_backup_round_trip_includes_optional_radio_database(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    radio_path = data_dir / "plugins" / "internet-radio.sqlite3"
+    favorite = RadioStation(
+        "radio-id", "Backup Radio", "https://radio.example/live"
+    )
+    radio = RadioStorage(radio_path)
+    radio.set_favorite(favorite, True)
+    radio.close()
+    service = BackupService(make_connection(), data_dir)
+
+    package = service.export_backup(tmp_path / "with-radio")
+    radio = RadioStorage(radio_path)
+    radio.set_favorite(favorite, False)
+    radio.close()
+    service.restore_backup(package)
+
+    restored = RadioStorage(radio_path)
+    assert restored.favorites() == [favorite]
+    restored.close()
+    with zipfile.ZipFile(package) as archive:
+        assert "plugins/internet-radio.sqlite3" in archive.namelist()

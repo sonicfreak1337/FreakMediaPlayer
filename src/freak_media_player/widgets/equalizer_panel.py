@@ -32,6 +32,7 @@ from freak_media_player.models.equalizer import (
     EqualizerPreset,
 )
 from freak_media_player.services.equalizer_service import (
+    CUSTOM_GENRE_NAME,
     CUSTOM_PRESET_ID,
     EqualizerService,
 )
@@ -51,6 +52,7 @@ class EqualizerPanel(QWidget):
         super().__init__()
         self._equalizer_service = equalizer_service
         self._show_title = show_title
+        self._genre_combo = QComboBox()
         self._preset_combo = QComboBox()
         self._graph = EqualizerResponseGraph()
         self._band_group = QButtonGroup(self)
@@ -80,10 +82,19 @@ class EqualizerPanel(QWidget):
         header = QHBoxLayout()
         preamp_label = QLabel("PREAMP")
         preamp_label.setObjectName("compactLabel")
-        presets_label = QLabel("PRESETS")
+        genre_label = QLabel("GENRE")
+        genre_label.setObjectName("compactLabel")
+        presets_label = QLabel("SUBGENRE")
         presets_label.setObjectName("compactLabel")
         self._header_controls.extend(
-            [preamp_label, self._preamp, presets_label, self._preset_combo]
+            [
+                preamp_label,
+                self._preamp,
+                genre_label,
+                self._genre_combo,
+                presets_label,
+                self._preset_combo,
+            ]
         )
         if self._show_title:
             title = QLabel("Equalizer")
@@ -133,6 +144,9 @@ class EqualizerPanel(QWidget):
         self._preamp.setSingleStep(0.5)
         self._preamp.setSuffix(" dB")
 
+        self._genre_combo.setObjectName("equalizerGenreSelector")
+        self._preset_combo.setObjectName("equalizerSubgenreSelector")
+        self._genre_combo.currentIndexChanged.connect(self._select_current_genre)
         self._preset_combo.currentIndexChanged.connect(self._select_current_preset)
         self._band_group.idClicked.connect(self._select_band)
         self._enabled.toggled.connect(self._update_selected_band)
@@ -146,15 +160,27 @@ class EqualizerPanel(QWidget):
     def _load_presets(self) -> None:
         # Adding the first combo-box item emits currentIndexChanged. During startup
         # that would select and persist Flat before the restored preset is applied.
+        self._genre_combo.blockSignals(True)
         self._preset_combo.blockSignals(True)
         try:
-            for preset in self._equalizer_service.presets():
-                self._preset_combo.addItem(preset.name, preset.preset_id)
-            self._preset_combo.addItem("Custom", CUSTOM_PRESET_ID)
+            for genre in self._equalizer_service.genres():
+                self._genre_combo.addItem(genre, genre)
+            self._genre_combo.addItem(CUSTOM_GENRE_NAME, CUSTOM_GENRE_NAME)
         finally:
+            self._genre_combo.blockSignals(False)
             self._preset_combo.blockSignals(False)
         self._band_buttons[0].setChecked(True)
         self._apply_preset(self._equalizer_service.current_preset())
+
+    def _select_current_genre(self, _index: int) -> None:
+        genre = self._genre_combo.currentData()
+        if not isinstance(genre, str):
+            return
+        self._populate_subgenres(genre)
+        preset_id = self._preset_combo.currentData()
+        if isinstance(preset_id, str) and preset_id != CUSTOM_PRESET_ID:
+            self._apply_preset(self._equalizer_service.select_preset(preset_id))
+            self.status_message.emit("Equalizer preset saved.")
 
     def _select_current_preset(self, _index: int) -> None:
         preset_id = self._preset_combo.currentData()
@@ -229,10 +255,32 @@ class EqualizerPanel(QWidget):
         self._updating_controls = previous_state
 
     def _sync_combo(self, preset: EqualizerPreset) -> None:
+        genre = self._equalizer_service.preset_genre(preset.preset_id)
+        if genre is None:
+            genre = CUSTOM_GENRE_NAME
+        genre_index = self._genre_combo.findData(genre)
+        if genre_index >= 0 and genre_index != self._genre_combo.currentIndex():
+            self._genre_combo.blockSignals(True)
+            self._genre_combo.setCurrentIndex(genre_index)
+            self._genre_combo.blockSignals(False)
+        if self._preset_combo.findData(preset.preset_id) < 0:
+            self._populate_subgenres(genre)
         index = self._preset_combo.findData(preset.preset_id)
         if index >= 0 and index != self._preset_combo.currentIndex():
             self._preset_combo.blockSignals(True)
             self._preset_combo.setCurrentIndex(index)
+            self._preset_combo.blockSignals(False)
+
+    def _populate_subgenres(self, genre: str) -> None:
+        self._preset_combo.blockSignals(True)
+        try:
+            self._preset_combo.clear()
+            if genre == CUSTOM_GENRE_NAME:
+                self._preset_combo.addItem("Custom", CUSTOM_PRESET_ID)
+            else:
+                for preset in self._equalizer_service.presets_for_genre(genre):
+                    self._preset_combo.addItem(preset.name, preset.preset_id)
+        finally:
             self._preset_combo.blockSignals(False)
 
     def _make_response_frequencies(self) -> tuple[float, ...]:

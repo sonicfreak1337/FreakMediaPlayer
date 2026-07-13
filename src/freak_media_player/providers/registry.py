@@ -21,6 +21,9 @@ class ProviderRegistry:
     def register(self, provider: MediaProvider) -> None:
         self._providers[provider.provider_id] = provider
 
+    def unregister(self, provider_id: str) -> None:
+        self._providers.pop(provider_id, None)
+
     def get(self, provider_id: str) -> MediaProvider | None:
         return self._providers.get(provider_id)
 

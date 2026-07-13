@@ -9,9 +9,7 @@ from freak_media_player.widgets.equalizer_panel import EqualizerPanel
 def test_panel_initialization_preserves_restored_equalizer_preset() -> None:
     QApplication.instance() or QApplication(["", "-platform", "offscreen"])
     backend = NullAudioBackend()
-    restored = next(
-        preset for preset in EQUALIZER_PRESETS if preset.preset_id == "metalcore"
-    )
+    restored = next(preset for preset in EQUALIZER_PRESETS if preset.preset_id == "metalcore")
     backend.set_equalizer_preset(restored)
     persisted_changes = []
     service = EqualizerService(
@@ -22,8 +20,36 @@ def test_panel_initialization_preserves_restored_equalizer_preset() -> None:
     panel = EqualizerPanel(equalizer_service=service)
 
     assert service.current_preset() == restored
+    assert panel._genre_combo.currentData() == "Metal"
     assert panel._preset_combo.currentData() == "metalcore"
     assert persisted_changes == []
+
+
+def test_genre_selection_filters_subgenres_and_applies_selection() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = EqualizerService(audio_backend=NullAudioBackend())
+    panel = EqualizerPanel(equalizer_service=service)
+
+    panel._genre_combo.setCurrentIndex(panel._genre_combo.findData("Electronic"))
+    panel._preset_combo.setCurrentIndex(panel._preset_combo.findData("techno"))
+
+    assert service.current_preset().preset_id == "techno"
+    assert panel._preset_combo.count() >= 10
+    assert all(
+        service.preset_genre(str(panel._preset_combo.itemData(index))) == "Electronic"
+        for index in range(panel._preset_combo.count())
+    )
+
+
+def test_manual_edit_moves_selection_to_custom_group() -> None:
+    QApplication.instance() or QApplication(["", "-platform", "offscreen"])
+    service = EqualizerService(audio_backend=NullAudioBackend())
+    panel = EqualizerPanel(equalizer_service=service)
+
+    panel._gain.setValue(2.5)
+
+    assert panel._genre_combo.currentData() == "Custom"
+    assert panel._preset_combo.currentData() == "custom"
 
 
 def test_equalizer_change_emits_saved_status() -> None:

@@ -56,6 +56,9 @@ class SettingsDialog(QDialog):
         self._continue_after_track = QCheckBox("Continue with the next playlist track")
         self._restore_layout = QCheckBox("Restore window and module layout")
         self._visualizer_quality = QComboBox()
+        self._internet_radio_enabled = QCheckBox(
+            "Enable optional Internet Radio module on next start"
+        )
         self._build_layout(audio_devices)
         self._load(preferences)
 
@@ -68,6 +71,7 @@ class SettingsDialog(QDialog):
             visualizer_quality=str(self._visualizer_quality.currentData()),
             audio_device_id=device_id if isinstance(device_id, str) else None,
             audio_output_mode=str(self._audio_mode.currentData()),
+            internet_radio_enabled=self._internet_radio_enabled.isChecked(),
         )
 
     def _build_layout(self, audio_devices: list[AudioOutputDevice]) -> None:
@@ -103,6 +107,7 @@ class SettingsDialog(QDialog):
         self._visualizer_quality.addItem("Balanced", "balanced")
         self._visualizer_quality.addItem("Smooth (up to 60 FPS)", "smooth")
         interface_form.addRow("Visualizer performance", self._visualizer_quality)
+        interface_form.addRow(self._internet_radio_enabled)
         layout.addWidget(interface)
 
         if any(
@@ -161,6 +166,7 @@ class SettingsDialog(QDialog):
         self._restore_session.setChecked(preferences.restore_session)
         self._continue_after_track.setChecked(preferences.continue_after_track)
         self._restore_layout.setChecked(preferences.restore_layout)
+        self._internet_radio_enabled.setChecked(preferences.internet_radio_enabled)
         quality_index = self._visualizer_quality.findData(
             preferences.visualizer_quality
         )

@@ -251,6 +251,9 @@ class SettingsService:
                     in AUDIO_OUTPUT_MODES
                     else "stereo"
                 ),
+                internet_radio_enabled=self._preference_bool(
+                    data, "internet_radio_enabled", True
+                ),
             )
         except (TypeError, json.JSONDecodeError):
             return PlayerPreferences()

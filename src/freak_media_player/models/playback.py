@@ -45,6 +45,12 @@ class PlaybackStatus(StrEnum):
     ERROR = "error"
 
 
+class StreamBufferProfile(StrEnum):
+    SMALL = "small"
+    NORMAL = "normal"
+    STABLE = "stable"
+
+
 class RepeatMode(StrEnum):
     OFF = "off"
     ONE = "one"

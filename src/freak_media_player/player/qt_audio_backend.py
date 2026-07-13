@@ -5,7 +5,13 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import QUrl
-from PySide6.QtMultimedia import QAudioDevice, QAudioOutput, QMediaDevices, QMediaPlayer
+from PySide6.QtMultimedia import (
+    QAudioDevice,
+    QAudioOutput,
+    QMediaDevices,
+    QMediaMetaData,
+    QMediaPlayer,
+)
 
 from freak_media_player.models.equalizer import EQUALIZER_PRESETS, EqualizerPreset
 from freak_media_player.models.media import AudioSource
@@ -13,6 +19,7 @@ from freak_media_player.models.playback import (
     AudioOutputDevice,
     AudioOutputMode,
     PlaybackStatus,
+    StreamBufferProfile,
 )
 
 MIN_VOLUME = 0.0
@@ -80,6 +87,16 @@ class QtAudioBackend:
         if self._player.error() == QMediaPlayer.Error.NoError:
             return None
         return self._player.errorString() or "The audio file could not be played."
+
+    def stream_title(self) -> str:
+        metadata = self._player.metaData()
+        title = metadata.stringValue(QMediaMetaData.Key.Title).strip()
+        artist = metadata.stringValue(QMediaMetaData.Key.ContributingArtist).strip()
+        return f"{artist} - {title}" if artist and title else title
+
+    def set_stream_buffer_profile(self, profile: StreamBufferProfile) -> None:
+        # Qt's fallback backend controls its own network buffer.
+        pass
 
     def available_output_devices(self) -> list[AudioOutputDevice]:
         default_id = self._device_id(QMediaDevices.defaultAudioOutput())

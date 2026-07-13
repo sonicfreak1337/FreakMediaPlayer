@@ -11,6 +11,7 @@ from freak_media_player.models.playback import (
     AudioOutputMode,
     PlaybackState,
     RepeatMode,
+    StreamBufferProfile,
 )
 from freak_media_player.player.playback_controller import PlaybackController
 
@@ -38,6 +39,10 @@ class PlaybackService:
 
     def enqueue_and_play(self, track: Track) -> PlaybackState:
         return self._checkpoint_after(self._controller.play_now(track))
+
+    def play_transient(self, track: Track) -> PlaybackState:
+        """Play plugin media while preserving the local playlist."""
+        return self._checkpoint_after(self._controller.play_transient(track))
 
     def play_playlist(self, tracks: list[Track], start_index: int) -> PlaybackState:
         return self._checkpoint_after(self._controller.play_playlist(tracks, start_index))
@@ -97,6 +102,12 @@ class PlaybackService:
 
     def duration_ms(self) -> int:
         return self._controller.duration_ms()
+
+    def stream_title(self) -> str:
+        return self._controller.stream_title()
+
+    def set_stream_buffer_profile(self, profile: StreamBufferProfile) -> None:
+        self._controller.set_stream_buffer_profile(profile)
 
     def set_volume(self, volume: float) -> PlaybackState:
         state = self._controller.set_volume(volume)

@@ -21,6 +21,7 @@ from freak_media_player.models.playback import (
     AudioOutputDevice,
     AudioOutputMode,
     PlaybackStatus,
+    StreamBufferProfile,
 )
 from freak_media_player.player.audio_samples import AudioSampleBuffer
 from freak_media_player.player.decode_worker import AudioDecodeWorker
@@ -32,8 +33,13 @@ from freak_media_player.player.pipeline_messages import (
     DecodeFinished,
     PcmChunk,
     PipelineMessage,
+    StreamMetadataChanged,
 )
-from freak_media_player.player.streaming_decoder import OUTPUT_SAMPLE_RATE, PyAVStreamingDecoder
+from freak_media_player.player.streaming_decoder import (
+    OUTPUT_SAMPLE_RATE,
+    DecoderSource,
+    PyAVStreamingDecoder,
+)
 
 MIN_VOLUME = 0.0
 MAX_VOLUME = 1.0
@@ -55,16 +61,14 @@ class DawAudioBackend(QObject):
         self._sink_factory = sink_factory or self._default_sink_factory
         self._audio_samples = audio_samples
         self._equalizer = ParametricEqualizerProcessor(EQUALIZER_PRESETS[0])
-        self._messages: queue.Queue[PipelineMessage] = queue.Queue(
-            maxsize=DECODE_QUEUE_CAPACITY
-        )
+        self._messages: queue.Queue[PipelineMessage] = queue.Queue(maxsize=DECODE_QUEUE_CAPACITY)
         self._decode_worker = AudioDecodeWorker(
             decoder=self._decoder,
             equalizer=self._equalizer,
             messages=self._messages,
         )
         self._generation = 0
-        self._source_path: Path | None = None
+        self._source: DecoderSource | None = None
         self._sink: QAudioSink | None = None
         self._output_device: QIODevice | None = None
         self._pending_audio = b""
@@ -73,6 +77,7 @@ class DawAudioBackend(QObject):
         self._error_callback: Callable[[], None] | None = None
         self._status = PlaybackStatus.STOPPED
         self._error_message: str | None = None
+        self._stream_title = ""
         self._output_device_id: str | None = None
         self._output_mode = AudioOutputMode.STEREO
         self._duration_ms = 0
@@ -84,33 +89,33 @@ class DawAudioBackend(QObject):
 
     def load(self, source: AudioSource) -> None:
         self._error_message = None
-        path = self._path_from_source(source)
-        stream_info = self._decoder.probe(path)
-        self._source_path = path
-        self._duration_ms = stream_info.duration_ms
+        self._stream_title = ""
+        resolved, is_live = self._decoder_source(source)
+        self._source = resolved
+        self._duration_ms = 0 if is_live else self._decoder.probe(resolved).duration_ms
         self._status = PlaybackStatus.PAUSED
         self._set_sample_playback_active(False)
         self._prepare_pipeline(0)
 
     def play(self) -> None:
-        if self._source_path is None:
+        if self._source is None:
             return
         if self._sink is None:
             self._restart_pipeline(self._base_position_ms, start_output=True)
         elif self._output_device is None and self._sink is not None:
             self._output_device = self._sink.start()
-        elif (
-            self._sink is not None
-            and self._sink.state() == QtAudio.State.SuspendedState
-        ):
+        elif self._sink is not None and self._sink.state() == QtAudio.State.SuspendedState:
             self._sink.resume()
-        self._status = PlaybackStatus.PLAYING
+        self._status = PlaybackStatus.BUFFERING
         self._set_sample_playback_active(True)
         self._pump_timer.start()
         self._pump_output()
 
     def pause(self) -> None:
-        if self._sink is not None and self._status == PlaybackStatus.PLAYING:
+        if self._sink is not None and self._status in {
+            PlaybackStatus.PLAYING,
+            PlaybackStatus.BUFFERING,
+        }:
             self._sink.suspend()
             self._status = PlaybackStatus.PAUSED
             self._set_sample_playback_active(False)
@@ -118,6 +123,7 @@ class DawAudioBackend(QObject):
 
     def stop(self) -> None:
         self._status = PlaybackStatus.STOPPED
+        self._stream_title = ""
         self._base_position_ms = 0
         self._set_sample_playback_active(False)
         self._pump_timer.stop()
@@ -128,14 +134,17 @@ class DawAudioBackend(QObject):
             self._audio_samples.clear()
 
     def seek(self, position_ms: int) -> None:
-        if self._source_path is None:
+        if self._source is None or self._duration_ms <= 0:
             return
         target_ms = min(self._duration_ms, max(0, position_ms))
-        was_playing = self._status == PlaybackStatus.PLAYING
+        was_playing = self._status in {
+            PlaybackStatus.PLAYING,
+            PlaybackStatus.BUFFERING,
+        }
         self._status = PlaybackStatus.PAUSED
         if was_playing:
             self._restart_pipeline(target_ms, start_output=True)
-            self._status = PlaybackStatus.PLAYING
+            self._status = PlaybackStatus.BUFFERING
             self._pump_timer.start()
         else:
             self._prepare_pipeline(target_ms)
@@ -171,6 +180,12 @@ class DawAudioBackend(QObject):
 
     def error_message(self) -> str | None:
         return self._error_message
+
+    def stream_title(self) -> str:
+        return self._stream_title
+
+    def set_stream_buffer_profile(self, profile: StreamBufferProfile) -> None:
+        self._decoder.set_stream_buffer_profile(profile)
 
     def available_output_devices(self) -> list[AudioOutputDevice]:
         default_id = self._device_id(QMediaDevices.defaultAudioOutput())
@@ -208,11 +223,11 @@ class DawAudioBackend(QObject):
                 raise ValueError("The selected audio device supports no PCM output mode.")
             self._output_mode = fallback
             self._decoder.set_output_layout(fallback.av_layout)
-        if self._source_path is None:
+        if self._source is None:
             return
-        if previous_status == PlaybackStatus.PLAYING:
+        if previous_status in {PlaybackStatus.PLAYING, PlaybackStatus.BUFFERING}:
             self._restart_pipeline(position_ms, start_output=True)
-            self._status = PlaybackStatus.PLAYING
+            self._status = PlaybackStatus.BUFFERING
             self._pump_timer.start()
         elif previous_status == PlaybackStatus.PAUSED:
             self._prepare_pipeline(position_ms)
@@ -223,20 +238,18 @@ class DawAudioBackend(QObject):
 
     def set_output_mode(self, mode: AudioOutputMode) -> None:
         if mode not in self._supported_modes(self._selected_output_device()):
-            raise ValueError(
-                f"{mode.value} output is not supported by the selected audio device."
-            )
+            raise ValueError(f"{mode.value} output is not supported by the selected audio device.")
         if mode == self._output_mode:
             return
         position_ms = self.position_ms()
         previous_status = self._status
         self._output_mode = mode
         self._decoder.set_output_layout(mode.av_layout)
-        if self._source_path is None:
+        if self._source is None:
             return
-        if previous_status == PlaybackStatus.PLAYING:
+        if previous_status in {PlaybackStatus.PLAYING, PlaybackStatus.BUFFERING}:
             self._restart_pipeline(position_ms, start_output=True)
-            self._status = PlaybackStatus.PLAYING
+            self._status = PlaybackStatus.BUFFERING
             self._pump_timer.start()
         elif previous_status == PlaybackStatus.PAUSED:
             self._prepare_pipeline(position_ms)
@@ -267,18 +280,18 @@ class DawAudioBackend(QObject):
             self._audio_samples.clear()
 
     def _start_worker(self, position_ms: int) -> None:
-        if self._source_path is None:
+        if self._source is None:
             return
         self._generation += 1
         self._decode_worker.start(
             generation=self._generation,
-            path=self._source_path,
+            source=self._source,
             position_ms=position_ms,
         )
 
     def _pump_output(self) -> None:
         if (
-            self._status != PlaybackStatus.PLAYING
+            self._status not in {PlaybackStatus.PLAYING, PlaybackStatus.BUFFERING}
             or self._sink is None
             or self._output_device is None
         ):
@@ -295,9 +308,7 @@ class DawAudioBackend(QObject):
             if written <= 0:
                 break
             if self._audio_samples is not None:
-                self._audio_samples.append_pcm16(
-                    outgoing[:written], self._output_mode.channels
-                )
+                self._audio_samples.append_pcm16(outgoing[:written], self._output_mode.channels)
             self._pending_audio = self._pending_audio[written:]
             bytes_free -= written
 
@@ -318,6 +329,7 @@ class DawAudioBackend(QObject):
             return True
         if isinstance(message, PcmChunk):
             self._pending_audio = message.payload
+            self._status = PlaybackStatus.PLAYING
         elif isinstance(message, DecodeFinished):
             self._decode_finished = True
         elif isinstance(message, DecodeFailed):
@@ -327,6 +339,8 @@ class DawAudioBackend(QObject):
             self._reset_output()
             if self._error_callback is not None:
                 self._error_callback()
+        elif isinstance(message, StreamMetadataChanged):
+            self._stream_title = message.title
         return True
 
     def _finish_playback(self) -> None:
@@ -410,11 +424,15 @@ class DawAudioBackend(QObject):
             except queue.Empty:
                 return
 
-    def _path_from_source(self, source: AudioSource) -> Path:
+    def _decoder_source(self, source: AudioSource) -> tuple[DecoderSource, bool]:
         url = QUrl(source.uri)
-        if not url.isLocalFile():
-            raise ValueError("DAW audio backend currently supports local files only.")
-        path = Path(url.toLocalFile())
-        if not path.exists():
-            raise FileNotFoundError(path)
-        return path
+        if url.isLocalFile():
+            path = Path(url.toLocalFile())
+            if not path.exists():
+                raise FileNotFoundError(path)
+            return path, False
+        if url.scheme().casefold() not in {"http", "https"}:
+            raise ValueError("Only local files and HTTP(S) audio streams are supported.")
+        if not url.host():
+            raise ValueError("The stream URL has no host.")
+        return source.uri, True
