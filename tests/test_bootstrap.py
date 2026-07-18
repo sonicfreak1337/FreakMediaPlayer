@@ -2,9 +2,37 @@ from pathlib import Path
 from unittest.mock import patch
 
 from freak_media_player.app.bootstrap import build_app_context
+from freak_media_player.config.settings import PlayerPreferences
 from freak_media_player.models.media import Artist, ProviderIdentity, Track
-from freak_media_player.models.playback import PlaybackStatus, RepeatMode
+from freak_media_player.models.playback import (
+    AudioOutputDevice,
+    AudioOutputMode,
+    PlaybackStatus,
+    RepeatMode,
+)
 from freak_media_player.player.audio_backend import NullAudioBackend
+
+
+class MonoOnlyAudioBackend(NullAudioBackend):
+    def available_output_devices(self) -> list[AudioOutputDevice]:
+        return [
+            AudioOutputDevice(
+                "mono-default",
+                "Mono-only output",
+                True,
+                (AudioOutputMode.MONO,),
+            )
+        ]
+
+    def set_output_device(self, device_id: str | None) -> None:
+        if device_id not in {None, "mono-default"}:
+            raise ValueError(f"Unknown audio output device: {device_id}")
+        super().set_output_device(None)
+
+    def set_output_mode(self, mode: AudioOutputMode) -> None:
+        if mode is not AudioOutputMode.MONO:
+            raise ValueError(f"Unsupported audio output mode: {mode}")
+        super().set_output_mode(mode)
 
 
 def test_bootstrap_initializes_database(tmp_path: Path) -> None:
@@ -17,6 +45,31 @@ def test_bootstrap_initializes_database(tmp_path: Path) -> None:
             assert context.equalizer_service.current_preset().preset_id == "flat"
         finally:
             context.database.connection.close()
+
+
+def test_bootstrap_repairs_missing_device_with_supported_default_mode(
+    tmp_path: Path,
+) -> None:
+    with patch.dict("os.environ", {"LOCALAPPDATA": str(tmp_path)}):
+        first = build_app_context(audio_backend=NullAudioBackend())
+        first.settings_service.save_player_preferences(
+            PlayerPreferences(
+                audio_device_id="disconnected-device",
+                audio_output_mode="stereo",
+            )
+        )
+        first.database.connection.close()
+
+        backend = MonoOnlyAudioBackend()
+        second = build_app_context(audio_backend=backend)
+        try:
+            repaired = second.settings_service.load_player_preferences()
+            assert second.playback_service.selected_output_device_id() is None
+            assert second.playback_service.output_mode() is AudioOutputMode.MONO
+            assert repaired.audio_device_id is None
+            assert repaired.audio_output_mode == "mono"
+        finally:
+            second.database.connection.close()
 
 
 def test_bootstrap_restores_last_volume_and_equalizer(tmp_path: Path) -> None:

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 
 from freak_media_player.config.paths import AppPathResolver, AppPaths
-from freak_media_player.config.settings import AppSettings
+from freak_media_player.config.settings import AppSettings, PlayerPreferences
 from freak_media_player.core.ports import AudioBackend
 from freak_media_player.database.session import DatabaseSession, DatabaseSessionFactory
 from freak_media_player.models.playback import AudioOutputMode
@@ -27,6 +28,7 @@ from freak_media_player.services.settings_service import SettingsService
 
 LOCAL_METADATA_INDEX_KEY = "library.local_metadata_index_version"
 LOCAL_METADATA_INDEX_VERSION = 1
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -79,18 +81,11 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
     queue = PlaybackQueue(playlist_service.list_tracks())
     audio_samples = AudioSampleBuffer(capture_enabled=False)
     selected_audio_backend = audio_backend or create_desktop_audio_backend(audio_samples)
-    try:
-        selected_audio_backend.set_output_device(player_preferences.audio_device_id)
-        selected_audio_backend.set_output_mode(
-            AudioOutputMode(player_preferences.audio_output_mode)
-        )
-    except ValueError:
-        player_preferences = replace(
-            player_preferences, audio_device_id=None, audio_output_mode="stereo"
-        )
-        selected_audio_backend.set_output_device(None)
-        selected_audio_backend.set_output_mode(AudioOutputMode.STEREO)
-        settings_service.save_player_preferences(player_preferences)
+    player_preferences = _configure_audio_output(
+        selected_audio_backend,
+        player_preferences,
+    )
+    settings_service.save_player_preferences(player_preferences)
     selected_audio_backend.set_volume(settings_service.load_playback_volume())
     selected_audio_backend.set_equalizer_preset(
         settings_service.load_equalizer_preset(selected_audio_backend.equalizer_preset())
@@ -142,3 +137,62 @@ def build_app_context(audio_backend: AudioBackend | None = None) -> AppContext:
         search_service=search_service,
         settings_service=settings_service,
     )
+
+
+def _configure_audio_output(
+    audio_backend: AudioBackend,
+    preferences: PlayerPreferences,
+) -> PlayerPreferences:
+    """Restore a usable output without letting stale device settings abort startup."""
+    try:
+        audio_backend.set_output_device(preferences.audio_device_id)
+    except ValueError as error:
+        LOGGER.warning("Stored audio output is unavailable: %s", error)
+        try:
+            audio_backend.set_output_device(None)
+        except ValueError as fallback_error:
+            # Keep the application usable even when Windows currently exposes no
+            # PCM-capable device. Playback can report the device error later.
+            LOGGER.warning("Default audio output is unavailable: %s", fallback_error)
+
+    requested_mode = AudioOutputMode(preferences.audio_output_mode)
+    supported_modes = _selected_output_modes(audio_backend)
+    candidates = dict.fromkeys(
+        (
+            requested_mode,
+            AudioOutputMode.STEREO,
+            AudioOutputMode.MONO,
+            AudioOutputMode.SURROUND_5_1,
+            AudioOutputMode.SURROUND_7_1,
+        )
+    )
+    for candidate in candidates:
+        if candidate not in supported_modes:
+            continue
+        try:
+            audio_backend.set_output_mode(candidate)
+        except ValueError as error:
+            # Audio devices can disappear between enumeration and selection.
+            LOGGER.warning("Audio mode %s became unavailable: %s", candidate, error)
+            continue
+        break
+
+    return replace(
+        preferences,
+        audio_device_id=audio_backend.selected_output_device_id(),
+        audio_output_mode=audio_backend.output_mode().value,
+    )
+
+
+def _selected_output_modes(audio_backend: AudioBackend) -> tuple[AudioOutputMode, ...]:
+    devices = audio_backend.available_output_devices()
+    if not devices:
+        return ()
+    selected_id = audio_backend.selected_output_device_id()
+    selected = next(
+        (device for device in devices if device.device_id == selected_id),
+        None,
+    )
+    if selected is None:
+        selected = next((device for device in devices if device.is_default), devices[0])
+    return selected.supported_modes
